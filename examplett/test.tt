@@ -1,0 +1,83 @@
+Datatype Nat {
+   TyCon Nat : *,
+   Con O : Nat,
+   Con S : (n:Nat)Nat,
+   Elim natElim : (n:Nat)(P:(n:Nat)*)
+                  (mz:(P O))
+		  (ms:(k:Nat)(ih:(P n))(P (S k)))
+		  (P n),
+   Scheme O,P,mz,ms -> mz
+   Scheme (S k),P,mz,ms -> ms k (natElim k P mz ms)
+};
+
+holey_plus = [m:Nat][n:Nat](?H:Nat. 
+	   (natElim n ([n:Nat]Nat) H ([k:Nat][ih:Nat](S ih))));
+H. try m;
+H. solve;
+H. cut;
+Prf;
+holey_plus.solve;
+Lift;
+
+plus = [m:Nat][n:Nat](natElim n ([n:Nat]Nat) m ([k:Nat][ih:Nat](S ih)));
+mult = [m:Nat][n:Nat](natElim n ([n:Nat]Nat) O ([k:Nat][ih:Nat](plus m ih)));
+fact = [n:Nat](natElim n ([n:Nat]Nat) (S O) ([k:Nat][ih:Nat](mult ih (S k))));
+
+double : (n:Nat)Nat;
+double. attack H;
+H. intro;
+H. x:Nat;
+H. y:Nat;
+H. try plus x y;
+H. solve;
+y. try n;
+y. solve;
+x. try n; 
+x. solve;
+double. solve;
+Lift;
+
+id : (A:*)(a:A)A;
+id. attack H;
+H. intro;
+H. intro;
+H. try a;
+H. solve;
+H. cut;
+id. solve;
+Lift;
+
+Eval plus (S (S O)) (S (S O));
+
+Datatype Vect {
+   TyCon Vect : (A:*)(n:Nat)*,
+   Con Vnil : (A:*)(Vect A O),
+   Con Vcons : (A:*)(k:Nat)(a:A)(v:Vect A k)(Vect A (S k)),
+   Elim VectElim : (A:*)
+                   (n:Nat)
+                   (v:Vect A n)
+                   (P:(n:Nat)(v:Vect A n)*)
+                   (mnil:(P O (Vnil A)))
+                   (mcons:(k:Nat)(a:A)(v:Vect A k)(ih:P k v)
+                          (P (S k) (Vcons A k a v)))
+                   (P n v),
+    Scheme A,O,(Vnil A),P,mnil,mcons -> mnil
+    Scheme A,(S k),(Vcons A k a v),P,mnil,mcons 
+          -> mcons k a v (VectElim A k v P mnil mcons)
+};
+
+vectFold = [A:*][B:*][n:Nat][v:Vect A n][empty:B][tail:(a:A)(b:B)B]
+	 (VectElim A n v ([n:Nat][v:Vect A n]B) empty
+	     ([k:Nat][a:A][v:Vect A k][ih:B](tail a ih)));
+
+Eval VectElim Nat O (Vnil Nat) ([n:Nat][v:Vect Nat n]Nat) 
+    (S O) ([k:Nat][a:Nat][v:Vect Nat k][ih:Nat](S ih));
+
+Eval VectElim Nat (S (S O)) (Vcons Nat (S O) (S O) (Vcons Nat O (S O) (Vnil Nat)))
+    ([n:Nat][v:Vect Nat n]Nat) (S O) ([k:Nat][a:Nat][v:Vect Nat k][ih:Nat](S (S ih)));
+
+Output "rts/test";
+
+Eval fact (S (S (S (S (S (S (S O)))))));
+
+Quit;

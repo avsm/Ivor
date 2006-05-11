@@ -1,0 +1,24 @@
+* Tactics should know what level they operate at; currently we need to
+  allow escapes at the top level in the typechecker as a hack, and
+  trust people to get it right.
+* intro should check that the name it is introducing is not the name of
+  another goal, or we get confused.
+* Resuming an incomplete proof (e.g. created by suspend or axiomatise)
+  resumes it in the current global context, not the context at the
+  point when it was suspended. So if you're sneaky, you can make a
+  non-terminating definition this way.
+  Workaround: Please don't do that.
+* Refine tactic adds as many claims as possible, rather than adding
+  claims for one argument at a time then attempting to unify.
+  Workaround: Use intros before refining. You might then need to solve
+  some of the arguments explicitly.
+* No check for strict positivity.
+  Workaround: Don't use non positive types :).
+* Higher order recursive datatypes do not have induction hypothesis
+  generated for the higher order arguments.
+
+Recently fixed:
+
+* If a datatype has a placeholder in its indices, the value should
+  be inferred (i.e. it should be checked) otherwise we can't make a pattern
+  properly (and we'll certainly need this for optimisation).

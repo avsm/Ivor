@@ -1,0 +1,39 @@
+\documentclass{article}
+
+\input{macros.ltx}
+\input{library.ltx}
+\input{local.ltx}
+
+\NatPackage
+
+\begin{document}
+
+\title{\prover{} --- A Type Theory Based Theorem Proving Library}
+\author{Edwin Brady}
+
+\maketitle
+
+% Introduction
+\input{intro.tex}
+
+% The type theory
+\input{tt.tex}
+
+% The interface
+\input{interface.tex}
+
+% The shell
+\input{shell.tex}
+
+% Primitive tactics
+\input{tactics.tex}
+
+% Making new tactics; combinators
+\input{combinators.tex}
+
+\input{conclusion}
+
+\bibliographystyle{alpha}
+\bibliography{dtp}
+
+\end{document}

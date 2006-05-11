@@ -1,0 +1,29 @@
+Load "nat.tt";
+
+Primitives;
+
+natToInt : (x:Nat)Int;
+intros;
+induction x;
+fill 0;
+intros;
+fill addInt 1 k_IH;
+Qed;
+
+ack:(x,y:Nat)<ack x y: Nat>;
+intro x;
+induction x;
+intros;
+return;
+fill (S y);
+intros;
+induction y0;
+return;
+call ack k (S O);
+intros;
+refine k_IH;
+fill call <ack (S k) k0> k_IH0;
+Qed;
+
+runack = [x,y:Int](natToInt (call <ack (intToNat x) (intToNat y)>
+            (ack (intToNat x) (intToNat y))));

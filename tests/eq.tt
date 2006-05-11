@@ -1,0 +1,31 @@
+Data Eq (A:*)(a:A) : (b:A)* = refl : Eq A a a;
+
+repl : (A:*)(a:A)(b:A)(q:Eq _ a b)(P:(a:A)*)(p:P a)(P b);
+intros;
+induction q;
+fill p;
+Qed;
+Freeze repl;
+
+trans : (A:*)(a:A)(b:A)(c:A)(p:Eq _ a b)(q:Eq _ b c)(Eq _ a c);
+intros;
+induction q;
+fill p;
+Qed;
+Freeze trans;
+
+sym : (A:*)(a:A)(b:A)(p:Eq _ a b)(Eq _ b a);
+intros;
+induction p;
+refine refl;
+Qed;
+Freeze sym;
+
+Repl Eq repl sym;
+
+eq_resp_f:(A,B:*)(f:(a:A)B)(x:A)(y:A)(q:Eq _ x y)(Eq _ (f x) (f y));
+intros;
+induction q;
+refine refl;
+Qed;
+Freeze eq_resp_f;

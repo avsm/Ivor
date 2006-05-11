@@ -1,0 +1,53 @@
+{- Uustalu, Altenkirch and Capretta's Partiality monad -}
+
+Data Partial (A:*) : * = {- codata -}
+    Now : (a:A)Partial A
+  | Later : (p:Partial A)Partial A;
+
+Declare never:(A:*)Partial A;
+never = [A:*](Later _ (never A));
+
+returnD = [A:*][a:A]Now _ a;
+
+{- corecursive -}
+Rec bindD : (A,B:*)(d:Partial A)(k:(a:A)(Partial B))Partial B;
+intros;
+case d;
+intros;
+fill k a;
+intros;
+fill Later _ (bindD _ _ p k);
+Qed;
+
+{- corecursive -}
+Rec lfpAux : (A,B:*)(k:(a0:A)(Partial B))
+   (f:(fk:(a1:A)Partial B)(fa:A)Partial B)(a:A)Partial B;
+intros;
+case f k a;
+intros;
+fill Now _ a0;
+intros;
+fill Later _ (lfpAux _ _ (f k) f a);
+Qed;
+
+lfp = [A,B:*][f:(k:(a:A)Partial B)((a:A)Partial B)][a:A]
+        (lfpAux _ _ ([x:A]never B) f a);
+
+Load "nat.tt";
+
+fact : (x:Nat)Partial Nat;
+intros;
+refine lfp Nat;
+intro factfn arg;
+case arg;
+refine returnD;
+fill (S O);
+intros;
+case (factfn k);
+intros;
+refine returnD;
+fill (mult a (S k));
+intros;
+fill p;
+fill x;
+Qed;

@@ -1,0 +1,34 @@
+Short term things to do:
+
+* Keep track of level in proof state.
+* Syntax for equality.
+* Elimination with a motive.
+* Unit tests - at least check nat.tt, vect.tt, JM equality,
+  primitives, simple staging, compiler.
+* More readable high level language for function definition. Really
+  just has to use tactic engine to translate simple case expressions into
+  D-case calls.
+* Separate API into several files for clarity.
+* Allow call <fn args> _ in raw terms; i.e. allow the typechecker to
+  spot recursive calls, rather than needing a tactic to do so.
+* Finish compiler by:
+  - Finding a method of exporting primitive types
+  - Implement compilation of D-Case
+
+Things which could be done to the library, in no particular order
+(other than the order I thought of them in...):
+
+* A higher level dependently typed language might be useful (e.g. like
+  Coq's language). If not useful, at least fun :).
+* Namespace management.
+* Some useful error messages from the Parsec parsers would be nice.
+* Proper type universes, of some form.
+* Generate DRec as well as DElim/DCase.
+* Build in Sigma types?
+
+Tactics:
+
+* Injectivity.
+* Discriminate.
+* Inversion, likewise.
+

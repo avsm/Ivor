@@ -1,0 +1,67 @@
+Load "fin.tt";
+
+Data Vect (A:*):(n:Nat)* 
+    = vnil:Vect A O
+    | vcons:(k:Nat)(x:A)(xs:Vect A k)Vect A (S k);
+
+vtail : (A:*)(k:Nat)(xs:Vect A (S k))Vect A k;
+local vtailAux : (A:*)(k:Nat)(k':Nat)(xs:Vect A k')(p:Eq _ (S k) k')Vect A k;
+Focus H;
+intros;
+refine (vtailAux _ k _ xs);
+refine refl;
+intro A k k' xs;
+induction xs;
+intros;
+fill discriminate_Nat _ _ (sym _ _ _ p);
+intros;
+replace s_injective _ _ p0;
+fill xs0;
+Qed;
+
+testvect = vcons _ _ (S O) (vnil Nat);
+
+vectsum : (k:Nat)(v:Vect Nat k)Nat;
+intros;
+induction v;
+fill O;
+intros;
+fill (plus x xs_IH);
+Qed;
+
+testvect2 = vcons _ _ (S O) (vcons _ _ (S (S (S O))) (vnil Nat));
+testval2 = vectsum _ testvect2;
+
+lookup:(A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A;
+local lookupAux:(A:*)(n:Nat)(i:Fin n)(n':Nat)(xs:Vect A n')(p:Eq _ n n')A;
+intro A n i;
+induction i;
+intro k n' xs;
+induction xs;
+intros;
+fill (discriminate_Nat _ _ (sym _ _ _ p));
+intros;
+fill x; {- fz (x::xs) -}
+intro k i i_IH n' xs;
+induction xs;
+intros;
+fill (discriminate_Nat _ _ (sym _ _ _ p0));
+intros;
+refine (i_IH k0);
+fill xs0;
+refine s_injective;
+trivial;
+intros;
+refine (lookupAux _ _ i _ xs);
+refine refl;
+Qed;
+
+lookupLt:(A:*)(n:Nat)(i:Nat)(p:Lt i n)(xs:Vect A n)A;
+intros;
+refine lookup;
+fill n;
+refine mkFin;
+fill i;
+fill p;
+fill xs;
+Qed;

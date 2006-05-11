@@ -1,0 +1,16 @@
+Load "lt.tt";
+
+Data Fin : (n:Nat)*
+    = fz : (k:Nat)(Fin (S k))
+    | fs : (k:Nat)(i:Fin k)(Fin (S k));
+
+mkFin : (m,n:Nat)(p:Lt m n)(Fin n);
+intros;
+induction p;
+intros;
+refine fz;
+intros;
+refine fs;
+fill p_IH;
+Qed;
+

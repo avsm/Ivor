@@ -1,0 +1,25 @@
+Load "nat.tt";
+
+Data Lt : (m,n:Nat)* = ltO : (m:Nat)Lt O (S m)
+		     | ltS : (m,n:Nat)(p:Lt m n)Lt (S m) (S n);
+
+LtmSn : (m,n:Nat)(p:Lt m n)(Lt m (S n));
+intros;
+induction p;
+intros;
+refine ltO;
+intros;
+refine ltS;
+fill p_IH;
+Qed;
+
+Ltmplus : (m,n,i:Nat)(p:Lt m n)(Lt m (plus n i));
+intros;
+induction p;
+intros;
+refine ltO;
+intro m2 n1;
+intros;
+refine ltS;
+fill p_IH;
+Qed;

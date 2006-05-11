@@ -1,0 +1,37 @@
+Datatype Nat {
+   TyCon Nat : *,
+   Con O : Nat,
+   Con S : (n:Nat)Nat,
+   Elim natElim : (n:Nat)(P:(n:Nat)*)
+                  (mz:(P O))
+		  (ms:(k:Nat)(ih:(P n))(P (S k)))
+		  (P n),
+   Scheme O,P,mz,ms -> mz
+   Scheme (S k),P,mz,ms -> ms k (natElim k P mz ms)
+};
+
+plus : (m:Nat)(n:Nat)Nat;
+intro;
+intro;
+claim A:*;
+claim mzero:A;
+claim msuc:(k:Nat)(ih:A)A;
+try natElim m ([n:Nat]A) mzero msuc;
+mzero.try n;
+solve;
+msuc.focus;
+attack M;
+intro;
+intro;
+try (S ih);
+solve;
+M.cut;
+msuc.solve;
+msuc.cut;
+H.solve;
+H.cut;
+mzero.cut;
+plus.tidy;
+solve;
+Lift;
+

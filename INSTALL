@@ -1,0 +1,14 @@
+Requirements:
+   GHC version >= 6.4, 
+   happy
+
+To build and install:
+
+1. Edit the DB and PREFIX variables in the Makefile; DB should be
+   --user to install for a single user, or --global to install for all
+   users. PREFIX should point to the installation directory.
+2. Enter the following:
+   make
+   make install
+3. [optional] To build and install the driver/shell, enter the following:
+   make jones_install

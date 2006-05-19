@@ -30,7 +30,7 @@ the target, methods and the motives are unique.
 >                               params datacons motiveName methNames
 >         tycontype = mkCon params contype in
 >         return $ --(trace (show ischemes)) $  
->          RData (name,tycontype) datacons 
+>          RData (name,tycontype) datacons (length params)
 >                    (ruleName name "Elim", ecasetype) -- elim rule
 >                    (ruleName name "Case", ccasetype) -- case rule
 >                    eischemes -- elim rule iota schemes

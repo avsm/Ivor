@@ -22,7 +22,7 @@
 > import Ivor.TT as TT
 > import Ivor.Gadgets
 > import Ivor.Primitives
-> import Ivor.Plugin
+> -- import Ivor.Plugin
 
 > import IO
 > import System
@@ -235,12 +235,14 @@ function which doesn't need to be in the IO Monad.
 > process (Failure err) st = return $ respondLn st err
 > process (Success (Command (Load f))) st = do importFile f st
 > process (Success (Command (Plugin f))) st = do 
+>     fail "Plugins currently unsupported"
+>     {-
 >     (ctxt, exts) <- load f (context st)
 >     let st' = st { context = ctxt }
 >     let st'' = case exts of
 >                    Nothing -> st' 
 >                    Just p -> extendParser st' p
->     return st''
+>     return st'' -}
 > process (Success (Command (Compile f))) st = do compile (context st) f
 >                                                 putStrLn $ "Output " ++ f ++ ".hs"
 >                                                 return st

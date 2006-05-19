@@ -26,19 +26,32 @@ State of the system, include all definitions, pattern matching rules,
 compiled terms, etc.
 
 > data IState = ISt {
+>            -- All definitions        
 >	     defs :: !(Gamma Name),
+>            -- All datatype definitions
 >            datadefs :: [(Name,Datatype Name)],
+>            -- All elimination rules in their pattern matching form
+>            -- (with type)
+>            eliminators :: [(Name, (Indexed Name, [Scheme Name]))],
+>            -- Supercombinators for each definition
 >            runtt :: SCs,
+>            -- Bytecode for each definitions
 >            bcdefs :: ByteDef,
+>            -- List of holes to be solved in proof state
 >            holequeue :: ![Name],
+>            -- Current proof term (FIXME: Combine with holequeue, and make it efficient)
 >            proofstate :: !(Maybe (Indexed Name)),
+>            -- Actions required of last tactic
 >            actions :: ![TacticAction],
+>            -- List of fresh names for tactics to use
 >            namesupply :: [Name],
+>            -- Output from last operation
 >            response :: String,
+>            -- Previous state
 >            undoState :: !(Maybe IState)
 >        }
 
-> initstate = ISt (Gam []) [] [] [] [] Nothing [] mknames "" Nothing
+> initstate = ISt (Gam []) [] [] [] [] [] Nothing [] mknames "" Nothing
 >   where mknames = [MN ("myName",x) | x <- [1..]]
 
 > respond :: IState -> String -> IState
@@ -74,8 +87,12 @@ Take a data type definition and add constructors and elim rule to the context.
 >                addElim ctxt runtts bcs (erule dt) (e_ischemes dt)
 >            (newdefs, newruntts, newbc) <-
 >                addElim ctxt newruntts newbc (crule dt) (c_ischemes dt)
+>            let newelims = (fst (erule dt), (snd (erule dt), e_ischemes dt)):
+>                           (fst (crule dt), (snd (crule dt), c_ischemes dt)):
+>                           eliminators st
 >            let newdatadefs = (n,dt):(datadefs st)
 >            return $ st { defs = newdefs, datadefs = newdatadefs,
+>                          eliminators = newelims,
 >                          bcdefs = newbc, runtt = newruntts }
 >    where addCons [] ctxt = return ctxt
 >          addCons ((n,gl):xs) ctxt = do

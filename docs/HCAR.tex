@@ -5,14 +5,12 @@
 
 \begin{document}
 
-\newcommand{\Libname}{Ivor}
-
-\begin{hcarentry}{\Libname{}}
+\begin{hcarentry}{Ivor}
 \report{Edwin Brady}
 \status{Active Development}
 \makeheader
 
-\Libname{} is a tactic-based theorem proving engine with a Haskell API. Unlike
+Ivor is a tactic-based theorem proving engine with a Haskell API. Unlike
 other systems such as Coq and Agda, the tactic engine is primarily
 intended to be used by programs, rather than a human operator. To this
 end, the API provides a collection of primitive tactics and
@@ -24,7 +22,7 @@ The primary aim of the library is to support research into generative
 programming and resource bounded computation in Hume
 (\url{http://www.hume-lang.org/}). In this setting, we have developed a
 dependently typed framework for representing program execution cost,
-and used the \Libname{} library to implement domain specific tactics for
+and used the Ivor library to implement domain specific tactics for
 constructing programs within this framework. However the library is
 more widely applicable, some potential uses being:
 
@@ -37,7 +35,7 @@ more widely applicable, some potential uses being:
   strong correctness properties.
 \end{itemize}
 
-\Libname{} features a dependent type theory similar to Luo's ECC with
+Ivor features a dependent type theory similar to Luo's ECC with
 definitions, with additional (experimental) multi-stage programming
 support. Optionally, it can be extended with heterogenous equality,
 primitive types and operations, new parser rules and user defined

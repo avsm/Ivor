@@ -272,7 +272,7 @@
 >     rerule <- eqElimType (show ty) (show con) "Elim"
 >     rcrule <- eqElimType (show ty) (show con) "Case"
 >     rischeme <- eqElimSch (show con)
->     let rdata = (RData rtycon [rdatacon] rerule rcrule [rischeme] [rischeme])
+>     let rdata = (RData rtycon [rdatacon] 2 rerule rcrule [rischeme] [rischeme])
 >     st <- doData st ty rdata
 >     return $ Ctxt st
 

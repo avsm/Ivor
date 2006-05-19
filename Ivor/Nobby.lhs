@@ -1,6 +1,6 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
-> module Ivor.Nobby where {- *chortle* -} 
+> module Ivor.Nobby where
 
 > import Ivor.TTCore
 > import Ivor.Gadgets

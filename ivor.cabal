@@ -6,13 +6,14 @@ License-file:	LICENSE
 Maintainer:	eb@dcs.st-and.ac.uk
 Homepage:	http://www.dcs.st-and.ac.uk/~eb/Ivor/
 Stability:	experimental
-Build-depends:	base, haskell98, util, parsec, mtl, plugins, Cabal
+Build-depends:	base, haskell98, util, parsec, mtl, Cabal
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,
 		ExistentialQuantification, OverlappingInstances
+ghc-prof-options: -auto-all
 Synopsis:	Theorem proving library based on dependent type theory
 Exposed-modules:
 		Ivor.TT, Ivor.Shell, Ivor.Primitives, 
-		Ivor.TermParser, Ivor.ViewTerm, Ivor.Plugin
+		Ivor.TermParser, Ivor.ViewTerm
 Other-modules:	Ivor.Nobby, Ivor.TTCore, Ivor.State, 
 		Ivor.Tactics, Ivor.Typecheck,
 		Ivor.Gadgets, Ivor.SC, Ivor.Bytecode,

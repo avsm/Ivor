@@ -45,7 +45,7 @@ and upload it.
 >     setCurrentDirectory ".."
 >     shell $ "gpg -b " ++ rootname ++ ".tgz"
 >     shell $ "gpg -b " ++ rootname ++ "/Jones/jones"
->     shell $ "scp "++rootname++".tgz " ++ rootname ++"/Jones/jones " 
+>     shell $ "scp "++rootname++".tgz " -- ++ rootname ++"/Jones/jones " 
 >                   ++rootname++".tgz.sig " ++ rootname ++ "/Jones/jones.sig " ++ dest
 >     shell $ "scp "++rootname++"/dist/doc/html/* "++dest++"doc"
 >     shell $ "rm -rf " ++ rootname

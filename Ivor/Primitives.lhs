@@ -110,8 +110,7 @@
 >                      return $ Constant x
 
 > parseInt :: Parser Int
-> parseInt = lexeme $ do inttok <- many1 digit
->                        return $ read inttok
+> parseInt = lexeme $ fmap read (many1 digit)
 
 > -- | Parse a term including primitives
 > parsePrimTerm :: Monad m => String -> m ViewTerm

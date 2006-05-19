@@ -21,6 +21,7 @@ Elaborated version with elimination rule and iota schemes.
 > data RawDatatype = 
 >	   RData { rtycon :: (Name,Raw),
 >	           rdatacons :: [(Name,Raw)],
+>                  rnum_params :: Int,
 >	           rerule :: (Name,Raw),
 >                  rcrule :: (Name,Raw),
 >	           re_ischemes :: [RawScheme],
@@ -34,6 +35,7 @@ Elaborated version with elimination rule and iota schemes.
 > data Datatype n =
 >	   Data { tycon :: (n, Gval n),
 >	          datacons :: [(n, Gval n)],
+>                 num_params :: Int,
 >	          erule :: (n, Indexed n),
 >                 crule :: (n, Indexed n),
 >	          e_ischemes :: [Scheme n],
@@ -56,7 +58,7 @@ schemes, and returns a DataType, ready for compilation to entries in
 the context and an executable elimination rule.
 
 > checkType :: Monad m => Gamma Name -> RawDatatype -> m (Datatype Name)
-> checkType gamma (RData (ty,kind) cons (er,erty) (cr,crty) eschemes cschemes) = 
+> checkType gamma (RData (ty,kind) cons numps (er,erty) (cr,crty) eschemes cschemes) = 
 >     do (kv, _) <- typecheck gamma kind
 >        let erdata = Elims er cr
 >	 let gamma' = extend gamma (ty,G (TCon (arity gamma kv) erdata) kv)
@@ -66,7 +68,7 @@ the context and an executable elimination rule.
 >	 let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev)
 >	 esch <- checkSchemes gamma''' er eschemes
 >	 csch <- checkSchemes gamma''' er cschemes
->	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv) consv 
+>	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv) consv numps
 >                    (er,ev) (cr,cv) esch csch)
 
 >    where checkCons gamma t [] = return ([], gamma)

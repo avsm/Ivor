@@ -7,7 +7,7 @@
 > --
 > -- Maintainer  : eb@dcs.st-and.ac.uk
 > -- Stability   : experimental
-> -- Portability : portable
+> -- Portability : non-portable
 > -- 
 > -- Exported view of terms and inductive data structures; imported 
 > -- implicitly by "Ivor.TT".

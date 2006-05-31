@@ -7,7 +7,7 @@
 > --
 > -- Maintainer  : eb@dcs.st-and.ac.uk
 > -- Stability   : experimental
-> -- Portability : portable
+> -- Portability : non-portable
 > -- 
 > -- Shell interface to theorem prover
 

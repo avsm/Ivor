@@ -7,7 +7,7 @@
 > --
 > -- Maintainer  : eb@dcs.st-and.ac.uk
 > -- Stability   : experimental
-> -- Portability : portable
+> -- Portability : non-portable
 > -- 
 > -- Some basic primitive types. Importing this module adds instances
 > -- of 'ViewConst' for Int, Float and String (Float is represented by

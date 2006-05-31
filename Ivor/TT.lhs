@@ -56,6 +56,7 @@
 >               -- ** Introductions
 >               fill,
 >               refine,
+>               basicRefine,
 >               refineWith,
 >               trivial,
 >               axiomatise,
@@ -423,8 +424,9 @@ Slightly annoying, but we'll cope.
 >        case (proofstate st) of
 >            Nothing -> do 
 >                       let thm = Tactics.theorem n tv
->                       return $ Ctxt st { proofstate = Just $ thm,
->                                          holequeue = [n] }
+>                       attack defaultGoal 
+>                                  $ Ctxt st { proofstate = Just $ thm,
+>                                              holequeue = [n] }
 >            (Just t) -> fail "Already a proof in progress"
 
 > -- |Begin a new interactive definition.
@@ -439,8 +441,9 @@ Slightly annoying, but we'll cope.
 >        case (proofstate st) of
 >            Nothing -> do 
 >                       let thm = Tactics.theorem n tv
->                       return $ Ctxt st' { proofstate = Just $ thm,
->                                           holequeue = [n] }
+>                       attack defaultGoal 
+>                                  $ Ctxt st' { proofstate = Just $ thm,
+>                                               holequeue = [n] }
 >            (Just t) -> fail "Already a proof in progress"
 
 > -- |Suspend the current proof. Clears the current proof state; use 'resume'
@@ -733,7 +736,7 @@ Tactics
 > focus :: Tactic
 > focus (Goal n) (Ctxt st)
 >    | n `elem` holequeue st 
->        = return $ Ctxt st { holequeue = jumpqueue n (holequeue st) }
+>        = attack (Goal n) $ Ctxt st { holequeue = jumpqueue n (holequeue st) }
 >    | otherwise = fail "No such goal"
 > focus _ x = return x -- Default goal already first
 
@@ -853,20 +856,29 @@ Convert an internal tactic into a publicly available tactic.
 >                           runTac (Tactics.claim name' rawty) g ctxt
 
 > -- | Solve a goal by applying a function.
+> -- If the term given has arguments, attempts to fill in these arguments
+> -- by unification and solves them (with 'solve').
+> -- See 'refineWith' and 'basicRefine' for slight variations.
+> refine :: IsTerm a => a -> Tactic
+> refine tm = basicRefine tm >=> trySolve
+
+> -- | Solve a goal by applying a function.
 > -- If the term given has arguments, this will create a subgoal for each.
 > -- Some arguments may be solved by unification, in which case they will
-> -- already have a guess attached after refinement.
-> -- See 'refineWith' for a slight variation.
-> refine :: IsTerm a => a -> Tactic
-> refine tm = do rawtm <- raw tm
->                runTac (Tactics.refine rawtm [])
+> -- already have a guess attached after refinement, but the guess will not
+> -- be solved (via 'solve').
+> basicRefine :: IsTerm a => a -> Tactic
+> basicRefine tm = do rawtm <- raw tm
+>                     runTac (Tactics.refine rawtm [])
 
 > -- | Solve a goal by applying a function with some arguments filled in.
 > -- See 'refine' for details.
 > refineWith :: IsTerm a => a -> [a] -> Tactic
-> refineWith tm args = do rawtm <- raw tm
->                         rawargs <- mapM raw args
->                         runTac (Tactics.refine rawtm rawargs)
+> refineWith tm args = refineWith' tm args >=> trySolve
+
+> refineWith' tm args = do rawtm <- raw tm
+>                          rawargs <- mapM raw args
+>                          runTac (Tactics.refine rawtm rawargs)
 
 > -- | Finalise a goal's solution.
 > solve :: Tactic
@@ -960,13 +972,17 @@ FIXME: Choose a sensible name here
 
 > -- | Abstract over the given term in the goal.
 > generalise :: IsTerm a => a -> Tactic
-> generalise tm = do rawtm <- raw tm
->                    runTac (Tactics.generalise rawtm)
+> generalise tm = generalise' tm >-> attack
+
+> generalise' tm = do rawtm <- raw tm
+>                     runTac (Tactics.generalise rawtm)
 
 > -- | Abstract over the given term in the goal, and also all terms
 > -- which depend on it.
 > dependentGeneralise :: IsTerm a => a -> Tactic
-> dependentGeneralise tm g ctxt = 
+> dependentGeneralise tm = dependentGeneralise' tm >-> attack
+
+> dependentGeneralise' tm g ctxt = 
 >     do gd <- goalData ctxt False g
 >        vtm <- checkCtxt ctxt g tm
 >        ctxt <- gDeps (filter ((occursIn (view vtm)).(view.snd))
@@ -1003,7 +1019,8 @@ FIXME: Choose a sensible name here
 >         -> d -- ^ equality premise
 >         -> Bool -- ^ apply premise backwards (i.e. apply symmetry)
 >         -> Tactic
-> replace eq repl sym tm flip = 
+> replace eq repl sym tm flip = replace' eq repl sym tm flip >+> attack
+> replace' eq repl sym tm flip = 
 >     do rawtm <- raw tm
 >        raweq <- raw eq
 >        rawrepl <- raw repl
@@ -1049,21 +1066,26 @@ FIXME: Choose a sensible name here
 > -- | Apply an eliminator. 
 > by :: IsTerm a => a -- ^ An elimination rule applied to a target.
 >        -> Tactic
-> by rule = do rawrule <- raw rule
->              runTac (Tactics.by rawrule)
+> by rule = by' rule >=> attack
+
+> by' rule = do rawrule <- raw rule
+>               runTac (Tactics.by rawrule)
 
 > -- | Apply the appropriate induction rule to the term.
 > induction :: IsTerm a => a -- ^ target of the elimination
 >                -> Tactic
-> induction tm = do rawtm <- raw tm
->                   runTac (Tactics.casetac True rawtm)
+> induction tm = induction' tm >=> attack
+
+> induction' tm = do rawtm <- raw tm
+>                    runTac (Tactics.casetac True rawtm)
 
 > -- | Apply the appropriate case analysis rule to the term.
 > -- Like 'induction', but no induction hypotheses generated.
 > cases :: IsTerm a => a -- ^ target of the case analysis
 >                -> Tactic
-> cases tm = do rawtm <- raw tm
->               runTac (Tactics.casetac False rawtm)
+> cases tm = cases' tm >=> attack
+> cases' tm = do rawtm <- raw tm
+>                runTac (Tactics.casetac False rawtm)
 
 > -- | Find a trivial solution to the goal by searching through the context
 > -- for a premise which solves it immediately by refinement

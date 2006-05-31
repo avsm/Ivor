@@ -102,14 +102,12 @@
 >                                    return st { context = ctxt }
 > runCommand (Theorem nm ty) st = do ctxt <- theorem (save (context st)) 
 >                                                    (name nm) ty
->                                    ctxt <- attack defaultGoal ctxt
 >                                    let st' = respond st $
 >                                          showProofState st { context = ctxt }
 >                                    return st' { context = ctxt }
 > runCommand (Interactive nm ty) st = do 
 >     ctxt <- interactive (save (context st)) 
 >                 (name nm) ty
->     ctxt <- attack defaultGoal ctxt
 >     let st' = respond st $
 >           showProofState st { context = ctxt }
 >     return st' { context = ctxt }
@@ -185,9 +183,8 @@
 > runTactic _ _ (Claim n tm) = claim (name n) tm
 > runTactic _ _ (Local n tm) = \g ctxt -> do
 >                            ctxt <- claim (name n) tm g ctxt
->                            ctxt <- focus (goal n) ctxt
->                            attack (goal n) ctxt
-> runTactic _ _ (Refine tm args) = refineWith tm args >=> trySolve
+>                            focus (goal n) ctxt
+> runTactic _ _ (Refine tm args) = refineWith tm args
 > runTactic _ _ Solve = solve
 > runTactic _ _ (Fill tm) = fill tm
 > runTactic _ _ ReturnTac = returnComputation
@@ -201,18 +198,18 @@
 > runTactic _ _ (IntrosNames ns) = introsNames (map name ns)
 > runTactic _ _ (Equiv tm) = equiv tm
 > runTactic _ _ (AddArg nm tm) = addArg (name nm) tm
-> runTactic _ _ (Generalise False tm) = generalise tm >-> attack
-> runTactic _ _ (Generalise True tm) = dependentGeneralise tm >-> attack
+> runTactic _ _ (Generalise False tm) = generalise tm
+> runTactic _ _ (Generalise True tm) = dependentGeneralise tm
 > runTactic _ (Just (eq,repl,sym)) (Replace tm f) 
->     = replace eq repl sym tm f >+> attack
+>     = replace eq repl sym tm f
 > runTactic _ Nothing (Replace _ _) = fail "replace not configured"
 > runTactic _ _ (Axiomatise n ns) = axiomatise (name n) (map name ns)
 > runTactic _ _ Normalise = compute
 > runTactic _ _ (Unfold n) = unfold (name n)
 > runTactic _ _ Trivial = trivial
-> runTactic _ _ (By tm) = by tm >=> attack
-> runTactic _ _ (Induction tm) = induction tm >=> attack
-> runTactic _ _ (Cases tm) = cases tm >=> attack
+> runTactic _ _ (By tm) = by tm
+> runTactic _ _ (Induction tm) = induction tm
+> runTactic _ _ (Cases tm) = cases tm
 > runTactic tacs _ (UserTactic tac tm)  = \g ctxt -> do
 >     case lookup tac tacs of
 >          (Just t) -> t tm g ctxt

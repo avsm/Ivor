@@ -564,7 +564,7 @@ Apply a function to a list of arguments
 >           "["++forget n ++":"++fPrec 10 t++"]" ++ fPrec 10 sc
 >       fPrec x (RBind n (B Pi t) sc) 
 >           | nameOccurs n sc = bracket x 2 $
->              "("++forget n ++":"++fPrec 10 t++")" ++ fPrec 10 sc
+>              "("++forget n ++":"++fPrec 10 t++") -> " ++ fPrec 10 sc
 >           | otherwise = bracket x 2 $
 >              fPrec 10 t++" -> " ++ fPrec 10 sc
 >       fPrec x (RBind n (B (Let v) t) sc) = bracket x 2 $

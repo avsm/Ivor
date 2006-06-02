@@ -13,7 +13,9 @@
 > --
 > --  * @[x:A]y@ -- Lambda binding with scope @y@.
 > --
-> --  * @(x:A)Y@ -- Forall binding with scope @Y@.
+> --  * @(x:A) -> B@ -- Forall binding with scope @B@ (@->@ optional).
+> --
+> --  * @A -> B@ -- Forall binding where name bound is not used in @B@..
 > --
 > --  * @let x:A=v in y@ -- Let binding, @x=v@ in scope @y@.
 > -- 
@@ -108,6 +110,7 @@
 >           sc <- pTerm ext ;
 >           return $ bindAll Lambda bs sc
 >        <|> try (do lchar '(' ; bs <- bindList ext ; lchar ')'
+>                    option "" (symbol "->")
 >                    sc <- pTerm ext ;
 >                    return $ bindAll Forall bs sc)
 >        <|> do reserved "let" ; var <- identifier;

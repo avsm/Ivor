@@ -3,13 +3,13 @@ Load "logic.tt";
 
 Data Nat:* = O:Nat | S:(k:Nat)Nat;
 
-plus : (m:Nat)(n:Nat)Nat;
+plus : Nat -> Nat -> Nat;
 intro m;
 induction m;
 intros;
-fill n;
+fill X0;
 intros;
-fill S (k_IH n0);
+fill S (k_IH X1);
 Qed;
 
 mult : (m:Nat)(n:Nat)Nat;

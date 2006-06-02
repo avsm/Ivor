@@ -81,6 +81,9 @@
 > app :: Parser (ViewTerm -> ViewTerm -> ViewTerm)
 > app = do whiteSpace ; return App
 
+> arrow :: Parser (ViewTerm -> ViewTerm -> ViewTerm)
+> arrow = do symbol "->" ; return $ Forall (name "X")
+
 > -- | Basic parsec combinator for parsing terms.
 > pTerm :: Maybe (Parser ViewTerm) -- ^ Extra parse rules (for example 
 >          -- for any primitive types or operators you might have added).
@@ -93,10 +96,14 @@
 >                    <|> try (pNoApp (Just ext))
 >                    <|> ext
 
-> -- | Parse a term which is not an application; use for parsing lists of 
-> -- terms.
+> -- | Parse a term which is not an application; 
+> -- use for parsing lists of terms.
 > pNoApp :: Maybe (Parser ViewTerm) -> Parser ViewTerm
-> pNoApp ext = 
+> pNoApp ext = try (do chainr1 (pExp ext) arrow)
+>              <|> pExp ext
+
+> pExp :: Maybe (Parser ViewTerm) -> Parser ViewTerm
+> pExp ext = 
 >        do lchar '[' ; bs <- bindList ext ; lchar ']'
 >           sc <- pTerm ext ;
 >           return $ bindAll Lambda bs sc

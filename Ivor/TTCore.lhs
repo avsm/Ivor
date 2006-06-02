@@ -562,8 +562,11 @@ Apply a function to a list of arguments
 >       fPrec x (RApp f a) = bracket x 1 $ fPrec 1 f ++ " " ++ fPrec 0 a
 >       fPrec x (RBind n (B Lambda t) sc) = bracket x 2 $
 >           "["++forget n ++":"++fPrec 10 t++"]" ++ fPrec 10 sc
->       fPrec x (RBind n (B Pi t) sc) = bracket x 2 $
->           "("++forget n ++":"++fPrec 10 t++")" ++ fPrec 10 sc
+>       fPrec x (RBind n (B Pi t) sc) 
+>           | nameOccurs n sc = bracket x 2 $
+>              "("++forget n ++":"++fPrec 10 t++")" ++ fPrec 10 sc
+>           | otherwise = bracket x 2 $
+>              fPrec 10 t++" -> " ++ fPrec 10 sc
 >       fPrec x (RBind n (B (Let v) t) sc) = bracket x 2 $
 >           "let "++forget n ++":"++ fPrec 10 t
 >                 ++"=" ++ fPrec 10 v ++ " in " ++ fPrec 10 sc
@@ -664,6 +667,26 @@ Some handy gadgets for Raw terms
 
 > getrettype (RBind n (B Pi _) sc) = getrettype sc
 > getrettype x = x
+
+> nameOccurs x (Var n) | x == n = True
+>                      | otherwise = False
+> nameOccurs x (RApp f a) = nameOccurs x f || nameOccurs x a
+> nameOccurs x (RBind n b sc) 
+>     | x == n = False
+>     | otherwise = occBind x b || nameOccurs x sc
+> nameOccurs x (RLabel r comp) = nameOccurs x r || occComp x comp
+> nameOccurs x (RCall comp r)  = nameOccurs x r || occComp x comp
+> nameOccurs x (RReturn r) = nameOccurs x r
+> nameOccurs x (RStage s) = occStage x s
+> nameOccurs x _ = False
+
+> occComp x (RComp _ rs) = or $ map (nameOccurs x) rs
+> occBind x (B (Let v) t) = nameOccurs x v || nameOccurs x t
+> occBind x (B _ t) = nameOccurs x t
+> occStage x (RQuote r) = nameOccurs x r
+> occStage x (RCode r) = nameOccurs x r
+> occStage x (REval r) = nameOccurs x r
+> occStage x (REscape r) = nameOccurs x r
 
 
 > debugTT t = show (forgetTT (vapp showV t))

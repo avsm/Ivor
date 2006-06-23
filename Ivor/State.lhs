@@ -39,6 +39,8 @@ compiled terms, etc.
 >            bcdefs :: ByteDef,
 >            -- List of holes to be solved in proof state
 >            holequeue :: ![Name],
+>            -- Premises we're not interested in, so don't show
+>            hidden :: [Name],
 >            -- Current proof term (FIXME: Combine with holequeue, and make it efficient)
 >            proofstate :: !(Maybe (Indexed Name)),
 >            -- Actions required of last tactic
@@ -51,7 +53,7 @@ compiled terms, etc.
 >            undoState :: !(Maybe IState)
 >        }
 
-> initstate = ISt (Gam []) [] [] [] [] [] Nothing [] mknames "" Nothing
+> initstate = ISt (Gam []) [] [] [] [] [] [] Nothing [] mknames "" Nothing
 >   where mknames = [MN ("myName",x) | x <- [1..]]
 
 > respond :: IState -> String -> IState
@@ -202,5 +204,5 @@ e.g. adding z:C x to foo : (x:A)(y:B)Z = [x:A][y:B]H
 >        dumpProofstate (Just p) = dhole p (holequeue st)
 >                                  
 >        dhole p [] = show p
->        dhole p (n:ns) = displayHoleContext (defs st) n p ++
+>        dhole p (n:ns) = displayHoleContext (defs st) (hidden st) n p ++
 >                           "Next holes: " ++ show ns++"\n"

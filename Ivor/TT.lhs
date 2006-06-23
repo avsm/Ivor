@@ -53,6 +53,7 @@
 >               trySolve,
 >               keepSolving,
 >               abandon,
+>               hide,
 >               -- ** Introductions
 >               fill,
 >               refine,
@@ -426,7 +427,9 @@ Slightly annoying, but we'll cope.
 >                       let thm = Tactics.theorem n tv
 >                       attack defaultGoal 
 >                                  $ Ctxt st { proofstate = Just $ thm,
->                                              holequeue = [n] }
+>                                              holequeue = [n],
+>                                              hidden = []
+>                                              }
 >            (Just t) -> fail "Already a proof in progress"
 
 > -- |Begin a new interactive definition.
@@ -443,7 +446,9 @@ Slightly annoying, but we'll cope.
 >                       let thm = Tactics.theorem n tv
 >                       attack defaultGoal 
 >                                  $ Ctxt st' { proofstate = Just $ thm,
->                                               holequeue = [n] }
+>                                               holequeue = [n],
+>                                               hidden = []
+>                                               }
 >            (Just t) -> fail "Already a proof in progress"
 
 > -- |Suspend the current proof. Clears the current proof state; use 'resume'
@@ -664,7 +669,7 @@ Get the actions performed by the last tactic
 >                         (Ind TTCore.Star)))
 >        getbs [] = []
 >        getbs ((n,B b ty):xs) 
->            | b == TTCore.Lambda || all
+>            | (b == TTCore.Lambda || all) && (not (n `elem` (hidden st)))
 >                = (n, (Term (Ind ty, Ind TTCore.Star))):
 >                  getbs xs
 >        getbs (_:xs) = getbs xs
@@ -739,6 +744,11 @@ Tactics
 >        = attack (Goal n) $ Ctxt st { holequeue = jumpqueue n (holequeue st) }
 >    | otherwise = fail "No such goal"
 > focus _ x = return x -- Default goal already first
+
+> -- | Hide a premise
+> hide :: Tactic
+> hide (Goal n) (Ctxt st)
+>    = return $ Ctxt st { hidden = nub (n:(hidden st)) }
 
 > -- | The Identity tactic, does nothing.
 > idTac :: Tactic
@@ -828,6 +838,8 @@ Convert an internal tactic into a publicly available tactic.
 >               = let Gam ctxt = defs st in
 >                     addgoals xs (st 
 >                        { defs = Gam ((n,G Unreducible (finalise (Ind ty))):ctxt) })
+>           addgoals ((Tactics.HideGoal n):xs) st
+>               = addgoals xs (st { hidden = nub (n:(hidden st)) })
 >           addgoals (_:xs) st = addgoals xs st
 >           second n (x:xs) = x:n:xs
 >           second n [] = [n]

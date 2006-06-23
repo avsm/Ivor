@@ -24,6 +24,7 @@ new axiom to the context.
 >                   | NextGoal Name
 >                   | Solved Name (TT Name)
 >                   | AddAxiom Name (TT Name)
+>                   | HideGoal Name
 >    deriving (Show,Eq)
 
 > type Tactic = Monad m => Gamma Name ->
@@ -259,10 +260,11 @@ solvable by unification). (FIXME: Not yet implemented.)
 >        let guess = (mkGuess claims [] (forget bvin))
 >        (filled, unified) <- runtacticEnv gam env x tm' 
 >                  (fill guess)
->        filled <- solveUnified unified filled
+>        (filled, solved) <- solveUnified [] unified filled
 >        filled <- tryDefaults defaults claims filled
 >        -- (tm', _) <- trace (show claims) $ tidy gam env filled
->        return $ (filled, map AddGoal (map fst (reverse claims)))
+>        return $ (filled, map HideGoal (map fst claims) ++ 
+>                          map AddGoal (map fst (reverse claims)))
 >        -- tacret filled --(Ind (Bind x (B Hole ty) (Sc sc')))
 >   where mkGuess [] defs n = n
 >         mkGuess ((x,_):xs) (RInfer:ds) n 
@@ -272,11 +274,11 @@ solvable by unification). (FIXME: Not yet implemented.)
 >         mkGuess ((x,_):xs) (d:ds) n 
 >             = (mkGuess xs ds (RApp n d))
 >         todo uns (x,_) = not (isSolved x uns)
->         solveUnified [] tm = return tm
->         solveUnified ((Solved x guess):xs) tm 
+>         solveUnified tohide [] tm = return (tm, tohide)
+>         solveUnified tohide ((Solved x guess):xs) tm 
 >             = do (filled,_) <- runtacticEnv gam env x tm (fill (forget guess))
->                  solveUnified xs filled
->         solveUnified (_:xs) tm = solveUnified xs tm
+>                  solveUnified (x:tohide) xs filled
+>         solveUnified tohide (_:xs) tm = solveUnified tohide xs tm
 >         isSolved x [] = False
 >         isSolved x ((Solved n _):xs) | x==n = True
 >         isSolved x (_:xs) = isSolved x xs
@@ -397,7 +399,8 @@ Do case analysis by the given elimination operator
 >                         (fill ruleapp)
 >        (tm', _) <- tidy gam env filled
 >        --(tm'', _) <- runtacticEnv gam env (fst motive) tm' cut
->        return (tm', map AddGoal (map fst (reverse claims)))
+>        return (tm', map HideGoal ((fst motive):(map fst claims)) ++
+>                     map AddGoal (map fst (reverse claims)))
 >   where
 >     getBits (Bind mname (B Pi ty) (Sc sc)) 
 >        | getReturnType ty == Star = do

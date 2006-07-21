@@ -1,0 +1,62 @@
+%\documentclass{article}
+\documentclass[dvips,10pt]{llncs}
+
+\usepackage{epsfig}
+\usepackage{path}
+\usepackage{url}
+\usepackage{amsmath,amssymb} 
+
+\newenvironment{template}{\sffamily}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1ex}
+
+\usepackage{graphics,epsfig}
+
+\input{macros.ltx}
+\input{library.ltx}
+
+\NatPackage
+
+\newcommand{\Ivor}{\textsc{Ivor}}
+
+\begin{document}
+
+\title{\Ivor{} the Proof Engine}
+\author{Edwin Brady}
+
+\institute{School of Computer Science, \\
+ University of St Andrews, St Andrews, Scotland. \\ \texttt{Email: eb,kh@dcs.st-and.ac.uk}.\\
+\texttt{Tel: +44-1334-463253}, \texttt{Fax: +44-1334-463278} \vspace{0.1in}
+}
+ 
+\maketitle
+
+\begin{abstract}
+This paper considers the use of dependent types to capture information
+about dynamic resource usage in a static type system.  Dependent types
+allow us to give \remph(explicit) proofs of properties with a program; we
+present a dependently typed core language $\source$, and define a
+framework within this language for representing size metrics and their
+properties. We give several examples of size bounded programs within
+this framework and show that we can construct proofs of their size
+bounds within $\source$.
+We further show how the framework handles recursive
+higher order functions and sum types, and contrast our system with
+previous work based on sized types.
+\end{abstract}
+
+\section*{Acknowledgements}
+
+This work is generously supported by EPSRC grant
+EP/C001346/1.
+
+\bibliographystyle{abbrv}
+\begin{small}
+\bibliography{../bib/literature.bib}
+
+%\appendix
+%\input{coqscript}
+
+\end{small}
+\end{document}

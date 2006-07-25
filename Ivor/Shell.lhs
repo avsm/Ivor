@@ -15,7 +15,8 @@
 >                     runShell, importFile,
 >                     getContext, newShell, 
 >                     sendCommand, sendCommandIO, addTactic,
->                     extendParser, shellParseTerm) where
+>                     extendParser, configureEq,
+>                     shellParseTerm, showProofState) where
 
 > import Ivor.ShellParser
 > import Ivor.TermParser
@@ -259,6 +260,7 @@ function which doesn't need to be in the IO Monad.
 >          let st' = respond st $ showProofState $ st { context = ctxt }
 >          return st' { context = ctxt }
 
+> -- | Get a string representation of the current proof state
 > showProofState :: ShellState -> String
 > showProofState st 
 >     | not (proving ctxt) = ""
@@ -291,6 +293,13 @@ function which doesn't need to be in the IO Monad.
 >                 then return (clearResponse st')
 >                 else catch (loop (clearResponse st'))
 >                          (\e -> return st')
+
+> -- | Set up the equality type, for use by the 'replace' tactic
+> configureEq :: String 
+>             -> String 
+>             -> String 
+>             -> ShellState -> ShellState
+> configureEq eq repl sym shell = shell { repldata = Just (eq,repl,sym) }
 
 > -- | Run a command shell.
 > runShell :: String -- ^ Prompt string

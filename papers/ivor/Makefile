@@ -1,6 +1,7 @@
 all: ivor.pdf
 
-SOURCES = ivor.tex ../bib/literature.bib
+SOURCES = ivor.tex intro.tex corett.tex tactics.tex \
+          examples.tex conclusions.tex ../bib/literature.bib
 
 ivor.pdf: $(SOURCES)
 	pdflatex ivor

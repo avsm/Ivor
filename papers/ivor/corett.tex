@@ -1,5 +1,10 @@
 \section{The Type Theory, $\source$}
 
+\renewcommand{\Vnil}{\DC{vnil}}
+\renewcommand{\Vcons}{\DC{vcons}}
+
+\subsection{The Core Calculus}
+
 The core type theory of \Ivor{} is a strongly normalising dependent
 type theory with inductive families~\cite{dybjer94}, similar to Luo's
 UTT~\cite{luo94} or the Calculus of Inductive Constructions in
@@ -8,33 +13,51 @@ enriched lambda calculus, with the usual properties of subject
 reduction, Church Rosser, and uniqueness of types up to
 conversion. The strong normalisation property (i.e. that evaluation
 always terminates) is guaranteed by allowing only primitive recursion
-over strictly positive inductive datatypes. The syntax of this
-language is as follows:
+over strictly positive inductive datatypes. The syntax of terms in
+this language is as follows:
 
 \DM{
 \begin{array}{rllrll}
 \vt ::= & \Type_i & (\mbox{type universes}) &
- \mid  & \vx & (\mbox{variable})\\
- \mid   & \fbind{\vx}{\vt}{\vt} & (\mbox{function space}) &
- \mid   & \lam{\vx}{\vt}.\:\vt & (\mbox{abstraction}) \\
- \mid   & \vt\:\vt & (\mbox{application}) &
- \mid & \LET\:\vx\defq\vt\Hab\vt\:\IN\:\vt & (\mbox{let binding}) \\
+ \mid  & \vx & (\mbox{variable}) \\
+ \mid   & \vb\SC\:\vt & (\mbox{binding}) &
+ \mid   & \vt\:\vt & (\mbox{application}) \\
+\vb ::= & \lam{\vx}{\vt} & (\mbox{abstraction}) &
+ \mid & \LET\:\vx\defq\vt\Hab\vt & (\mbox{let binding}) \\
+ \mid & \all{\vx}{\vt} & (\mbox{function space})
 \end{array}
 }
 
-We may also abbreviate the function space $\fbind{\vx}{\vS}{\vT}$ by
-$\vS\to\vT$ if $\vx$ is not free in $\vT$. The typing rules are given
-in Figure \ref{typerules}.
+For readability, and a notation more consistent with traditional
+functional programming languages, we may also write the function space
+\mbox{$\all{\vx}{\vS}\SC\vT$} as \mbox{$\fbind{\vx}{\vS}{\vT}$}, or
+abbreviate it to \mbox{$\vS\to\vT$} if $\vx$ is not free in
+$\vT$. Contexts ($\Gamma$) are defined inductively; the empty context
+is valid, as is a context extended with a $\lambda$, $\forall$ or
+$\LET$ binding:
+
+\DM{
+\Axiom{\proves\RW{valid}}
+\hg
+\Rule{\Gamma\proves\RW{valid}}
+{\Gamma;\vb\proves\RW{valid}}
+}
+
+The typing rules are given
+in Figure \ref{typerules}. 
 
 \FFIG{
 \begin{array}{c}
 \Rule{\Gamma\proves\RW{valid}}
 {\Gamma\vdash\Type_n\Hab\Type_{n+1}}\hspace*{0.1in}\mathsf{Type}
+\\
+\Rule{(\lam{\vx}{\vS})\in\Gamma}
+{\Gamma\vdash\vx\Hab\vS}\hspace*{0.1in}\mathsf{Var}_1
 \hg
-\Rule{(\vx\Hab\vS)\in\Gamma}
-{\Gamma\vdash\vx\Hab\vS}\hspace*{0.1in}\mathsf{Var}
+\Rule{(\all{\vx}{\vS})\in\Gamma}
+{\Gamma\vdash\vx\Hab\vS}\hspace*{0.1in}\mathsf{Var}_2
 \hg
-\Rule{(\vx\Hab\vS\defq\vs)\in\Gamma}
+\Rule{(\LET\:\vx\Hab\vS\defq\vs)\in\Gamma}
 {\Gamma\vdash\vx\Hab\vS}\hspace*{0.1in}\mathsf{Val}
 \\
 \Rule{\Gamma\vdash\vf\Hab\fbind{\vx}{\vS}{\vT}\hg\Gamma\vdash\vs\Hab\vS}
@@ -42,19 +65,19 @@ in Figure \ref{typerules}.
 \hspace*{0.1in}\mathsf{App}
 \\
 
-\Rule{\Gamma;\vx\Hab\vS\vdash\ve\Hab\vT\hg\Gamma\proves\fbind{\vx}{\vS}{\vT}\Hab\Type_n}
+\Rule{\Gamma;\lam{\vx}{\vS}\vdash\ve\Hab\vT\hg\Gamma\proves\fbind{\vx}{\vS}{\vT}\Hab\Type_n}
 {\Gamma\vdash\lam{\vx}{\vS}.\ve\Hab\fbind{\vx}{\vS}{\vT}}\hspace*{0.1in}\mathsf{Lam}
 \\
-\Rule{\Gamma;\vx\Hab\vS\vdash\vT\Hab\Type_n\hg\Gamma\vdash\vS\Hab\Type_n}
+\Rule{\Gamma;\all{\vx}{\vS}\vdash\vT\Hab\Type_n\hg\Gamma\vdash\vS\Hab\Type_n}
 {\Gamma\vdash\fbind{\vx}{\vS}{\vT}\Hab\Type_n}\hspace*{0.1in}\mathsf{Forall}
 \\
 
 \Rule{\begin{array}{c}\Gamma\proves\ve_1\Hab\vS\hg
-      \Gamma;\vx\defq\ve_1\Hab\vS\proves\ve_2\Hab\vT\\
+      \Gamma;\LET\:\vx\defq\ve_1\Hab\vS\proves\ve_2\Hab\vT\\
       \Gamma\proves\vS\Hab\Type_n\hg
-      \Gamma;\vx\defq\ve_1\Hab\vS\proves\vT\Hab\Type_n\end{array}
+      \Gamma;\LET\:\vx\defq\ve_1\Hab\vS\proves\vT\Hab\Type_n\end{array}
       }
-{\Gamma\vdash\LET\:\vx\Hab\vS\defq\ve_1\:\IN\:\ve_2\Hab
+{\Gamma\vdash\LET\:\vx\Hab\vS\defq\ve_1\SC\:\ve_2\Hab
    \vT[\ve_1/\vx]}   
 %\Let\:\vx\Hab\vS\defq\ve_1\:\IN\:\vT}
 \hspace*{0.1in}\mathsf{Let}
@@ -69,4 +92,206 @@ in Figure \ref{typerules}.
 {Typing rules for $\source$}
 {typerules}
 
+\subsection{Inductive Families}
+
+Inductive families \cite{dybjer94} are a form of simultaneously
+defined collections of algebraic data types (such as Haskell
+\texttt{data} declarations) which can be parametrised over values as
+well as types.  An inductive family is declared as follows, using
+the de Bruijn telescope notation, $\tx$, to indicate a sequence of
+zero or more $\vx$:
+
+\DM{
+\AR{
+\Data\:\TC{T}\:(\tx\Hab\ttt)\Hab\vt\:=
+\DC{c}_1\Hab\vt\:\mid\:\ldots\:\mid\:\DC{c}_n\Hab\vt
+}
+}
+
+Constructors may take recursive arguments in the family
+$\TC{T}$. Furthermore these arguments may be indexed by another type,
+as long it does not invove $\TC{T}$ --- this restriction is known as
+\demph{strict positivity} and ensures that recursive arguments are
+structurally smaller.
+
+The Peano style natural numbers can be declared as follows:
+
+\DM{
+\Data\:\Nat\Hab\Type\:=\:\Z\Hab\Nat\:\mid\:\suc\Hab\fbind{\vk}{\Nat}{\Nat}
+}
+
+A data type may have zero or more parameters (which are invariant
+across a structure) and a number of indices, given by the type. For
+example, a list is parametrised over its element type:
+
+\DM{
+\AR{
+\Data\:\List\:(\vA\Hab\Type)\Hab\Type\\
+\hg\AR{
+=\:\nil\Hab\List\:\vA\\
+\mid\:\cons\Hab\fbind{\vx}{\vA}{\fbind{\vxs}{\List\:\vA}{\List\:\vA}}
+}
+}
+}
+
+$\source$ is a dependently typed calculus, meaning that types can
+depend on values. Using this, we can declare the type of vectors
+(lists with length), where the empty list is statically known to have
+length zero, and the non empty list is statically known to have a non
+zero length. $\Vect$ is parametrised over its element type, like
+$\List$, but \remph{indexed} over its length. 
+
+\DM{
+\AR{
+\Data\:\Vect\:(\vA\Hab\Type)\Hab\Nat\to\Type\\
+\hg\AR{
+=\:\Vnil\Hab\Vect\:\vA\:\Z\\
+\mid\:\Vcons\Hab\fbind{\vk}{\Nat}{
+\fbind{\vx}{\vA}{\fbind{\vxs}{\Vect\:\vA\:\vk}{\Vect\:\vA\:(\suc\:\vk)}}
+}
+}
+}
+}
+
+\subsection{Elimination Rules}
+
+When we declare an inductive family $\dD$, we give the constructors
+which explain how to build objects in that family. Along with this,
+the machine generates an \demph{elimination operator} $\delim$ (the
+type of which we call the \demph{elimination rule}) and corresponding
+reductions, which we call
+\demph{$\iota$-schemes}\index{iota-schemes@$\iota$-schemes}. These
+describe and implement the allowed reduction and recursion behaviour
+of terms in the family --- it is effectively a fold operator.  The
+method for constructing elimination operators is well documented, in
+particular by~\cite{dybjer94,luo94,mcbride-thesis}.
+For $\Vect$, we obtain the following operator:
+
+\DM{
+\AR{
+\begin{array}{ll}
+\vectelim\Hab & \all{\vA}{\Type}\SC\all{\vn}{\Nat}\SC
+                \all{\vv}{\Vect\:\vA\:\vn}. \\
+              & \all{\motive}{\all{\vn}{\Nat}\SC\all{\vv}{\Vect\:\vA\:\vn}\SC\Type}. \\
+              & \all{\meth{\Vnil}}{\motive\:\Z\:(\Vnil\:\vA)}. \\
+              & \all{\meth{\Vcons}}
+  {\AR{
+  \all{\vk}{\Nat}\SC\all{\vx}{\vA}\SC\all{\vxs}{\Vect\:\vA\:\vk}\SC \\
+  \all{\VV{ih}}{\motive\:\vk\:\vxs}.\motive\:(\suc\:\vk)\:
+        (\Vcons\:\vA\:\vk\:\vx\:\vxs).}} \\
+              & \motive\:\vn\:\vv 
+\end{array}
+\\
+\PA{\A\A\A\A\A\A}{
+& \vectelim & \vA & \Z & (\Vnil\:\vA) & \motive & \meth{\Vnil} & \meth{\Vcons} &
+      \IRet{\meth{\Vnil}} \\
+& \vectelim & \vA & (\suc\:\vk) & (\Vcons\:\vA\:\vk\:\vx\:\vxs) & \motive &
+      \meth{\Vnil} & \meth{\Vcons} & \\
+& & & \IMRet{6}{\meth{\Vcons}\:\vk\:\vx\:\vxs\:(\vectelim\:\vA\:\vk\:\vxs\:\motive\:\meth{\Vnil}\:\meth{\Vcons})} \\
+}
+}
+}
+
+The arguments to the elimination operator are the \demph{indices} ($\vA$
+and $\vn$ here), the \demph{target} (the object being eliminated;
+$\vv$ here), the \demph{motive} (a function which computes the return
+type of the elimination; $\vP$ here) and the \demph{methods}
+(which describe how to achieve the motive for each constructor form).
+
+A case analysis operator $\dcase$, is obtained similarly, but without
+the induction hypotheses. These operators are the only means to
+analyse a data structure and the only operators which can make
+recursive calls. This, along with the restriction that data types must
+be strictly positive, ensures that evaluation always terminates.
+
+\subsection{The Development Calculus}
+
+\Ivor{} is a library for interactive theorem proving, and therefore
+the type theory needs to support \remph{incomplete} terms, and a
+method for term construction. We extend $\source$ with the concept of
+\demph{holes}, which stand for the parts of constructions which have
+not yet been instantiated; this largely follows McBride's \Oleg{}
+development calculus~\cite{mcbride-thesis}.
+
+The basic idea is to extend the syntax for binders with a \remph{hole}
+binding and a \remph{guess} binding. The \remph{guess} binding is
+similar to a $\LET$ binding, but without any computational force:
+
+\DM{
+\begin{array}{rllrll}
+\vb ::= & \ldots \\
+ \mid & \hole{\vx}{\vt} & (\mbox{hole binding}) &
+ \mid & \guess{\vx}{\vt}{\vt} & (\mbox{guess})
+\end{array}
+}
+
+The benefit of using binders to represent holes, as discussed
+in~\cite{mcbride-thesis}, is that in a dependently typed setting one
+value may determine another. Attaching a value to a binder then
+ensures that replacing one such value also replaces all of its
+dependencies. The typing rules for binders ensure that no ? bindings
+leak into types, and are given in figure \ref{typerulesholes}.
+
+\FFIG{
+\AR{
+\Rule{
+\Gamma;\hole{\vx}{\vS}\proves\ve\Hab\vT
+}
+{
+\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT
+}
+\hspace*{0.1cm}\vx\not\in\vT
+\hspace*{0.1in}\mathsf{Hole}
+\hg
+\Rule{
+\Gamma;\guess{\vx}{\vS}{\ve_1}\proves\ve_2\Hab\vT
+}
+{
+\Gamma\proves\guess{\vx}{\vS}{\ve_1}\SC\ve_2\Hab\vT
+}
+\hspace*{0.1cm}\vx\not\in\vT
+\hspace*{0.1in}\mathsf{Guess}
+
+}
+}
+{Typing rules for $\source$ holes}
+{typerulesholes}
+
+\subsection{Hole Manipulation}
+
+\label{holeops}
+
+Construction of terms through the \Ivor{} library relies on four basic
+operations on holes: \demph{claim}, which introduces a new hole of a
+given type; \demph{fill}, which attaches a guess to a hole;
+\demph{abandon}, which removes a guess from a hole; and \demph{solve}
+which finalises a guess by converting it to a $\LET$ binding,
+providing that the guess is \remph{pure}, i.e. does not contain any
+hole bindings or guesses.
+
+\DM{
+\begin{array}{l@{\hg}l}
+\mbox{Claim} & 
+\Rule{\Gamma\proves\ve\Hab\vT\hg
+\Gamma\proves\vS\Hab\Type
+}
+{\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT
+}
+\\
+\mbox{Fill} & 
+\Rule{\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT\hg
+\Gamma\proves\vv\Hab\vS}
+{\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
+\\
+\mbox{Abandon} &
+\Rule{\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
+{\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT}
+\\
+\mbox{Solve} &
+\Rule{\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
+{\Gamma\proves\LET\:\vx\Hab\vS\defq\:\vv\SC\ve\Hab\vT}
+\hspace*{0.1cm}\vv\:\mbox{pure}
+
+\end{array}
+}
 

@@ -31,7 +31,7 @@ to do with it, when the time comes.
 > data Elims n = Elims { elimRuleName :: n,
 >                        caseRuleName :: n }
 
-> data FunOptions = Frozen
+> data FunOptions = Frozen | Recursive
 >   deriving Eq
 
 > instance Show n => Show (Global n) where
@@ -71,6 +71,15 @@ to do with it, when the time comes.
 >    sf (x:xs) = x:(sf xs)
 >    doFreeze True opts = nub (Frozen:opts)
 >    doFreeze False opts = opts \\ [Frozen]
+
+> setRec :: Eq n => n -> Bool -> Gamma n -> Gamma n
+> setRec n frec (Gam xs) = Gam $ sf xs where
+>    sf [] = []
+>    sf ((p,G (Fun opts v) ty):xs) 
+>        | n == p = (p,G (Fun (doFrec frec opts) v) ty):xs
+>    sf (x:xs) = x:(sf xs)
+>    doFrec True opts = nub (Recursive:opts)
+>    doFrec False opts = opts \\ [Recursive]
 
 
 > freeze :: Eq n => n -> Gamma n -> Gamma n
@@ -135,6 +144,7 @@ Model represents normal forms, including Ready (reducible) and Blocked
 >     | BTyCon Name Int
 >     | BElim ElimRule Name
 >     | BPrimOp PrimOp Name
+>     | BRec Name Value
 >     | BP Name
 >     | BV Int
 >     | BEval (Model s)
@@ -160,7 +170,9 @@ We take a flag saying whether this is for conversion checking or not. This is
 necessary because staged evaluation will not reduce things inside a quote
 to normal form, but we need a normal form to compare.
 
-> nf :: Gamma Name -> Ctxt -> Bool -> TT Name -> Value
+> nf :: Gamma Name -> Ctxt 
+>    -> Bool -- ^ For conversion
+>    -> TT Name -> Value
 > nf g c conv t = {-trace (show t) $-} eval 0 g c t where
 >  eval stage gamma (VG g) (V n) | (length g) <= n = MB (BV n) Empty
 >                          | otherwise = g!!n
@@ -171,8 +183,12 @@ to normal form, but we need a normal form to compare.
 >          evalP (Just (PrimOp f)) = (MB (BPrimOp f n) Empty)
 >          evalP (Just (Fun opts (Ind v))) 
 > --               | Frozen `elem` opts && not conv = MB (BP n) Empty
-> --               | otherwise 
->              = eval stage gamma g v
+>                -- recursive functions only reduce if at least one
+>                -- argument is constructor headed
+>                -- | Recursive `elem` opts 
+>                --     = MB (BRec n (eval stage gamma g v)) Empty
+>                -- | otherwise 
+>                    = eval stage gamma g v
 >          evalP _ = (MB (BP n) Empty)
 >              --error $ show n ++ 
 >	         --      " is not a function. Something went wrong."
@@ -261,8 +277,16 @@ to normal form, but we need a normal form to compare.
 >  app g (MB bl sp) v = MB bl (Snoc sp v)
 >  app g v a = error $ "Can't apply a non function " ++ show (forget ((quote v)::Normal)) ++ " to argument " ++ show (forget ((quote a)::Normal))
 
+  constructorsIn Empty = False
+  constructorsIn (Snoc xs (MR (RCon _ _ _))) = True
+  constructorsIn (Snoc xs _) = constructorsIn xs
+
 > krApply :: Kripke Value -> Value -> Value
 > krApply (Kr (f,w)) x = f w x
+
+ applySpine :: Ctxt -> Value -> Spine Value -> Value -> Value
+ applySpine g fn Empty v = apply g fn v
+ applySpine g fn (Snoc sp x) v = apply g (applySpine g fn sp x) v
 
 Splice the escapes inside a term
 
@@ -314,6 +338,7 @@ Splice the escapes inside a term
 >     weakenp i (BCon t n j) = BCon t n j
 >     weakenp i (BTyCon n j) = BTyCon n j
 >     weakenp i (BElim e n) = BElim e n
+>     weakenp i (BRec n v) = BRec n v
 >     weakenp i (BPrimOp e n) = BPrimOp e n
 >     weakenp i (BP n) = BP n
 >     weakenp i (BV j) = BV (weakenp i j)
@@ -352,6 +377,7 @@ Splice the escapes inside a term
 >     quote (BCon t n j) = BCon t n j
 >     quote (BTyCon n j) = BTyCon n j
 >     quote (BElim e n) = BElim e n
+>     quote (BRec n v) = BRec n v
 >     quote (BPrimOp e n) = BPrimOp e n
 >     quote (BP n) = BP n
 >     quote (BV j) = BV j
@@ -382,6 +408,7 @@ Splice the escapes inside a term
 >     forget (BCon t n j) = Con t n j
 >     forget (BTyCon n j) = TyCon n j
 >     forget (BElim e n) = Elim n
+>     forget (BRec n v) = P n
 >     forget (BPrimOp f n) = P n
 >     forget (BP n) = P n
 >     forget (BV i) = V i

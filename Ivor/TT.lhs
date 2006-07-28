@@ -78,7 +78,7 @@
 >               -- ** Staging
 >               quoteVal,
 >               -- ** Tactic combinators
->               idTac,
+>               idTac, tacs,
 >               (>->), (>=>), (>+>), try, 
 >               traceTac)
 
@@ -200,7 +200,7 @@
 >              (Success (v,t)) -> do
 >                 if (convert (defs st) inty t)
 >                     then (do
->                       newdefs <- gInsert n (G (Fun [] v) t) (Gam ctxt)
+>                       newdefs <- gInsert n (G (Fun [Recursive] v) t) (Gam ctxt)
 >                               -- = Gam ((n,G (Fun [] v) t):ctxt)
 >                       let scs = lift n (levelise (normalise (Gam []) v))
 >                       let bc = compileAll (runtts++scs) scs
@@ -715,17 +715,22 @@ Tactics
 >            Just prf -> do
 >              newdef@(name,val@(G (Fun _ ind) _)) <- 
 >                  qedLift (defs st) False prf
+>              let isrec = rec name
 >              let (Gam olddefs) = remove name (defs st)
 >              let runtts = runtt st
 >              let scs = lift name (levelise (normalise (Gam []) ind))
 >              let bc = compileAll (runtts++scs) scs
 >              let newbc = bc++(bcdefs st)
 >              defs' <- gInsert name val (defs st)
+>              let newdefs = setRec name isrec defs'
 >              return $ Ctxt st { proofstate = Nothing, 
 >                             bcdefs = newbc,
 >                             runtt = runtts ++ scs,
->                             defs = defs' } -- Gam (newdef:olddefs) }
+>                             defs = newdefs } -- Gam (newdef:olddefs) }
 >            Nothing -> fail "No proof in progress"
+>  where rec nm = case lookupval nm (defs st) of
+>                   Nothing -> False
+>                   _ -> True
 
 > qedLift :: Monad m => Gamma Name -> Bool -> Indexed Name -> 
 >                       m (Name, Gval Name)
@@ -798,6 +803,13 @@ Apply two tactics consecutively to the same goal.
 > nextTac tac1 tac2 goal ctxt = do
 >     ctxt' <- tac1 goal ctxt
 >     tac2 DefaultGoal ctxt'
+
+> -- | Apply a sequence of tactics to the default goal
+> tacs :: Monad m => [Goal -> Context -> m Context] -> 
+>         Goal -> Context -> m Context
+> tacs [] = idTac
+> tacs (t:ts) = \g ctxt -> do ctxt <- t g ctxt
+>                             tacs ts DefaultGoal ctxt
 
 > -- | Apply a tactic, then apply the next tactic to the next default subgoal.
 > (>+>) :: Tactic -> Tactic -> Tactic 
@@ -911,6 +923,8 @@ Convert an internal tactic into a publicly available tactic.
 
 > -- | Finalise as many solutions of as many goals as possible.
 > keepSolving :: Tactic
+> keepSolving goal ctxt 
+>     | allSolved ctxt = return ctxt
 > keepSolving goal ctxt = trySolve (getGoals ctxt) ctxt
 >    where trySolve [] ctxt = return ctxt
 >          trySolve (x:xs) ctxt 
@@ -959,9 +973,16 @@ FIXME: Choose a sensible name here
 >                -> Tactic
 > introName n = (rename n >-> intro)
 
-> -- | Keep introducing things until there's nothing left to introduce,
+> -- | Keep introducing things until there's nothing left to introduce.
 > intros :: Tactic
-> intros goal ctxt = 
+> intros goal ctxt = do_intros goal ctxt
+>   where do_intros :: Tactic
+>         do_intros = try intro do_intros idTac
+
+> -- | Keep introducing things until there's nothing left to introduce,
+> -- Must introduce at least one thing.
+> intros1 :: Tactic
+> intros1 goal ctxt = 
 >     do ctxt <- intro goal ctxt -- Must be at least one thing
 >        do_intros goal ctxt
 >   where do_intros :: Tactic

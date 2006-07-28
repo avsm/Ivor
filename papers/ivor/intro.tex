@@ -1,0 +1,35 @@
+\section{Introduction}
+
+\Ivor{} is a tactic-based theorem proving engine with a Haskell
+API. Unlike other systems such as \Coq{} \cite{coq-manual} and Agda,
+the tactic engine is primarily intended to be used by programs, rather
+than a human operator. To this end, the API provides a collection of
+primitive tactics and combinators for building new tactics. This
+allows easy construction of domain specific tactics, while keeping the
+core type theory small and independently checkable.
+
+The primary aim of the library is to support research into generative
+programming and resource bounded computation in Hume
+(\url{http://www.hume-lang.org/}). In this setting, we have developed a
+dependently typed framework for representing program execution cost,
+and used the \Ivor{} library to implement domain specific tactics for
+constructing programs within this framework. However the library is
+more widely applicable, some potential uses being:
+
+\begin{itemize}
+\item A core language for a richly typed functional language.
+\item The underlying implementation for a theorem prover (see first order
+  logic theorem prover example at 
+  \url{http://www.dcs.st-and.ac.uk/~eb/Ivor}).
+\item An implementation framework for a domain specific language requiring
+  strong correctness properties.
+\end{itemize}
+
+\Ivor{} features a dependent type theory similar to Luo's ECC with
+definitions \cite{luo94}, with additional (experimental) multi-stage
+programming support~\cite{multi-taha}. Optionally, it can be extended
+with heterogenous equality, primitive types and operations, new parser
+rules and user defined tactics. By default, all programs in the type
+theory terminate, but in the spirit of flexibilty, the library can be
+configured to allow general recursion.
+

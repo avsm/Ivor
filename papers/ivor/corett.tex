@@ -1,0 +1,72 @@
+\section{The Type Theory, $\source$}
+
+The core type theory of \Ivor{} is a strongly normalising dependent
+type theory with inductive families~\cite{dybjer94}, similar to Luo's
+UTT~\cite{luo94} or the Calculus of Inductive Constructions in
+\Coq{}~\cite{coq-manual}. This language, which I call $\source$, is an
+enriched lambda calculus, with the usual properties of subject
+reduction, Church Rosser, and uniqueness of types up to
+conversion. The strong normalisation property (i.e. that evaluation
+always terminates) is guaranteed by allowing only primitive recursion
+over strictly positive inductive datatypes. The syntax of this
+language is as follows:
+
+\DM{
+\begin{array}{rllrll}
+\vt ::= & \Type_i & (\mbox{type universes}) &
+ \mid  & \vx & (\mbox{variable})\\
+ \mid   & \fbind{\vx}{\vt}{\vt} & (\mbox{function space}) &
+ \mid   & \lam{\vx}{\vt}.\:\vt & (\mbox{abstraction}) \\
+ \mid   & \vt\:\vt & (\mbox{application}) &
+ \mid & \LET\:\vx\defq\vt\Hab\vt\:\IN\:\vt & (\mbox{let binding}) \\
+\end{array}
+}
+
+We may also abbreviate the function space $\fbind{\vx}{\vS}{\vT}$ by
+$\vS\to\vT$ if $\vx$ is not free in $\vT$. The typing rules are given
+in Figure \ref{typerules}.
+
+\FFIG{
+\begin{array}{c}
+\Rule{\Gamma\proves\RW{valid}}
+{\Gamma\vdash\Type_n\Hab\Type_{n+1}}\hspace*{0.1in}\mathsf{Type}
+\hg
+\Rule{(\vx\Hab\vS)\in\Gamma}
+{\Gamma\vdash\vx\Hab\vS}\hspace*{0.1in}\mathsf{Var}
+\hg
+\Rule{(\vx\Hab\vS\defq\vs)\in\Gamma}
+{\Gamma\vdash\vx\Hab\vS}\hspace*{0.1in}\mathsf{Val}
+\\
+\Rule{\Gamma\vdash\vf\Hab\fbind{\vx}{\vS}{\vT}\hg\Gamma\vdash\vs\Hab\vS}
+{\Gamma\vdash\vf\:\vs\Hab\vT[\vs/\vx]} % \LET\:\vx\Hab\vS\:\defq\:\vs\:\IN\:\vT}
+\hspace*{0.1in}\mathsf{App}
+\\
+
+\Rule{\Gamma;\vx\Hab\vS\vdash\ve\Hab\vT\hg\Gamma\proves\fbind{\vx}{\vS}{\vT}\Hab\Type_n}
+{\Gamma\vdash\lam{\vx}{\vS}.\ve\Hab\fbind{\vx}{\vS}{\vT}}\hspace*{0.1in}\mathsf{Lam}
+\\
+\Rule{\Gamma;\vx\Hab\vS\vdash\vT\Hab\Type_n\hg\Gamma\vdash\vS\Hab\Type_n}
+{\Gamma\vdash\fbind{\vx}{\vS}{\vT}\Hab\Type_n}\hspace*{0.1in}\mathsf{Forall}
+\\
+
+\Rule{\begin{array}{c}\Gamma\proves\ve_1\Hab\vS\hg
+      \Gamma;\vx\defq\ve_1\Hab\vS\proves\ve_2\Hab\vT\\
+      \Gamma\proves\vS\Hab\Type_n\hg
+      \Gamma;\vx\defq\ve_1\Hab\vS\proves\vT\Hab\Type_n\end{array}
+      }
+{\Gamma\vdash\LET\:\vx\Hab\vS\defq\ve_1\:\IN\:\ve_2\Hab
+   \vT[\ve_1/\vx]}   
+%\Let\:\vx\Hab\vS\defq\ve_1\:\IN\:\vT}
+\hspace*{0.1in}\mathsf{Let}
+\\
+
+\Rule{\Gamma\proves\vx\Hab\vA\hg\Gamma\proves\vA'\Hab\Type_n\hg
+      \Gamma\proves\vA\converts\vA'}
+     {\Gamma\proves\vx\Hab\vA'}
+\hspace*{0.1in}\mathsf{Conv}
+\end{array}
+}
+{Typing rules for $\source$}
+{typerules}
+
+

@@ -2,10 +2,8 @@ Short term things to do:
 
 * Current naive proof state representation is far too slow. Come up
   with something better.
-* API shouldn't really need to require use of attack/solve except in
-  specialised cases (e.g. fine control over refinement). Change it so
-  that shell and api are more or less consistent.
 * Keep track of level in proof state.
+* Keep track of binding level in context, and check at point of use.
 * Allow dump of global context to disk, for fast reloading.
 * Syntax for equality.
 * Elimination with a motive.

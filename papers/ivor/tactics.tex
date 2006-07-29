@@ -130,16 +130,17 @@ replace :: (IsTerm a, IsTerm b, IsTerm c, IsTerm d) =>
 
 \subsubsection{Sequencing Tactics}
 
-\hdecl{(>->) :: Tactic -> Tactic -> Tactic}
-
-\hdecl{(>=>) :: Tactic -> Tactic -> Tactic}
-
-\hdecl{(>+>) :: Tactic -> Tactic -> Tactic}
+\begin{verbatim}
+(>->) :: Tactic -> Tactic -> Tactic
+(>=>) :: Tactic -> Tactic -> Tactic
+(>+>) :: Tactic -> Tactic -> Tactic
+\end{verbatim}
 
 \subsubsection{Handling Failure}
 
-\hdecl{try :: Tactic -> Tactic -> Tactic -> Tactic}
-
+\begin{verbatim}
+try :: Tactic -> Tactic -> Tactic -> Tactic
+\end{verbatim}
 
 \subsection{The Shell}
 

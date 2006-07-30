@@ -101,7 +101,7 @@ attaches a guess to $\vv$:
 
 However, for $\Vcons\:\vA\:\vk\:\vx\:\vxs$ to have type
 $\Vect\:\Nat\:(\suc\:\vn)$ requires that $\vA=\Nat$ and $\vk=\vn$.
-Refinement therefore completes by unifying these, leaving the
+Refinement unifies these, leaving the
 following goals:
 \DM{
 \AR{
@@ -113,11 +113,31 @@ following goals:
 
 \subsubsection{Elimination}
 
+Refinement solves goals by constructing new values; we may also solve
+goals by deconstructing values in the context, using an elimination
+operator as described in section \ref{elimops}. The \texttt{induction}
+and \texttt{case} tactics apply the $\delim$ and $\dcase$ operators
+respectively to the given target:
+
 \begin{verbatim}
 induction :: IsTerm a => a -> Tactic
 cases :: IsTerm a => a -> Tactic
+\end{verbatim}
+
+These tactics proceed by refinement by the appropriate elimination
+operator. The motive is calculated automatically, and is given by the
+goal to be solved. Each tactic generates subgoals for each method.
+A more general elimination tactic is \texttt{by}, which takes an
+application of an elimination operator to a target.
+
+\begin{verbatim}
 by :: IsTerm a => a -> Tactic
 \end{verbatim}
+
+The type of the term given to \texttt{by} must be a function expecting
+a motive and methods.
+
+Example of induction?
 
 \subsubsection{Rewriting}
 
@@ -134,6 +154,11 @@ replace :: (IsTerm a, IsTerm b, IsTerm c, IsTerm d) =>
 (>->) :: Tactic -> Tactic -> Tactic
 (>=>) :: Tactic -> Tactic -> Tactic
 (>+>) :: Tactic -> Tactic -> Tactic
+\end{verbatim}
+
+\begin{verbatim}
+tacs :: Monad m => [Goal -> Context -> m Context] -> 
+                   Goal -> Context -> m Context
 \end{verbatim}
 
 \subsubsection{Handling Failure}

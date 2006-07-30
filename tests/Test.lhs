@@ -8,9 +8,9 @@
 > import Ivor.TT
 > import Ivor.Shell
 
-> natShell = importFile "nat.tt" (newShell initState)
-> ackShell = importFile "ack.tt" (newShell initState)
-> partialShell = importFile "partial.tt" (newShell initState)
+> natShell = importFile "nat.tt" (newShell emptyContext)
+> ackShell = importFile "ack.tt" (newShell emptyContext)
+> partialShell = importFile "partial.tt" (newShell emptyContext)
 
 > doEval :: ShellState -> String -> String
 > doEval st tm = case (parse (shellParseTerm st) "(test)" tm) of

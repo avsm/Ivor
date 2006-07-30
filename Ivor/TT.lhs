@@ -12,7 +12,7 @@
 > -- Public interface for theorem proving gadgets.
 
 > module Ivor.TT(-- * System state
->               initState, Context,
+>               emptyContext, Context,
 >               Ivor.TT.check,
 >               checkCtxt,converts,Ivor.TT.compile,
 >               -- * Exported view of terms
@@ -124,10 +124,10 @@
 > -- binding. Tactics may fail, hence the monad.
 > type Tactic = forall m.Monad m => Goal -> Context -> m Context
 
-> -- | Initialise a context, with no data or definition and an 
+> -- | Initialise a context, with no data or definitions and an 
 > -- empty proof state.
-> initState :: Context
-> initState = Ctxt initstate
+> emptyContext :: Context
+> emptyContext = Ctxt initstate
 
 > class IsTerm a where
 >     -- | Typecheck a term

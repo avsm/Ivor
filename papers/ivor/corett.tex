@@ -264,42 +264,42 @@ leak into types, and are given in figure \ref{typerulesholes}.
 {Typing rules for $\source$ holes}
 {typerulesholes}
 
-\subsection{Hole Manipulation}
+%% \subsection{Hole Manipulation}
 
-\label{holeops}
+%% \label{holeops}
 
-Construction of terms through the \Ivor{} library relies on four basic
-operations on holes: \demph{claim}, which introduces a new hole of a
-given type; \demph{fill}, which attaches a guess to a hole;
-\demph{abandon}, which removes a guess from a hole; and \demph{solve}
-which finalises a guess by converting it to a $\LET$ binding,
-providing that the guess is \remph{pure}, i.e. does not contain any
-hole bindings or guesses.
+%% Construction of terms through the \Ivor{} library relies on four basic
+%% operations on holes: \demph{claim}, which introduces a new hole of a
+%% given type; \demph{fill}, which attaches a guess to a hole;
+%% \demph{abandon}, which removes a guess from a hole; and \demph{solve}
+%% which finalises a guess by converting it to a $\LET$ binding,
+%% providing that the guess is \remph{pure}, i.e. does not contain any
+%% hole bindings or guesses.
 
-\DM{
-\begin{array}{l@{\hg}l}
-\mbox{Claim} & 
-\Rule{\Gamma\proves\ve\Hab\vT\hg
-\Gamma\proves\vS\Hab\Type
-}
-{\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT
-}
-\\
-\mbox{Fill} & 
-\Rule{\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT\hg
-\Gamma\proves\vv\Hab\vS}
-{\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
-\\
-\mbox{Abandon} &
-\Rule{\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
-{\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT}
-\\
-\mbox{Solve} &
-\Rule{\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
-{\Gamma\proves\LET\:\vx\Hab\vS\defq\:\vv\SC\ve\Hab\vT}
-\hspace*{0.1cm}\vv\:\mbox{pure}
+%% \DM{
+%% \begin{array}{l@{\hg}l}
+%% \mbox{Claim} & 
+%% \Rule{\Gamma\proves\ve\Hab\vT\hg
+%% \Gamma\proves\vS\Hab\Type
+%% }
+%% {\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT
+%% }
+%% \\
+%% \mbox{Fill} & 
+%% \Rule{\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT\hg
+%% \Gamma\proves\vv\Hab\vS}
+%% {\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
+%% \\
+%% \mbox{Abandon} &
+%% \Rule{\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
+%% {\Gamma\proves\hole{\vx}{\vS}\SC\ve\Hab\vT}
+%% \\
+%% \mbox{Solve} &
+%% \Rule{\Gamma\proves\guess{\vx}{\vS}{\vv}\SC\ve\Hab\vT}
+%% {\Gamma\proves\LET\:\vx\Hab\vS\defq\:\vv\SC\ve\Hab\vT}
+%% \hspace*{0.1cm}\vv\:\mbox{pure}
 
-\end{array}
-}
+%% \end{array}
+%% }
 
 

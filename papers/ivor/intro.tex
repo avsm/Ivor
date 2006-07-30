@@ -5,30 +5,33 @@
 %Agda~\cite{agda}, the tactic engine is primarily intended to be used
 %by programs, rather than a human operator. 
 
-Type theory based theorem provers such as
-\Coq{}~\cite{coq-manual} and Agda~\cite{agda} have achieved widespread
-use as tools for verification of functional programs
-(e.g.~\cite{leroy-compiler}, more?), derivation of correct programs
-for their specification (citations?) and formal proofs
-of mathematical properties (e.g.~\cite{four-colour}).  
-However, these tools are designed with a
+Type theory based theorem provers such as \Coq{}~\cite{coq-manual} and
+Agda~\cite{agda} have been used as tools for verification of programs
+(e.g.~\cite{leroy-compiler,why-tool,mckinna-expr}), extraction of
+correct programs from proofs (e.g.~\cite{extraction-coq,large-extraction})
+and formal proofs of mathematical properties
+(e.g.~\cite{fta,four-colour}).  However, these tools are designed with a
 human operator in mind; the interface is textual which makes it
 difficult for an external program to interact with them. \Coq{}
-provide an extraction mechanism~\cite{extraction-coq} which generates
+provides an extraction mechanism~\cite{extraction-coq} which generates
 ML or Haskell code from a proof term, but this does not allow the easy
-\remph{construction} of proof terms by an external tool.
+\remph{construction} of proof terms by an external tool. It is also
+extensible to some extent, for example using a domain specific
+language for creating user tactics, but the result is difficult to
+embed in an external program.
 
 %More
 %recently, dependent types have been incorporated into programming
 %languages such as Cayenne~\cite{cayenne-icfp}, DML~\cite{xi-thesis} and
 %\Epigram{}~\cite{view-left,epigram-afp}.
 
-The \Ivor{} library is designed to provide an implementation of
-dependent type theory and tactics for proof and program development to
-a Haskell application programmer, via a stable and well-documented
-API. The goal is to allow: i) easy embedding of theorem proving tools
-in a Haskell application; and ii) easy extension of the theorem prover
-with \remph{domain specific} tactics.
+In contrast, the \Ivor{} library is designed to provide an
+implementation of dependent type theory and tactics for proof and
+program development to a Haskell application programmer, via a stable,
+well-documented and lightweight (as far as possible) API. The goal is
+to allow: i) easy embedding of theorem proving tools in a Haskell
+application; and ii) easy extension of the theorem prover with
+\remph{domain specific} tactics.
 
 %% have been used for several
 %% large practical applications, including correctness proofs for a
@@ -38,8 +41,12 @@ with \remph{domain specific} tactics.
 \subsection{Motivating Examples}
 
 There are several situations where a dependently typed proof framework
-accessible as a library from Haskell programs could be useful. For
-example:
+accessible as a library from Haskell programs could be useful.  For
+each of these, by using an implementation of a well understood type
+theory, we can be confident that the underlying framework is
+sound. There is no need to prove that a language and proof system are
+consistent with each other or that the proof framework is
+sound.
 
 \begin{description}
 \item[Formal Systems] 
@@ -56,20 +63,21 @@ In section \ref{example1}, I will give details of an implementation of
 first order logic.
 
 \item[Programming Languages] 
-Dependent type theory can be used as the core representation for a
+Dependent type theory can be used as the internal representation for a
 functional programming language. The core language of the Glasgow
 Haskell Compiler is \SystemF{}~\cite{core} --- dependent type theory
-generalises this by allowing types to be parametrised over values.  An
-often claimed advantage of pure functional programming is that it is
-easy to prove correctness properties [citations needed]. Some tools
-exist to assist with this, e.g. Sparkle~\cite{sparkle} for Clean, or
-Cover~\cite{cover} for translating Haskell into Agda~\cite{agda}. However a
-problem with such tools is that they separate the language from the
-theorem prover; by using a common core representation for both, we can
-be more confident that proofs are correct and be confident that the
-theorem prover supports the entire language.
-In section \ref{example2}, we will see how \Ivor{} can be used to
-implement a language with a built-in theorem prover.
+generalises this by allowing types to be parametrised over values.
+One advantage of a pure functional language is that correctness
+properties of programs in the language can be proven by equational
+reasoning.  Some tools exist to assist with this,
+e.g. Sparkle~\cite{sparkle} for Clean, or Cover~\cite{cover} for
+translating Haskell into Agda~\cite{agda}. However a problem with such
+tools is that they separate the language implementation from the
+theorem prover; by using a common internal representation for both, we can
+be confident that proofs use a faithful representation of the program
+and that the theorem prover supports the entire language. In section
+\ref{example2}, we will see how \Ivor{} can be used to implement a
+language with a built-in theorem prover.
 
 \item[Verified DSL Implementation]
 We have previously used \Ivor{} to demonstrate the implementation of
@@ -83,14 +91,14 @@ context of resource aware programming~\cite{dt-framework}.
 
 \end{description}
 
-Whatever the situation, domain specific tactics are often
-required. For example, 
-an implementation of a programming language with subtyping may require
-a tactic for inserting coercions, or
-a computer arithmetic system may require an
-implementation of Pugh's Omega decision procedure~\cite{pugh-omega}.
-\Ivor{}'s API is designed to make implementation of such tactics as
-easy as possible.
+%% Whatever the situation, domain specific tactics are often
+%% required. For example, 
+%% an implementation of a programming language with subtyping may require
+%% a tactic for inserting coercions, or
+%% a computer arithmetic system may require an
+%% implementation of Pugh's Omega decision procedure~\cite{pugh-omega}.
+%% \Ivor{}'s API is designed to make implementation of such tactics as
+%% easy as possible.
 
 %\subsection{Why Do We Need Another Theorem Prover?}
 

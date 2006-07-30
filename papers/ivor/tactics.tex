@@ -169,7 +169,7 @@ fine-grained tactics are available, but are beyond the scope of this paper.
 
 A basic operation on terms is to introduce $\lambda$ bindings into the
 context. The \texttt{intro} and \texttt{introName} tactics operate on
-a goal of the form $\fbind{\vx}{\vS}\to\vT$, introducing
+a goal of the form $\fbind{\vx}{\vS}{\vT}$, introducing
 $\lam{\vx}{\vS}$ into the context and updating the goal to
 $\vT$. \texttt{introName} allows a user specified name choice,
 otherwise \Ivor{} chooses the name.
@@ -334,11 +334,11 @@ arguments:
 \item An equality proof.
 \end{enumerate}
 
-\Ivor{} is supplied with a library containing the appropriate
-lemmas. Requiting the lemmas to be supplied as arguments makes the
-library more flexible, however; for example, heterogeneous
-equality~\cite{mcbride-thesis} may be preferred.
-The type of the \texttt{replace} tactic is:
+\Ivor{} is supplied with a library of $\source$ code containing the
+appropriate definitions and lemmas. Requiring the lemmas to be
+supplied as arguments makes the library more flexible --- for
+example, heterogeneous equality~\cite{mcbride-thesis} may be
+preferred.  The type of the \texttt{replace} tactic is:
 
 \begin{verbatim}
 replace :: (IsTerm a, IsTerm b, IsTerm c, IsTerm d) =>

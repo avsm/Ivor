@@ -45,14 +45,14 @@ accessible as a library from Haskell programs could be useful.  For
 each of these, by using an implementation of a well understood type
 theory, we can be confident that the underlying framework is
 sound. There is no need to prove that a language and proof system are
-consistent with each other or that the proof framework is
+consistent with each other or that a special purpose proof framework is
 sound.
 
 \begin{description}
 \item[Formal Systems] 
 A formal system can be modelled in dependent type theory, and
 properties of the system and derivations within the system can be
-proved. A simple example is first order logic --- it is
+proved. A simple example is propositional logic --- it is
 straightforward to represent the connectives $\land$, $\lor$ and $\to$
 in dependent type theory and use a theorem prover to prove logical
 formulae.
@@ -60,7 +60,7 @@ Having an implementation of type theory and an interactive theorem
 prover accessible as an API makes it easy to write tools for working
 in a formal system, whether for educational or practical purposes.
 In section \ref{example1}, I will give details of an implementation of
-first order logic.
+propositional logic.
 
 \item[Programming Languages] 
 Dependent type theory can be used as the internal representation for a
@@ -70,12 +70,13 @@ generalises this by allowing types to be parametrised over values.
 One advantage of a pure functional language is that correctness
 properties of programs in the language can be proven by equational
 reasoning.  Some tools exist to assist with this,
-e.g. Sparkle~\cite{sparkle} for Clean, or Cover~\cite{cover} for
-translating Haskell into Agda~\cite{agda}. However a problem with such
-tools is that they separate the language implementation from the
-theorem prover; by using a common internal representation for both, we can
-be confident that proofs use a faithful representation of the program
-and that the theorem prover supports the entire language. In section
+e.g. Sparkle~\cite{sparkle} for the Clean language~\cite{clean}, or
+Cover~\cite{cover} for translating Haskell into
+Agda~\cite{agda}. However a problem with such tools is that they
+separate the language implementation from the theorem prover; by using
+a common internal representation for both, we can be confident that
+proofs use a faithful representation of the program and that the
+theorem prover supports the entire language. In section
 \ref{example2}, we will see how \Ivor{} can be used to implement a
 language with a built-in theorem prover.
 

@@ -1,13 +1,145 @@
 \section{Examples}
 
-\subsection{A First Order Logic Theorem Prover}
+\subsection{A Propositional Logic Theorem Prover}
 
 \label{example1}
 
+Propositional logic is straightforward to model in dependent type
+theory; here we show how \Ivor{} can be used to implement a theorem
+prover for propositional logic. The language of propositional logic is
+defined as follows, where $\vx$ stands for an arbitrary free variable:
 
+\DM{
+\begin{array}{rll}
+\vL ::= & \vx 
+\mid \vL \land \vL
+\mid \vL \lor \vL
+\mid \vL \to \vL
+\mid \neg\vL
+\end{array}
+}
+
+\newcommand{\Tand}{\TC{And}}
+\newcommand{\andintro}{\DC{and\_intro}}
+\newcommand{\Tor}{\TC{Or}}
+\newcommand{\orintrol}{\DC{inl}}
+\newcommand{\orintror}{\DC{inr}}
+
+There is a simple mapping from this language to dependent type theory
+--- the $\land$ and $\lor$ connectives can be declared as inductive
+families, where the automatically derived elimination rules give the
+correct elimination behaviour, and the $\to$ connective follows the
+same rules and the function arrow. Negation can be defined with the
+empty type.
+
+The $\land$ connective is declared as an inductive family, where an
+instance of the family gives a proof of the connective. The $\andintro$
+constructor builds a proof of $\vA\land\vB$, given proofs of $\vA$ and
+$\vB$:
+
+\DM{
+\Data\:\Tand\:(\vA,\vB\Hab\Type)\Hab\Type\:=
+\andintro\Hab\fbind{\va}{\vA}{\fbind{\vb}{\vB}{\Tand\:\vA\:\vB}}
+}
+
+Similarly, $\lor$ is declared as an inductive family; an instance of
+$\vA\lor\vB$ is built either from a proof of $\vA$ ($\orintrol$) or a
+proof of $\vB$ ($\orintror$):
+
+\DM{
+\AR{
+\Data\:\Tor\:(\vA,\vB\Hab\Type)\Hab\Type\\
+\hg=\:\orintrol\Hab\fbind{\va}{\vA}{\Tor\:\vA\:\vB}\\
+\hg\mid\:\orintror\Hab\fbind{\vb}{\vB}{\Tor\:\vA\:\vB}\\
+}
+}
+
+I will write $\interp{\ve}$ to denote the translate from an expression
+$\ve\in\vL$ to an implementation in $\source$, in the implementation,
+this is a parser from strings to \hdecl{ViewTerm}s:
+
+\DM{
+\AR{
+\interp{\ve_1\land\ve_2}\:=\:\Tand\:\interp{\ve_1}\:\interp{\ve_2}\\
+\interp{\ve_1\lor\ve_2}\:=\:\Tor\:\interp{\ve_1}\:\interp{\ve_2}\\
+\interp{\ve_1\to\ve_2}\:=\:\interp{\ve_1}\to\interp{\ve_2}\\
+}
+}
+
+To implement negation, we declare the empty type:
+
+\DM{
+\Data\:\False\Hab\Type\:=
+}
+
+Then $\interp{\neg\ve}\:=\:\interp{\ve}\to\False$. The automatically
+derived elimination rule has the following type, showing that a value
+of \remph{any} type can be created from a proof of the empty type:
+
+\DM{
+\Elim{\False}\Hab\fbind{\vx}{\False}{
+\fbind{\motive}{\False\to\Type}{\motive\:\vx}}
+}
+
+In the implementation, we initialise the \hdecl{Context} with these
+types (using \hdecl{addData}) and propositional variables
+$\vA\ldots\vZ$ (using \hdecl{addAxiom}\footnote{This adds a name with
+  a type but no definition to the context.}).
+
+\subsubsection{Domain Specific Tactics}
+
+Mostly, the implementation of a propositional logic theorem prover
+consists of a parser and pretty printer for the language $\vL$, and a
+top level loop for applying introduction and elimination
+tactics. However, some domain
+specific tactics are needed, in particular to deal with negation and
+proof by contradiction. For example, the proof by contradiction tactic
+is implemented as follows:
+
+\texttt{contradiction :: Name -> Name -> Tactic}\\
+\texttt{contradiction x y =}\\
+\hspace*{0.5in}\texttt{claim $\vf$ $\False$ >-> induction $\vf$ >+>}\\
+\hspace*{0.7in}\texttt{(try (fill ($\vx\:\vy$)) idTac (fill ($\vy\:\vx$)))}\\
+
+This tactic takes the names of the two contradiction premises. One is
+of type $\vA\to\False$ for some $\vA$, the other is of type
+$\vA$. The tactic works by claiming there is a contradiction and
+solving the goal by induction over that contradiction (which gives no
+subgoals, since $\Elim{\False}$ has no methods). Finally, using
+\texttt{>+>} to solve the next subgoal, it looks for a contradiction
+by first applying $\vy$ to $\vx$ then, if that fails, applying $\vx$
+to $\vy$.
+
+The full implementation is available from
+\url{http://www.dcs.st-and.ac.uk/~eb/Ivor/}. 
 
 \subsection{\Funl{}, a Functional Language with a Built-in Theorem Prover}
 
 \label{example2}
 
+Propositional logic is an example of a simple formal system which can
+be embedded in a Haskell program using \Ivor{}; however, much more
+complex languages can be implemented. \Funl{} is a simple functional
+language, with primitive recursion over integers and higher order
+functions. It is implemented on top of \Ivor{} as a framework for both
+language representation and correctness proofs. By using \Ivor{}, it
+is a small step from implementing the language to implementing a
+theorem prover for showing properties of program in the language.
+
+An implementation is available from
+\url{http://www.dcs.st-and.ac.uk/~eb/Funl/}; in this section I will
+sketch some of the important details of this implementation.
+
+\subsubsection{Building Terms}
+
+Complex tactic for building a term from a syntax tree --- this also
+typechecks for us (although not with very useful error messages)! But
+it does mean that we're in no danger of writing an unsound typechecker.
+
+\subsubsection{Building Proofs}
+
+Use propositional calculus just like section \ref{example1}, also
+equality proofs. For term rewriting, use already built library of
+equality proofs to pass to \hdecl{replace} tactic. Load a library of
+ready made proofs such as commutativity and associativity of addition.
 

@@ -12,6 +12,7 @@
 \setlength{\parskip}{1ex}
 
 \usepackage{graphics,epsfig}
+\usepackage{stmaryrd}
 
 \input{macros.ltx}
 \input{library.ltx}
@@ -38,11 +39,11 @@
 \begin{abstract}
 Dependent type theory has several practical applications in the fields
 of theorem proving, program verification and programming language
-design. \Ivor{} is a Haskell library designed to allow easy embedding
-and extending of a type theory based theorem prover in a Haskell
+design. \Ivor{} is a Haskell library designed to allow easy extending
+and embedding of a type theory based theorem prover in a Haskell
 application. In this paper, I give an overview of the library and show
-how it can be used to implement formal systems such as first order
-logic.  Further, I show how dependent type theory can be used as a
+how it can be used to implement formal systems such as propositional
+logic.  Finally, I show dependent type theory as a
 core representation for a functional programming language, allowing an
 evaluator and theorem prover to be implemented within the same
 framework, and sketch an implementation of such a language using

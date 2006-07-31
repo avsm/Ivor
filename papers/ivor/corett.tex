@@ -46,8 +46,11 @@ $\LET$ binding:
 {\Gamma;\vb\proves\RW{valid}}
 }
 
-The typing rules are given
-in Figure \ref{typerules}. 
+The typing rules are given in Figure \ref{typerules}. These depend on
+a conversion relation $\Gamma\proves\vx\conv\vy$, which holds iff $\vx$
+and $\vy$ have a common redex. This requires the typechecker to
+perform some evaluation, so it is important for decidability of
+typechecking that the language is strongly normalising.
 
 \FFIG{
 \begin{array}{c}
@@ -100,11 +103,11 @@ in Figure \ref{typerules}.
 \label{indfamilies}
 
 Inductive families \cite{dybjer94} are a form of simultaneously
-defined collections of algebraic data types (such as Haskell
-\texttt{data} declarations) which can be parametrised over values as
-well as types.  An inductive family is declared as follows, using
-the de Bruijn telescope notation, $\tx$, to indicate a sequence of
-zero or more $\vx$:
+defined collection of algebraic data types (such as Haskell
+\texttt{data} declarations) which can be parametrised over
+\remph{values} as well as types.  An inductive family is declared as
+follows, using the de Bruijn telescope notation, $\tx$, to indicate a
+sequence of zero or more $\vx$:
 
 \DM{
 \AR{
@@ -139,12 +142,12 @@ example, a list is parametrised over its element type:
 }
 }
 
-$\source$ is a dependently typed calculus, meaning that types can
-depend on values. Using this, we can declare the type of vectors
-(lists with length), where the empty list is statically known to have
-length zero, and the non empty list is statically known to have a non
-zero length. $\Vect$ is parametrised over its element type, like
-$\List$, but \remph{indexed} over its length. 
+$\source$ is a dependently typed calculus, meaning that types can be
+parametrised over values. Using this, we can declare the type of
+vectors (lists with length), where the empty list is statically known
+to have length zero, and the non empty list is statically known to
+have a non zero length. $\Vect$ is parametrised over its element type,
+like $\List$, but \remph{indexed} over its length.
 
 \DM{
 \AR{

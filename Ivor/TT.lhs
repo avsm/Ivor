@@ -875,16 +875,17 @@ Convert an internal tactic into a publicly available tactic.
 
 > -- | Make a local claim
 > claim :: IsTerm a => Name -> a -> Tactic
-> claim name ty g ctxt = do rawty <- raw ty
->                           name' <- uniqueName ctxt name
->                           runTac (Tactics.claim name' rawty) g ctxt
+> claim name ty = claim' name ty >+> keepSolving
+> claim' name ty g ctxt = do rawty <- raw ty
+>                            name' <- uniqueName ctxt name
+>                            runTac (Tactics.claim name' rawty) g ctxt
 
 > -- | Solve a goal by applying a function.
 > -- If the term given has arguments, attempts to fill in these arguments
 > -- by unification and solves them (with 'solve').
 > -- See 'refineWith' and 'basicRefine' for slight variations.
 > refine :: IsTerm a => a -> Tactic
-> refine tm = basicRefine tm >-> keepSolving
+> refine tm = basicRefine tm >+> keepSolving
 
 > -- | Solve a goal by applying a function.
 > -- If the term given has arguments, this will create a subgoal for each.
@@ -941,7 +942,7 @@ Convert an internal tactic into a publicly available tactic.
 
 > -- | Attach a solution to a goal.
 > fill :: IsTerm a => a -> Tactic
-> fill guess = fill' guess >-> keepSolving
+> fill guess = fill' guess >+> keepSolving
 
 > fill' guess = do rawguess <- raw guess
 >                  runTac (Tactics.fill rawguess)
@@ -1101,7 +1102,7 @@ FIXME: Choose a sensible name here
 > -- | Apply an eliminator. 
 > by :: IsTerm a => a -- ^ An elimination rule applied to a target.
 >        -> Tactic
-> by rule = (by' rule >=> attack) >=> keepSolving
+> by rule = (by' rule >=> attack) >+> keepSolving
 
 > by' rule = do rawrule <- raw rule
 >               runTac (Tactics.by rawrule)
@@ -1109,7 +1110,7 @@ FIXME: Choose a sensible name here
 > -- | Apply the appropriate induction rule to the term.
 > induction :: IsTerm a => a -- ^ target of the elimination
 >                -> Tactic
-> induction tm = (induction' tm >=> attack) >=> keepSolving
+> induction tm = (induction' tm >=> attack) >+> keepSolving
 
 > induction' tm = do rawtm <- raw tm
 >                    runTac (Tactics.casetac True rawtm)
@@ -1118,7 +1119,7 @@ FIXME: Choose a sensible name here
 > -- Like 'induction', but no induction hypotheses generated.
 > cases :: IsTerm a => a -- ^ target of the case analysis
 >                -> Tactic
-> cases tm = (cases' tm >=> attack) >=> keepSolving
+> cases tm = (cases' tm >=> attack) >+> keepSolving
 > cases' tm = do rawtm <- raw tm
 >                runTac (Tactics.casetac False rawtm)
 

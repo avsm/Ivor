@@ -1,15 +1,41 @@
 \section{Related Work}
 
-\Coq{} \cite{coq-manual} and Agda \cite{agda} obviously. Inspired by
-\cite{mcbride-thesis}, and using implementation techniques from
-\cite{not-a-number}. \Epigram{}~\cite{view-left} built on
-a similar idea of theorem provers being for machines to use as much as
-humans. Probably good to mention \cite{epireloaded} too.
+The ability to extend a theorem prover with user defined tactics has
+its roots in Robin Milner's LCF~\cite{lcf-milner}. This introduced the
+programming language ML to allow users to write tactics; we follow the
+LCF approach in exposing the tactic engine as an API. However, unlike
+other systems, we have not treated the theorem prover as an end in
+itself, but intend to expose the technology to any Haskell application
+which may need it.  The implementation of \Ivor{} is based on the
+presentation of \Oleg{} in Conor McBride's
+thesis~\cite{mcbride-thesis}; this technology also forms the basis for
+the implementation of \Epigram{}~\cite{view-left}. The core language
+of \Epigram{}~\cite{epireloaded} is similar to $\source$, with
+extensions for observational equality. \Ivor{} uses implementation
+techniques for \cite{not-a-number} for dealing with variables and
+renaming, using de Bruijn indices.
 
-Isabelle~\cite{isabelle}, generic theorem prover, not based on
-dependent types, but flexible in that it can accept a variety of
-calculi.  Sparkle~\cite{sparkle} as a special purpose theorem prover
-for Clean~\cite{clean}.
+Other theorem provers such as \Coq{}~\cite{coq-manual},
+Agda~\cite{agda} and Isabell~\cite{isabelle} have varying degrees of
+extensibility.  \Ivor{}'s interface design largely follows that of
+\Coq{}. \Coq{} includes a high level domain specific language for
+combining tactics and creating new tactics, along the lines of the
+tactic combinators presented in section \ref{combinators}. This
+language is ideal for many purposes, such as our \hdecl{contradiction}
+tactic, but more complex examples such as \hdecl{buildTerm} would
+require extending \Coq{} itself.
+
+Isabelle~\cite{isabelle} is a generic theorem prover, in that it
+includes a large body of object logics and a meta-language for
+defining new logics. It includes a typed, extensible tactic language,
+and can be called from ML programs, but unlike \Ivor{} is not based on
+a dependent type theory.
+
+The implementation of \Funl{} allows a theorem prover to be attached
+to the language in a straightforward way, using \Ivor{}'s tactics
+directly. This would be a possible method of attaching a theorem
+prover to a more full featured programming language such as the
+Sparkle~\cite{sparkle} prover for Clean~\cite{clean}.
 
 \section{Conclusions}
 

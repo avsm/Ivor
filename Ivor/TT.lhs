@@ -885,7 +885,7 @@ Convert an internal tactic into a publicly available tactic.
 > -- by unification and solves them (with 'solve').
 > -- See 'refineWith' and 'basicRefine' for slight variations.
 > refine :: IsTerm a => a -> Tactic
-> refine tm = basicRefine tm >+> keepSolving
+> refine tm = (basicRefine tm >=> trySolve) >+> keepSolving
 
 > -- | Solve a goal by applying a function.
 > -- If the term given has arguments, this will create a subgoal for each.
@@ -899,7 +899,7 @@ Convert an internal tactic into a publicly available tactic.
 > -- | Solve a goal by applying a function with some arguments filled in.
 > -- See 'refine' for details.
 > refineWith :: IsTerm a => a -> [a] -> Tactic
-> refineWith tm args = refineWith' tm args >=> trySolve
+> refineWith tm args = (refineWith' tm args >=> trySolve) >+> keepSolving
 
 > refineWith' tm args = do rawtm <- raw tm
 >                          rawargs <- mapM raw args

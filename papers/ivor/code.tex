@@ -1,0 +1,82 @@
+\section{Haskell Code}
+
+This appendix contains some of the more important definitions from the theorem
+prover and functional language implementation. The complete code for
+both examples is available from
+\url{http://www.dcs.st-and.ac.uk/~eb/Ivor}; the code presented here
+illustrates the building of complex tactics with \Ivor{}.
+
+\subsection{Propositional Logic}
+
+Two domain specific tactics are needed; firstly to prove a negation
+$\neg\vA$, we assume $\vA$ and attempt to prove $\bot$. This is
+achieved with a \hdecl{negate} tactic; \hdecl{getGoal} is used to get
+the type of the current goal, and \hdecl{view} is used to convert the
+internal representation into a pattern matchable representation.
+
+\begin{verbatim}
+> negate :: Tactic
+> negate g ctxt = do 
+>    (_,gtype) <- getGoal ctxt g
+>    assumption <- negateTerm (view gtype)
+>    ctxt <- equiv (Forall (name "neg") assumption false) g ctxt
+>    intro g ctxt
+\end{verbatim}
+
+\begin{verbatim}
+> negateTerm :: Monad m => ViewTerm -> m ViewTerm
+> negateTerm (App (Name _ n) arg) | n == (name "not") = return arg
+> negateTerm _ = fail "Not a negation"
+\end{verbatim}
+
+Secondly, we need a tactic to prove a contradiction as discussed in
+section \ref{example1}:
+
+\begin{verbatim}
+> contradiction :: String -> String -> Tactic
+> contradiction x y = claim (name "false") "False" >+>
+>                     induction "false" >+>
+>                     (try (fill $ x ++ " " ++ y)
+>                           idTac
+>                           (fill $ y ++ " " ++ x))
+\end{verbatim}
+
+\subsection{\Funl{}}
+
+\label{funlapp}
+
+When building a function definition, we prove a \hdecl{theorem} of the
+appropriate type. Then the \hdecl{buildTerm} tactic traverses the
+structure of the raw term, constructing a proof of the
+theorem. \Ivor{} handles the typechecking; if there are any type
+errors, this tactic will fail.
+
+\begin{verbatim}
+> buildTerm :: Raw -> Tactic
+> buildTerm (Var x) = refine x
+> buildTerm (Lam x ty sc) = introName (name x) >+> buildTerm sc
+> buildTerm (Language.App f a) = buildTerm f >+> buildTerm a
+> buildTerm (Num x) = fill (mkNat x)
+> buildTerm (If a t e) = 
+>     cases (mkTerm a) >+> buildTerm t >+> buildTerm e
+> buildTerm (Rec t alts) =
+>     induction (mkTerm t) >+> tacs (map buildTerm alts)
+> buildTerm (InfixOp Plus x y) = 
+>     refine "plus" >+> buildTerm x >+> buildTerm y
+> buildTerm (InfixOp Times x y) = ...
+\end{verbatim}
+
+A helper function, \hdecl{mkTerm}, is used to translate simple
+expressions into \hdecl{ViewTerm}s:
+
+\begin{verbatim}
+> mkTerm :: Raw -> ViewTerm
+> mkTerm (Var x) = (Name Unknown (name x))
+> mkTerm (Lam x ty sc) = Lambda (name x) (mkType ty) (mkTerm sc)
+> mkTerm (Apply f a) = App (mkTerm f) (mkTerm a)
+> mkTerm (Num x) = mkNat x
+> mkTerm (InfixOp Plus x y) = 
+>     App (App (Name Free (name "plus")) (mkTerm x)) (mkTerm y)
+> mkTerm (InfixOp Times x y) = ...
+> mkTerm _ = error "Term is too complicated in this context"
+\end{verbatim}

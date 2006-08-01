@@ -1,6 +1,6 @@
 all: ivor.pdf
 
-SOURCES = ivor.tex intro.tex corett.tex tactics.tex \
+SOURCES = ivor.tex intro.tex corett.tex tactics.tex code.tex \
           examples.tex conclusions.tex ../bib/literature.bib
 
 ivor.pdf: $(SOURCES)

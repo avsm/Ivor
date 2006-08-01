@@ -128,18 +128,63 @@ theorem prover for showing properties of program in the language.
 
 An implementation is available from
 \url{http://www.dcs.st-and.ac.uk/~eb/Funl/}; in this section I will
-sketch some of the important details of this implementation.
+sketch some of the important details of this implementation. Like the
+propositional logic theorem prover, much of the detail is in the
+parsing and pretty printing of terms and propositions.
 
 \subsubsection{Building Terms}
 
-Complex tactic for building a term from a syntax tree --- this also
-typechecks for us (although not with very useful error messages)! But
-it does mean that we're in no danger of writing an unsound typechecker.
+Terms are parsed into the a data type \hdecl{Raw}; the name
+\hdecl{Raw} reflects the fact that these are raw, untyped terms; note
+in particular that \hdecl{Rec} is an operator for primitive recursion
+on arbitrary types, like the $\delim$ operators in $\source$ --- it
+would be fairly simple to write a first pass which translated
+recursive calls into such an operator using techniques similar to
+McBride and McKinna's labelled types~\cite{view-left}, which are
+implemented in \Ivor{}. The representation is as follows:
+
+\begin{verbatim}
+data Raw = Var String | Lam String Ty Raw | App Raw Raw
+         | Num Int | Boolval Bool  | InfixOp Op Raw Raw
+         | If Raw Raw Raw | Rec Raw [Raw]
+\end{verbatim}
+
+Then the \hdecl{buildTerm} tactic traverses the
+structure of the raw term, constructing a proof of the
+theorem:
+
+\begin{verbatim}
+buildTerm :: Raw -> Tactic
+\end{verbatim}
+
+The definition is given in Appendix \ref{funlapp}.  \Ivor{} handles
+the typechecking and any issues with renaming, using techniques from
+\cite{not-a-number}; if there are any type errors in the \hdecl{Raw}
+term, this tactic will fail (although some extra work is required to
+produce readable error messages). By using \Ivor{} to handle
+typechecking and evaluation, we are in no danger of evaluating a term
+with type errors.
+
 
 \subsubsection{Building Proofs}
 
-Use propositional calculus just like section \ref{example1}, also
-equality proofs. For term rewriting, use already built library of
-equality proofs to pass to \hdecl{replace} tactic. Load a library of
-ready made proofs such as commutativity and associativity of addition.
+We also define a language of propositions over terms in \Funl{}.
+This uses propositional calculus, just like the theorem prover in
+section \ref{example1}, but extended with equational reasoning. For
+the equational reasoning, we use a library of equality proofs to
+create tactics for applying commutativity and associativity of
+addition and simplification of expressions.
 
+A basic language of propositions can be defined as follows, with the
+obvious translation into $\source$:
+
+\begin{verbatim}
+data Prop = Eq Raw Raw
+          | And Prop Prop | Or Prop Prop
+          | All String Ty Prop | FalseProp
+\end{verbatim}
+
+This allows equational reasoning over \Funl{} programs, quantification
+over variables and conjunction and disjunction of propositions. A more
+full featured prover may require relations other than \hdecl{Eq} or
+even user defined relations.

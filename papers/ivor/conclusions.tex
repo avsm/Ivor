@@ -11,25 +11,23 @@ presentation of \Oleg{} in Conor McBride's
 thesis~\cite{mcbride-thesis}; this technology also forms the basis for
 the implementation of \Epigram{}~\cite{view-left}. The core language
 of \Epigram{}~\cite{epireloaded} is similar to $\source$, with
-extensions for observational equality. \Ivor{} uses implementation
-techniques for \cite{not-a-number} for dealing with variables and
-renaming, using de Bruijn indices.
+extensions for observational equality. We use implementation
+techniques from \cite{not-a-number} for dealing with variables and
+renaming.
 
 Other theorem provers such as \Coq{}~\cite{coq-manual},
-Agda~\cite{agda} and Isabell~\cite{isabelle} have varying degrees of
-extensibility.  \Ivor{}'s interface design largely follows that of
+\Agda{}~\cite{agda} and Isabelle~\cite{isabelle} have varying degrees
+of extensibility. The interface design largely follows that of
 \Coq{}. \Coq{} includes a high level domain specific language for
 combining tactics and creating new tactics, along the lines of the
 tactic combinators presented in section \ref{combinators}. This
 language is ideal for many purposes, such as our \hdecl{contradiction}
 tactic, but more complex examples such as \hdecl{buildTerm} would
-require extending \Coq{} itself.
-
-Isabelle~\cite{isabelle} is a generic theorem prover, in that it
-includes a large body of object logics and a meta-language for
-defining new logics. It includes a typed, extensible tactic language,
-and can be called from ML programs, but unlike \Ivor{} is not based on
-a dependent type theory.
+require extending \Coq{} itself.  Isabelle~\cite{isabelle} is a
+generic theorem prover, in that it includes a large body of object
+logics and a meta-language for defining new logics. It includes a
+typed, extensible tactic language, and can be called from ML programs,
+but unlike \Ivor{} is not based on a dependent type theory.
 
 The implementation of \Funl{} allows a theorem prover to be attached
 to the language in a straightforward way, using \Ivor{}'s tactics
@@ -39,19 +37,52 @@ Sparkle~\cite{sparkle} prover for Clean~\cite{clean}.
 
 \section{Conclusions}
 
-Didn't talk about primitive types, general recursion or all sorts of
-other bits and pieces. See web site.
+We have seen an overview of the \Ivor{} library, including basic
+tactics for building proofs similar to the tactics available in other
+proof assistants such as \Coq{}. By exposing the tactic API and
+providing an interface for term construction and evaluation, we are
+able to embed theorem proving technology in a Haskell
+application. This in itself is not a new idea, having first been seen
+as far back as the LCF~\cite{lcf-milner} prover --- however, we have
+used the theorem proving technology not as an end in itself, but as a
+mechanism for constructing domain specific tools, such as the
+propositional logic theorem prover in section \ref{example1} and the
+programming language with built in equational reasoning support in
+section \ref{example2}.
 
-Easy to make tools with proof gadgets attached, or verified
-implementations of programming languages.
+The library includes several features we have not been able to discuss
+here. There is experimental support for multi-stage programming with
+dependent types, exploited in~\cite{dtpmsp-gpce}.
+The term language can be extended with primitive types and
+operations, e.g. integers and strings with associated arithmetic and
+string manipulation operators. Such features would be essential in a
+representation of a real programming language. In this paper, we have
+state that $\source$ is strongly normalising, with no general
+recursion allowed, but again in the representation of a real
+programming language general recursion may be desirable --- however,
+this means that correctness proofs are no longer total. The library
+can allow general recursive definitions, but such definitions cannot
+be evaluated by the typechecker. Finally, a command driven interface
+is available, which can be accessed as a Haskell API or used from a
+command line driver program, and allows user directed proofs in the
+style of other proof assistants. These and other features are fully
+documented on the web site.
 
 \subsection{Further Work}
 
-Development driven by our research into Hume and dependent types.
-We'll need some more tactics, e.g. Elimination with a Motive
-\cite{elim-motive}. Perhaps a compiler, and optimisations from
-\cite{brady-thesis}. An implementation of
-coinduction~\cite{coinductive} would be nice, currently it's faked by
-recursive functions which don't reduce at the type level, but a proper
-implementation, perhaps with a syntactic criterion for correctness
-would be better.
+Development of the library has been driven by the requirements of
+our research into Hume~\cite{Hume-GPCE}, a resource bounded functional
+language. We are investigating the use of dependent types in
+representing and verifying resource bounded functional
+programs~\cite{dt-framework}. For this, automatic generation of
+injectivity and disjointness lemmas for constructors will be
+essential~\cite{concon}, as well as an elimination with a
+motive~\cite{elim-motive} tactic. Future versions will include
+optimisations from \cite{brady-thesis} and some support for compiling
+$\source$ terms; this would not only improve the efficiency of the
+library, but also facilitate the use of \Ivor{} in a real language
+implementation. Finally, an implementation of coinductive
+types~\cite{coinductive} is likely to be very useful; currently it can
+be achieved by implementing recursive functions which do not reduce at
+the type level, but a complete implementation with criteria for
+checking productivity would be valuable for modelling streams in Hume.

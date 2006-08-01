@@ -1,8 +1,8 @@
 \section{Haskell Code}
 
-This appendix contains some of the more important definitions from the theorem
-prover and functional language implementation. The complete code for
-both examples is available from
+This appendix contains some of the more important definitions from the
+logic theorem prover and functional language implementation. The
+complete code for both examples is available from
 \url{http://www.dcs.st-and.ac.uk/~eb/Ivor}; the code presented here
 illustrates the building of complex tactics with \Ivor{}.
 
@@ -10,23 +10,15 @@ illustrates the building of complex tactics with \Ivor{}.
 
 Two domain specific tactics are needed; firstly to prove a negation
 $\neg\vA$, we assume $\vA$ and attempt to prove $\bot$. This is
-achieved with a \hdecl{negate} tactic; \hdecl{getGoal} is used to get
-the type of the current goal, and \hdecl{view} is used to convert the
-internal representation into a pattern matchable representation.
+achieved with an \hdecl{assumeFalse} tactic which assumes the negation
+of the goal. Negation is defined with a function $\FN{not}$; the
+\hdecl{assumeFalse} tactic then unfolds this name so that a goal (in
+$\source$ syntax) $\FN{not}\:\vA$ is transformed to
+$\vA\:\to\:\False$, then $\vA$ can be introduced.
 
 \begin{verbatim}
-> negate :: Tactic
-> negate g ctxt = do 
->    (_,gtype) <- getGoal ctxt g
->    assumption <- negateTerm (view gtype)
->    ctxt <- equiv (Forall (name "neg") assumption false) g ctxt
->    intro g ctxt
-\end{verbatim}
-
-\begin{verbatim}
-> negateTerm :: Monad m => ViewTerm -> m ViewTerm
-> negateTerm (App (Name _ n) arg) | n == (name "not") = return arg
-> negateTerm _ = fail "Not a negation"
+> assumeFalse :: Tactic
+> assumeFalse = unfold (name "not") >+> intro 
 \end{verbatim}
 
 Secondly, we need a tactic to prove a contradiction as discussed in

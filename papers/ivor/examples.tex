@@ -6,8 +6,10 @@
 
 Propositional logic is straightforward to model in dependent type
 theory; here we show how \Ivor{} can be used to implement a theorem
-prover for propositional logic. The language of propositional logic is
-defined as follows, where $\vx$ stands for an arbitrary free variable:
+prover for propositional logic. The full implementation is available
+from \url{http://www.dcs.st-and.ac.uk/~eb/Ivor/}.  The language of
+propositional logic is defined as follows, where $\vx$ stands for an
+arbitrary free variable:
 
 \DM{
 \begin{array}{rll}
@@ -86,8 +88,7 @@ types (using \hdecl{addData}) and propositional variables
 $\vA\ldots\vZ$ (using \hdecl{addAxiom}\footnote{This adds a name with
   a type but no definition to the context.}).
 
-\subsubsection{Domain Specific Tactics}
-
+\mysubsubsection{Domain Specific Tactics}
 Mostly, the implementation of a propositional logic theorem prover
 consists of a parser and pretty printer for the language $\vL$, and a
 top level loop for applying introduction and elimination
@@ -110,9 +111,6 @@ subgoals, since $\Elim{\False}$ has no methods). Finally, using
 by first applying $\vy$ to $\vx$ then, if that fails, applying $\vx$
 to $\vy$.
 
-The full implementation is available from
-\url{http://www.dcs.st-and.ac.uk/~eb/Ivor/}. 
-
 \subsection{\Funl{}, a Functional Language with a Built-in Theorem Prover}
 
 \label{example2}
@@ -132,8 +130,7 @@ sketch some of the important details of this implementation. Like the
 propositional logic theorem prover, much of the detail is in the
 parsing and pretty printing of terms and propositions.
 
-\subsubsection{Building Terms}
-
+\mysubsubsection{Building Terms}
 Terms are parsed into the a data type \hdecl{Raw}; the name
 \hdecl{Raw} reflects the fact that these are raw, untyped terms; note
 in particular that \hdecl{Rec} is an operator for primitive recursion
@@ -143,19 +140,15 @@ recursive calls into such an operator using techniques similar to
 McBride and McKinna's labelled types~\cite{view-left}, which are
 implemented in \Ivor{}. The representation is as follows:
 
-\begin{verbatim}
-data Raw = Var String | Lam String Ty Raw | App Raw Raw
-         | Num Int | Boolval Bool  | InfixOp Op Raw Raw
-         | If Raw Raw Raw | Rec Raw [Raw]
-\end{verbatim}
+\verb+data Raw = Var String | Lam String Ty Raw | App Raw Raw+\\
+\verb+         | Num Int | Boolval Bool  | InfixOp Op Raw Raw+\\
+\verb+         | If Raw Raw Raw | Rec Raw [Raw]+
 
 Then the \hdecl{buildTerm} tactic traverses the
 structure of the raw term, constructing a proof of the
 theorem:
 
-\begin{verbatim}
-buildTerm :: Raw -> Tactic
-\end{verbatim}
+\hdecl{buildTerm :: Raw -> Tactic}
 
 The definition is given in Appendix \ref{funlapp}.  \Ivor{} handles
 the typechecking and any issues with renaming, using techniques from
@@ -166,8 +159,7 @@ typechecking and evaluation, we are in no danger of evaluating a term
 with type errors.
 
 
-\subsubsection{Building Proofs}
-
+\mysubsubsection{Building Proofs}
 We also define a language of propositions over terms in \Funl{}.
 This uses propositional calculus, just like the theorem prover in
 section \ref{example1}, but extended with equational reasoning. For
@@ -175,14 +167,12 @@ the equational reasoning, we use a library of equality proofs to
 create tactics for applying commutativity and associativity of
 addition and simplification of expressions.
 
-A basic language of propositions can be defined as follows, with the
-obvious translation into $\source$:
+A basic language of propositions with the obvious translation to
+$\source$ is:
 
-\begin{verbatim}
-data Prop = Eq Raw Raw
-          | And Prop Prop | Or Prop Prop
-          | All String Ty Prop | FalseProp
-\end{verbatim}
+\verb+data Prop = Eq Raw Raw+\\
+\verb+          | And Prop Prop | Or Prop Prop+\\
+\verb+          | All String Ty Prop | FalseProp+
 
 This allows equational reasoning over \Funl{} programs, quantification
 over variables and conjunction and disjunction of propositions. A more

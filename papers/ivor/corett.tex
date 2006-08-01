@@ -9,10 +9,11 @@
 
 The core type theory of \Ivor{} is a strongly normalising dependent
 type theory with inductive families~\cite{dybjer94}, similar to Luo's
-UTT~\cite{luo94} or the Calculus of Inductive Constructions in
-\Coq{}~\cite{coq-manual}. 
+UTT~\cite{luo94}, the Calculus of Inductive Constructions in
+\Coq{}~\cite{coq-manual}, or \Epigram{}'s ETT~\cite{epireloaded}. 
 This language, which I call $\source$, is an
-enriched lambda calculus, with the usual properties of subject
+enriched lambda calculus, with the usual reduction rules,
+and properties of subject
 reduction, Church Rosser, and uniqueness of types up to
 conversion. The strong normalisation property (i.e. that evaluation
 always terminates) is guaranteed by allowing only primitive recursion
@@ -46,14 +47,13 @@ $\LET$ binding:
 {\Gamma;\vb\proves\RW{valid}}
 }
 
-The typing rules are given in Figure \ref{typerules}. These depend on
-a conversion relation $\Gamma\proves\vx\conv\vy$, which holds iff $\vx$
+The typing rules are given below. These depend on
+a conversion relation \mbox{$\Gamma\proves\vx\conv\vy$}, which holds iff $\vx$
 and $\vy$ have a common redex. This requires the typechecker to
 perform some evaluation, so it is important for decidability of
 typechecking that the language is strongly normalising.
 
-\FFIG{
-\begin{array}{c}
+\DM{\begin{array}{c}
 \Rule{\Gamma\proves\RW{valid}}
 {\Gamma\vdash\Type_n\Hab\Type_{n+1}}\hspace*{0.1in}\mathsf{Type}
 \\
@@ -95,8 +95,8 @@ typechecking that the language is strongly normalising.
 \hspace*{0.1in}\mathsf{Conv}
 \end{array}
 }
-{Typing rules for $\source$}
-{typerules}
+%{Typing rules for $\source$}
+%{typerules}
 
 \subsection{Inductive Families}
 
@@ -134,8 +134,8 @@ example, a list is parametrised over its element type:
 
 \DM{
 \AR{
-\Data\:\List\:(\vA\Hab\Type)\Hab\Type\\
-\hg\AR{
+\Data\:\List\:(\vA\Hab\Type)\Hab\Type\:
+\AR{
 =\:\nil\Hab\List\:\vA\\
 \mid\:\cons\Hab\fbind{\vx}{\vA}{\fbind{\vxs}{\List\:\vA}{\List\:\vA}}
 }
@@ -151,12 +151,10 @@ like $\List$, but \remph{indexed} over its length.
 
 \DM{
 \AR{
-\Data\:\Vect\:(\vA\Hab\Type)\Hab\Nat\to\Type\\
-\hg\AR{
+\Data\:\Vect\:(\vA\Hab\Type)\Hab\Nat\to\Type\:
 =\:\Vnil\Hab\Vect\:\vA\:\Z\\
-\mid\:\Vcons\Hab\fbind{\vk}{\Nat}{
+\hg\hg\hg\hg\mid\:\Vcons\Hab\fbind{\vk}{\Nat}{
 \fbind{\vx}{\vA}{\fbind{\vxs}{\Vect\:\vA\:\vk}{\Vect\:\vA\:(\suc\:\vk)}}
-}
 }
 }
 }
@@ -216,33 +214,31 @@ be strictly positive, ensures that evaluation always terminates.
 
 \subsection{The Development Calculus}
 
-\Ivor{} is a library for interactive theorem proving, and therefore
-the type theory needs to support \remph{incomplete} terms, and a
-method for term construction. We extend $\source$ with the concept of
-\demph{holes}, which stand for the parts of constructions which have
-not yet been instantiated; this largely follows McBride's \Oleg{}
-development calculus~\cite{mcbride-thesis}.
+For developing terms interactively, the type theory needs to support
+\remph{incomplete} terms, and a method for term construction. We
+extend $\source$ with the concept of \demph{holes}, which stand for
+the parts of constructions which have not yet been instantiated; this
+largely follows McBride's \Oleg{} development
+calculus~\cite{mcbride-thesis}.
 
 The basic idea is to extend the syntax for binders with a \remph{hole}
 binding and a \remph{guess} binding. The \remph{guess} binding is
 similar to a $\LET$ binding, but without any computational force:
 
 \DM{
-\begin{array}{rllrll}
-\vb ::= & \ldots \\
- \mid & \hole{\vx}{\vt} & (\mbox{hole binding}) &
- \mid & \guess{\vx}{\vt}{\vt} & (\mbox{guess})
-\end{array}
+\vb ::= \ldots 
+ \:\mid\: \hole{\vx}{\vt} \:\:(\mbox{hole binding}) \:\:
+ \:\mid\: \guess{\vx}{\vt}{\vt} \:\:(\mbox{guess})
 }
 
 The benefit of using binders to represent holes, as discussed
 in~\cite{mcbride-thesis}, is that in a dependently typed setting one
-value may determine another. Attaching a value to a binder then
+value may determine another. Attaching a ``guess'' to a binder 
 ensures that replacing one such value also replaces all of its
 dependencies. The typing rules for binders ensure that no ? bindings
-leak into types, and are given in figure \ref{typerulesholes}.
+leak into types, and are given below.
 
-\FFIG{
+\DM{
 \AR{
 \Rule{
 \Gamma;\hole{\vx}{\vS}\proves\ve\Hab\vT
@@ -264,8 +260,8 @@ leak into types, and are given in figure \ref{typerulesholes}.
 
 }
 }
-{Typing rules for $\source$ holes}
-{typerulesholes}
+%{Typing rules for $\source$ holes}
+%{typerulesholes}
 
 %% \subsection{Hole Manipulation}
 

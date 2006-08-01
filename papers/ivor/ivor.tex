@@ -21,12 +21,17 @@
 
 \newcommand{\Ivor}{\textsc{Ivor}}
 \newcommand{\Funl}{\textsc{Funl}}
+\newcommand{\Agda}{\textsc{Agda}}
 
+\newcommand{\mysubsubsection}[1]{
+\noindent
+\textbf{#1}
+}
 \newcommand{\hdecl}[1]{\texttt{#1}}
 
 \begin{document}
 
-\title{\Ivor{}, a Proof Engine}
+\title{\Ivor{}, a Proof Engine --- DRAFT}
 \author{Edwin Brady}
 
 \institute{School of Computer Science, \\
@@ -43,11 +48,11 @@ design. \Ivor{} is a Haskell library designed to allow easy extending
 and embedding of a type theory based theorem prover in a Haskell
 application. In this paper, I give an overview of the library and show
 how it can be used to implement formal systems such as propositional
-logic.  Finally, I show dependent type theory as a
-core representation for a functional programming language, allowing an
-evaluator and theorem prover to be implemented within the same
-framework, and sketch an implementation of such a language using
-\Ivor{}.
+logic.  Furthermore, I sketch an implementation of a simple functional
+programming language using the library; by using type theory as a core
+representation, we can construct and evaluate terms and prove
+correctness properties of those terms within the \remph{same}
+framework, ensuring consistency of the implementation and the theorem prover.
 
 \end{abstract}
 
@@ -65,8 +70,7 @@ framework, and sketch an implementation of such a language using
 
 \section*{Acknowledgements}
 
-%This work is generously supported by EPSRC grant
-%EP/C001346/1.
+This work is generously supported by EPSRC grant EP/C001346/1.
 
 \bibliographystyle{abbrv}
 \begin{small}

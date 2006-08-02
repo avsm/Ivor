@@ -1,9 +1,11 @@
 DB = --user
 PREFIX = $(HOME)
+# Set this to -p for profiling libraries too
+PROFILE =
 GHCOPTS = 
 
 package:
-	runhaskell Setup.lhs configure --user --ghc --prefix=$(PREFIX)
+	runhaskell Setup.lhs configure --user --ghc --prefix=$(PREFIX) $(PROFILE)
 	runhaskell Setup.lhs build
 
 install: .PHONY

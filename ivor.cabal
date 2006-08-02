@@ -6,7 +6,7 @@ License-file:	LICENSE
 Maintainer:	eb@dcs.st-and.ac.uk
 Homepage:	http://www.dcs.st-and.ac.uk/~eb/Ivor/
 Stability:	experimental
-Build-depends:	base, haskell98, util, parsec, mtl, Cabal
+Build-depends:	base, haskell98, util, parsec, mtl
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,
 		ExistentialQuantification, OverlappingInstances
 ghc-prof-options: -auto-all

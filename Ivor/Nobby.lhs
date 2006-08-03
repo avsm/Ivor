@@ -54,6 +54,8 @@ to do with it, when the time comes.
 
 > extend (Gam x) (n,v) = Gam ((n,v):x)
 
+> emptyGam = Gam []
+
 > lookupval :: Eq n => n -> Gamma n -> Maybe (Global n)
 > lookupval n (Gam xs) = fmap getglob (lookup n xs)
 
@@ -62,6 +64,12 @@ to do with it, when the time comes.
 
 > glookup ::  Eq n => n -> Gamma n -> Maybe (Global n,Indexed n)
 > glookup n (Gam xs) = fmap (\x -> (getglob x,gettype x)) (lookup n xs)
+
+> insertGam :: n -> Gval n -> Gamma n -> Gamma n
+> insertGam nm val (Gam gam) = Gam $ (nm,val):gam
+
+> concatGam :: Gamma n -> Gamma n -> Gamma n
+> concatGam (Gam x) (Gam y) = Gam (x++y)
 
 > setFrozen :: Eq n => n -> Bool -> Gamma n -> Gamma n
 > setFrozen n freeze (Gam xs) = Gam $ sf xs where

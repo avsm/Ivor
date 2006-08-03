@@ -468,9 +468,10 @@ to generate a new and hopefully unique name.
 > mangleName :: Name -> Name
 > mangleName (MN (n,i)) = MN (n,i+1)
 > mangleName (UN n) = UN (incName n)
->    where incName x | (num,name) <- span isDigit (reverse x)
+>    where incName x | (num, name) <- span isDigit (reverse x)
 >                        = (reverse name)++show (inc num)
 >
+>          inc :: String -> Int
 >          inc "" = 0
 >          inc xs = (read (reverse xs)) + 1
 

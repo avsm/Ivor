@@ -23,19 +23,19 @@ Unify on named terms, but normalise using de Bruijn indices.
 > -- without reducing global names, and reduce if that doesn't work.
 > -- (Actually, I'm not sure this helps. Probably just slows things down.)
 > unifyenv gam env x y = 
->     case unifynf env (p (normalise (Gam []) x))
->                      (p (normalise (Gam []) y)) of
+>     case unifynf env (p (normalise emptyGam x))
+>                      (p (normalise emptyGam y)) of
 >           (Just x) -> return x
 >           Nothing -> unifynf env (p (normalise (gam' gam) x))
 >                                  (p (normalise (gam' gam) y))
 >    where p (Ind t) = Ind (makePs t)
->          gam' (Gam g) = Gam $ g ++ envToGamHACK env
+>          gam' g = concatGam g (envToGamHACK env)
 
 Make the local environment something that Nobby knows about. Very hacky...
 
-> envToGamHACK [] = []
+> envToGamHACK [] = emptyGam
 > envToGamHACK ((n,B (Let v) ty):xs)
->     = (n, G (Fun [] (Ind v)) (Ind ty)):(envToGamHACK xs)
+>     = insertGam n (G (Fun [] (Ind v)) (Ind ty)) (envToGamHACK xs)
 > envToGamHACK (_:xs) = envToGamHACK xs
 
 > unifynf :: Monad m => 

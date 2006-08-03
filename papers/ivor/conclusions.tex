@@ -43,27 +43,27 @@ proof assistants such as \Coq{}. By exposing the tactic API and
 providing an interface for term construction and evaluation, we are
 able to embed theorem proving technology in a Haskell
 application. This in itself is not a new idea, having first been seen
-as far back as the LCF~\cite{lcf-milner} prover --- however, we have
-used the theorem proving technology not as an end in itself, but as a
-mechanism for constructing domain specific tools, such as the
+as far back as the LCF~\cite{lcf-milner} prover --- however, the
+theorem proving technology is not an end in itself, but a
+mechanism for constructing domain specific tools such as the
 propositional logic theorem prover in section \ref{example1} and the
 programming language with built in equational reasoning support in
 section \ref{example2}.
 
 The library includes several features we have not been able to discuss
 here. There is experimental support for multi-stage programming with
-dependent types, exploited in~\cite{dtpmsp-gpce}.
-The term language can be extended with primitive types and
-operations, e.g. integers and strings with associated arithmetic and
-string manipulation operators. Such features would be essential in a
-representation of a real programming language. In this paper, we have
-state that $\source$ is strongly normalising, with no general
-recursion allowed, but again in the representation of a real
-programming language general recursion may be desirable --- however,
-this means that correctness proofs are no longer total. The library
-can allow general recursive definitions, but such definitions cannot
-be evaluated by the typechecker. Finally, a command driven interface
-is available, which can be accessed as a Haskell API or used from a
+dependent types, exploited in~\cite{dtpmsp-gpce}.  The term language
+can be extended with primitive types and operations, e.g. integers and
+strings with associated arithmetic and string manipulation
+operators. Such features would be essential in a representation of a
+real programming language. In this paper, we have stated that
+$\source$ is strongly normalising, with no general recursion allowed,
+but again in the representation of a real programming language general
+recursion may be desirable --- however, this means that correctness
+proofs can no longer be total. The library can optionally allow
+general recursive definitions, but such definitions cannot be
+evaluated by the typechecker. Finally, a command driven interface is
+available, which can be accessed as a Haskell API or used from a
 command line driver program, and allows user directed proofs in the
 style of other proof assistants. These and other features are fully
 documented on the web site.

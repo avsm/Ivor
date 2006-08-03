@@ -185,7 +185,7 @@ local context:
 \mysubsubsection{Refinement}
 The \texttt{refine} tactic solves a goal by an application of a
 function to arguments. Refining attempts to solve a goal of type
-$\vT$, when given a term $\vt\Hab\all{\tx}{\tS}\SC\vT$. The tactic
+$\vT$, when given a term $\vt\Hab\fbind{\tx}{\tS}{\vT}$. The tactic
 creates a subgoal for each argument $\vx_i$, attempting to solve it by
 unification.
 

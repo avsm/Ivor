@@ -31,7 +31,7 @@ There is a simple mapping from this language to dependent type theory
 --- the $\land$ and $\lor$ connectives can be declared as inductive
 families, where the automatically derived elimination rules give the
 correct elimination behaviour, and the $\to$ connective follows the
-same rules and the function arrow. Negation can be defined with the
+same rules as the function arrow. Negation can be defined with the
 empty type.
 
 The $\land$ connective is declared as an inductive family, where an
@@ -57,7 +57,7 @@ proof of $\vB$ ($\orintror$):
 }
 
 I will write $\interp{\ve}$ to denote the translate from an expression
-$\ve\in\vL$ to an implementation in $\source$, in the implementation,
+$\ve\in\vL$ to an implementation in $\source$; in the implementation,
 this is a parser from strings to \hdecl{ViewTerm}s:
 
 \DM{
@@ -99,7 +99,7 @@ is implemented as follows:
 
 \texttt{contradiction :: Name -> Name -> Tactic}\\
 \texttt{contradiction x y =}\\
-\hspace*{0.5in}\texttt{claim $\vf$ $\False$ >-> induction $\vf$ >+>}\\
+\hspace*{0.5in}\texttt{claim $\vf$ $\False$ >+> induction $\vf$ >+>}\\
 \hspace*{0.7in}\texttt{(try (fill ($\vx\:\vy$)) idTac (fill ($\vy\:\vx$)))}\\
 
 This tactic takes the names of the two contradiction premises. One is
@@ -108,6 +108,7 @@ $\vA$. The tactic works by claiming there is a contradiction and
 solving the goal by induction over that contradiction (which gives no
 subgoals, since $\Elim{\False}$ has no methods). Finally, using
 \texttt{>+>} to solve the next subgoal, it looks for a contradiction
+(i.e. a value of type $\False$)
 by first applying $\vy$ to $\vx$ then, if that fails, applying $\vx$
 to $\vy$.
 
@@ -120,9 +121,10 @@ be embedded in a Haskell program using \Ivor{}; however, much more
 complex languages can be implemented. \Funl{} is a simple functional
 language, with primitive recursion over integers and higher order
 functions. It is implemented on top of \Ivor{} as a framework for both
-language representation and correctness proofs. By using \Ivor{}, it
+language representation and correctness proofs. By using the same
+framework for both, it
 is a small step from implementing the language to implementing a
-theorem prover for showing properties of program in the language.
+theorem prover for showing properties of programs in the language.
 
 An implementation is available from
 \url{http://www.dcs.st-and.ac.uk/~eb/Funl/}; in this section I will
@@ -131,7 +133,7 @@ propositional logic theorem prover, much of the detail is in the
 parsing and pretty printing of terms and propositions.
 
 \mysubsubsection{Building Terms}
-Terms are parsed into the a data type \hdecl{Raw}; the name
+Terms are parsed into a data type \hdecl{Raw}; the name
 \hdecl{Raw} reflects the fact that these are raw, untyped terms; note
 in particular that \hdecl{Rec} is an operator for primitive recursion
 on arbitrary types, like the $\delim$ operators in $\source$ --- it
@@ -144,7 +146,9 @@ implemented in \Ivor{}. The representation is as follows:
 \verb+         | Num Int | Boolval Bool  | InfixOp Op Raw Raw+\\
 \verb+         | If Raw Raw Raw | Rec Raw [Raw]+
 
-Then the \hdecl{buildTerm} tactic traverses the
+Building a \Funl{} function consists of creating a \hdecl{theorem} 
+with a goal representating the function's type, then using the
+\hdecl{buildTerm} tactic to traverse the
 structure of the raw term, constructing a proof of the
 theorem:
 

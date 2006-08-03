@@ -120,9 +120,9 @@ sequence of zero or more $\vx$:
 
 Constructors may take recursive arguments in the family
 $\TC{T}$. Furthermore these arguments may be indexed by another type,
-as long it does not invove $\TC{T}$ --- this restriction is known as
-\demph{strict positivity} and ensures that recursive arguments are
-structurally smaller.
+as long it does not involve $\TC{T}$ --- this restriction is known as
+\demph{strict positivity} and ensures that recursive arguments of a
+constructor are structurally smaller than the value itself.
 
 The Peano style natural numbers can be declared as follows:
 
@@ -169,26 +169,27 @@ When we declare an inductive family $\dD$, we give the constructors
 which explain how to build objects in that family. Along with this,
 the machine generates an \demph{elimination operator} $\delim$ (the
 type of which we call the \demph{elimination rule}) and corresponding
-reductions, which we call
-\demph{$\iota$-schemes}\index{iota-schemes@$\iota$-schemes}. These
-describe and implement the allowed reduction and recursion behaviour
-of terms in the family --- it is effectively a fold operator.  The
-method for constructing elimination operators is well documented, in
-particular by~\cite{dybjer94,luo94,mcbride-thesis}.
-For $\Vect$, we obtain the following operator:
+reductions. The operator implements the reduction and recursion
+behaviour of terms in the family --- it is effectively a fold
+operator.  The method for constructing elimination operators
+automatically is well documented, in particular
+by~\cite{dybjer94,luo94,mcbride-thesis}.  For $\Vect$, \Ivor{} generates the
+following operator:
 
 \DM{
 \AR{
 \begin{array}{ll}
-\vectelim\Hab & \all{\vA}{\Type}\SC\all{\vn}{\Nat}\SC
-                \all{\vv}{\Vect\:\vA\:\vn}. \\
-              & \all{\motive}{\all{\vn}{\Nat}\SC\all{\vv}{\Vect\:\vA\:\vn}\SC\Type}. \\
-              & \all{\meth{\Vnil}}{\motive\:\Z\:(\Vnil\:\vA)}. \\
-              & \all{\meth{\Vcons}}
-  {\AR{
-  \all{\vk}{\Nat}\SC\all{\vx}{\vA}\SC\all{\vxs}{\Vect\:\vA\:\vk}\SC \\
-  \all{\VV{ih}}{\motive\:\vk\:\vxs}.\motive\:(\suc\:\vk)\:
-        (\Vcons\:\vA\:\vk\:\vx\:\vxs).}} \\
+\vectelim\Hab & \fbind{\vA}{\Type}{\fbind{\vn}{\Nat}{
+                \fbind{\vv}{\Vect\:\vA\:\vn}{}}} \\
+              & \fbind{\motive}{
+  \fbind{\vn}{\Nat}{\fbind{\vv}{\Vect\:\vA\:\vn}{\Type}}}{} 
+   \\
+              & \fbind{\meth{\Vnil}}{\motive\:\Z\:(\Vnil\:\vA)}{} \\
+              & (\meth{\Vcons}\Hab
+  \AR{
+  \fbind{\vk}{\Nat}{\fbind{\vx}{\vA}{\fbind{\vxs}{\Vect\:\vA\:\vk}{}}} \\
+  \fbind{\VV{ih}}{\motive\:\vk\:\vxs}{\motive\:(\suc\:\vk)\:
+        (\Vcons\:\vA\:\vk\:\vx\:\vxs)})\to} \\
               & \motive\:\vn\:\vv 
 \end{array}
 \\

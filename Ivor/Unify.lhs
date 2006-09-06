@@ -79,8 +79,8 @@ Make the local environment something that Nobby knows about. Very hacky...
 
 >          unst envl envr (Quote x) (Quote y) = un envl envr x y
 >          unst envl envr (Code x) (Code y) = un envl envr x y
->          unst envl envr (Eval x) (Eval y) = un envl envr x y
->          unst envl envr (Escape x) (Escape y) = un envl envr x y
+>          unst envl envr (Eval x _) (Eval y _) = un envl envr x y
+>          unst envl envr (Escape x _) (Escape y _) = un envl envr x y
 >          unst envl envr x y = fail $ "Can't unify " ++ show (Stage x) ++
 >                                      " and " ++ show (Stage y)
 
@@ -141,7 +141,7 @@ and replace it.
 >     p' (Return t) = Return (p' t)
 >     p' (Stage (Quote t)) = Stage (Quote (p' t))
 >     p' (Stage (Code t)) = Stage (Code (p' t))
->     p' (Stage (Eval t)) = Stage (Eval (p' t))
->     p' (Stage (Escape t)) = Stage (Escape (p' t))
+>     p' (Stage (Eval t ty)) = Stage (Eval (p' t) (p' ty))
+>     p' (Stage (Escape t ty)) = Stage (Escape (p' t) (p' ty))
 >     p' x = x
 

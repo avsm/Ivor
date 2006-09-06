@@ -178,7 +178,7 @@ typechecker...
 >     let ttnf = normaliseEnv env gamma (Ind tt)
 >     case ttnf of
 >        (Ind (Stage (Code tcode))) -> 
->            return (Ind (Stage (Eval tv)), Ind tcode)
+>            return (Ind (Stage (Eval tv tt)), Ind tcode)
 >        _ -> fail $ "Can't eval a non-quoted term (type " ++ show ttnf ++ ")"
 >  tcStage env lvl (REscape t) _ = do
 >     -- when (lvl==0) $ fail $ "Can't escape at level " ++ show lvl
@@ -186,7 +186,7 @@ typechecker...
 >     let ttnf = normaliseEnv env gamma (Ind tt)
 >     case ttnf of
 >        (Ind (Stage (Code tcode))) -> 
->            return (Ind (Stage (Escape tv)), Ind tcode)
+>            return (Ind (Stage (Escape tv tt)), Ind tcode)
 >        _ -> fail "Can't escape a non-quoted term"
 
 >  checkComp env lvl (RComp n ts) = do

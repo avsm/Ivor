@@ -52,8 +52,8 @@ e.g., applying tactics, displaying a proof context, etc.
 >           fh env (App f s) = first [fh env f, fh env s]
 >           fh env (Stage (Quote t)) = fh env t
 >           fh env (Stage (Code t)) = fh env t
->           fh env (Stage (Eval t)) = fh env t
->           fh env (Stage (Escape t)) = fh env t
+>           fh env (Stage (Eval t _)) = fh env t
+>           fh env (Stage (Escape t _)) = fh env t
 >           fh _ _ = fail "No such hole binder"
 >
 >           fhb env (Let x) = fh env x
@@ -81,8 +81,8 @@ no guesses attached (False).
 >           fh env (App f s) = fh env f ++ fh env s
 >           fh env (Stage (Quote t)) = fh env t
 >           fh env (Stage (Code t)) = fh env t
->           fh env (Stage (Eval t)) = fh env t
->           fh env (Stage (Escape t)) = fh env t
+>           fh env (Stage (Eval t _)) = fh env t
+>           fh env (Stage (Escape t _)) = fh env t
 >           fh _ _ = []
 >
 >           -- fhb env (Let x) = fh env x
@@ -143,10 +143,12 @@ FIXME: Why not use a state monad for the unified variables in rt?
 >                                         return (Stage (Quote t'), u)
 >           rt env (Stage (Code t)) = do (t',u) <- rt env t
 >                                        return (Stage (Code t'), u)
->           rt env (Stage (Eval t)) = do (t',u) <- rt env t
->                                        return (Stage (Eval t'), u)
->           rt env (Stage (Escape t)) = do (t',u) <- rt env t
->                                          return (Stage (Escape t'), u)
+>           rt env (Stage (Eval t ty)) = do (t',u) <- rt env t
+>                                           (ty',u) <- rt env ty
+>                                           return (Stage (Eval t' ty'), u)
+>           rt env (Stage (Escape t ty)) = do (t',u) <- rt env t
+>                                             (ty',u) <- rt env ty
+>                                             return (Stage (Escape t' ty'), u)
 >           rt env x = return (x, [])
 >
 >           -- No holes in let bound values!

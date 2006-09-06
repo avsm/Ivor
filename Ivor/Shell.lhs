@@ -21,6 +21,7 @@
 > import Ivor.ShellParser
 > import Ivor.TermParser
 > import Ivor.TT as TT
+> import Ivor.Equality
 > import Ivor.Gadgets
 > import Ivor.Primitives
 > -- import Ivor.Plugin

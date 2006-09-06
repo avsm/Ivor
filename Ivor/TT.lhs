@@ -29,6 +29,7 @@
 >               allSolved,qed,
 >               -- * Examining the Context
 >               eval, getDef, getAllDefs, 
+>               Reduction(..), Rule(..), getElimRule,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
 >               -- * Goals, tactic types
 >               Goal,goal,defaultGoal,
@@ -578,6 +579,36 @@ Give a parseable but ugly representation of a term.
 >                            reverse (map info ds) -- input order!
 >    where info (n,G _ ty) = (n, Term (ty, Ind TTCore.Star))
 
+Examine pattern matching elimination rules
+
+> -- | Iota reduction rule
+> data Reduction = Red { red_args :: [ViewTerm],
+>                        reduction :: ViewTerm }
+
+> -- | Types of elimination rule
+> data Rule = Case | Elim
+
+> -- | Get the pattern matching elimination rule for a type
+> getElimRule :: Monad m => Context -> Name -- ^ Type
+>                -> Rule -- ^ Which rule to get patterns for (case/elim)
+>                -> m [Reduction]
+> getElimRule (Ctxt st) nm r = undefined
+
+-- >     case (lookupval nm (defs st)) of
+-- >       Just (TCon _ (Elims erule crule)) ->
+-- >          do let rule = case r of -- rule :: Name
+-- >                          Case -> crule
+-- >                          Ivor.TT.Elim -> erule
+-- >             elim <- lookupM rule (eliminators st)
+-- >             return $ map mkRed (snd elim)
+-- >       Nothing -> fail $ (show nm) ++ " is not a type constructor"
+
+-- >  where mkRed (Sch pats ret) = Red (map mkTm pats) (view ret)
+-- >        mkTm (PVar n) = Name Free n
+-- >        mkTm (PCon _ n ty args) 
+-- >                 = VTerm.apply (Name DataCon n) (map mkTm args)
+-- >        mkTm _ = Placeholder
+
 Get the actions performed by the last tactic
 
  getActions :: Context -> [Tactics.TacticAction]
@@ -1033,7 +1064,7 @@ FIXME: Choose a sensible name here
 >           | otherwise = gDeps xs ctxt gty
 
 > -- | Add a new top level argument after the arguments its type depends on
-> -- (changing the type of the theorm). This can be useful if, for example,
+> -- (changing the type of the theorem). This can be useful if, for example,
 > -- you find you need an extra premise to prove a goal.
 > addArg :: IsTerm a => Name -> a -> Tactic
 > addArg n ty g ctxt@(Ctxt st) 

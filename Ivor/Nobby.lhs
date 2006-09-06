@@ -133,7 +133,7 @@ Model represents normal forms, including Ready (reducible) and Blocked
 (non-reducible) forms.
 
 > data Model s = MR (Ready s)
->              | MB (Blocked s) (Spine (Model s))
+>              | MB (Blocked s, Model s) (Spine (Model s))
 
 > data Ready s 
 >     = RdBind Name (Binder (Model s)) (s (Model s))
@@ -155,8 +155,8 @@ Model represents normal forms, including Ready (reducible) and Blocked
 >     | BRec Name Value
 >     | BP Name
 >     | BV Int
->     | BEval (Model s)
->     | BEscape (Model s)
+>     | BEval (Model s) (Model s)
+>     | BEscape (Model s) (Model s)
 
 > data MComp s = MComp Name [Model s]
 
@@ -182,13 +182,24 @@ to normal form, but we need a normal form to compare.
 >    -> Bool -- ^ For conversion
 >    -> TT Name -> Value
 > nf g c conv t = {-trace (show t) $-} eval 0 g c t where
->  eval stage gamma (VG g) (V n) | (length g) <= n = MB (BV n) Empty
->                          | otherwise = g!!n
+>
+
+Get the type of a given name in the context
+
+>  pty n = case lookuptype n g of
+>             (Just (Ind ty)) -> nf g c conv ty
+>             Nothing -> error "Can't happen, no such name, Nobby.lhs"
+
+Do the actual evaluation
+
+>  eval stage gamma (VG g) (V n) 
+>      | (length g) <= n = error "Reference out of context!" -- MB (BV n) Empty
+>      | otherwise = g!!n
 >  eval stage gamma g (P n) = evalP (lookupval n gamma)
->    where evalP (Just Unreducible) = (MB (BP n) Empty)
->          evalP (Just Undefined) = (MB (BP n) Empty)
->          evalP (Just (Partial (Ind v) _)) = (MB (BP n) Empty)
->          evalP (Just (PrimOp f)) = (MB (BPrimOp f n) Empty)
+>    where evalP (Just Unreducible) = (MB (BP n,pty n) Empty)
+>          evalP (Just Undefined) = (MB (BP n, pty n) Empty)
+>          evalP (Just (Partial (Ind v) _)) = (MB (BP n, pty n) Empty)
+>          evalP (Just (PrimOp f)) = (MB (BPrimOp f n, pty n) Empty)
 >          evalP (Just (Fun opts (Ind v))) 
 > --               | Frozen `elem` opts && not conv = MB (BP n) Empty
 >                -- recursive functions only reduce if at least one
@@ -197,14 +208,14 @@ to normal form, but we need a normal form to compare.
 >                --     = MB (BRec n (eval stage gamma g v)) Empty
 >                -- | otherwise 
 >                    = eval stage gamma g v
->          evalP _ = (MB (BP n) Empty)
+>          evalP _ = (MB (BP n, pty n) Empty)
 >              --error $ show n ++ 
 >	         --      " is not a function. Something went wrong."
 >                    -- above error is unsound; if names are rebound.
 >  eval stage gamma g (Con tag n 0) = (MR (RCon tag n Empty))
->  eval stage gamma g (Con tag n i) = (MB (BCon tag n i) Empty)
+>  eval stage gamma g (Con tag n i) = (MB (BCon tag n i, pty n) Empty)
 >  eval stage gamma g (TyCon n 0) = (MR (RTyCon n Empty))
->  eval stage gamma g (TyCon n i) = (MB (BTyCon n i) Empty)
+>  eval stage gamma g (TyCon n i) = (MB (BTyCon n i, pty n) Empty)
 >  eval stage gamma g (Const x) = (MR (RdConst x))
 >  eval stage gamma g Star = MR RdStar
 >  eval stage gamma (VG g) (Bind n (B Lambda ty) (Sc sc)) =
@@ -228,7 +239,7 @@ to normal form, but we need a normal form to compare.
 >  eval stage gamma g (Call c t) = docall g (evalcomp stage gamma g c) (eval stage gamma g t)
 >  eval stage gamma g (Label t c) = MR (RdLabel (eval stage gamma g t) (evalcomp stage gamma g c))
 >  eval stage gamma g (Return t) = MR (RdReturn (eval stage gamma g t))
->  eval stage gamma g (Elim n) = MB (BElim (getelim (lookupval n gamma)) n) Empty
+>  eval stage gamma g (Elim n) = MB (BElim (getelim (lookupval n gamma)) n, pty n) Empty
 >    where getelim Nothing = \sp -> Nothing
 >          getelim (Just (ElimRule x)) = x
 >          getelim y = error $ show n ++ 
@@ -249,16 +260,19 @@ to normal form, but we need a normal form to compare.
 >     -- else let cd = (forget ((quote (eval (Gam []) g t)::Normal))) in
 >        --               MR (RdQuote cd)
 >        -- MR (RdQuote (substV g t)) --(splice t)) -- broken
->  evalStage stage gamma g (Eval t) = case (eval (stage+1) gamma g t) of
+>  evalStage stage gamma g (Eval t ty) = case (eval (stage+1) gamma g t) of
 >                            (MR (RdQuote t')) -> eval stage gamma g 
 >                                                   (forget ((quote t')::Normal))
->                            x -> MB (BEval x) Empty
->  evalStage stage gamma g (Escape t) = case (eval (stage+1) gamma g t) of
+>                            x -> MB (BEval x bty, bty) Empty
+>     where bty = eval stage gamma g ty
+>  evalStage stage gamma g (Escape t ty) = case (eval (stage+1) gamma g t) of
 >                            (MR (RdQuote t')) -> 
 >                                if (stage>0)
 >                                   then t'
 >                                   else eval stage gamma g (forget ((quote t')::Normal))
->                            x -> MB (BEscape x) Empty -- needed for conversion check
+>                            x -> MB (BEscape x bty, bty) Empty -- needed for conversion check
+>     where bty = eval stage gamma g ty
+
 >                            --_ -> error $ "Can't escape something non quoted " ++ show t
 
 > docall :: Ctxt -> MComp Kripke -> Value -> Value
@@ -268,20 +282,20 @@ to normal form, but we need a normal form to compare.
 > apply :: Ctxt -> Value -> Value -> Value
 > apply = app where -- oops
 >  app g (MR (RdBind _ (B Lambda ty) k)) v = krApply k v
->  app g (MB (BElim e n) sp) v =
+>  app g (MB (BElim e n, ty) sp) v =
 >      case e (Snoc sp v) of
->         Nothing -> (MB (BElim e n) (Snoc sp v))
+>         Nothing -> (MB (BElim e n, ty) (Snoc sp v))
 >         (Just v) -> v
->  app g (MB (BPrimOp e n) sp) v =
+>  app g (MB (BPrimOp e n, ty) sp) v =
 >      case e (Snoc sp v) of
->         Nothing -> (MB (BPrimOp e n) (Snoc sp v))
+>         Nothing -> (MB (BPrimOp e n, ty) (Snoc sp v))
 >         (Just v) -> v
->  app g (MB (BCon tag n i) sp) v
+>  app g (MB (BCon tag n i, ty) sp) v
 >      | size (Snoc sp v) == i = (MR (RCon tag n (Snoc sp v)))
->      | otherwise = (MB (BCon tag n i) (Snoc sp v))
->  app g (MB (BTyCon n i) sp) v
+>      | otherwise = (MB (BCon tag n i, ty) (Snoc sp v))
+>  app g (MB (BTyCon n i, ty) sp) v
 >      | size (Snoc sp v) == i = (MR (RTyCon n (Snoc sp v)))
->      | otherwise = (MB (BTyCon n i) (Snoc sp v))
+>      | otherwise = (MB (BTyCon n i, ty) (Snoc sp v))
 >  app g (MB bl sp) v = MB bl (Snoc sp v)
 >  app g v a = error $ "Can't apply a non function " ++ show (forget ((quote v)::Normal)) ++ " to argument " ++ show (forget ((quote a)::Normal))
 
@@ -300,7 +314,7 @@ Splice the escapes inside a term
 
 > splice :: TT Name -> TT Name
 > splice = mapSubTerm (splice.st) where
->   st (Stage (Escape (Stage (Quote t)))) = (splice t)
+>   st (Stage (Escape (Stage (Quote t)) _)) = (splice t)
 >   st x = x
 
 > class Weak x where
@@ -311,6 +325,9 @@ Splice the escapes inside a term
 
 > instance Weak Int where
 >     weakenp i j = i + j
+
+> instance (Weak a, Weak b) => Weak (a,b) where
+>     weakenp i (x,y) = (weakenp i x, weakenp i y)
 
 > instance Weak Weakening where
 >     weakenp i (Wk j) = Wk (i + j)
@@ -350,8 +367,8 @@ Splice the escapes inside a term
 >     weakenp i (BPrimOp e n) = BPrimOp e n
 >     weakenp i (BP n) = BP n
 >     weakenp i (BV j) = BV (weakenp i j)
->     weakenp i (BEval t) = BEval (weakenp i t)
->     weakenp i (BEscape t) = BEscape (weakenp i t)
+>     weakenp i (BEval t ty) = BEval (weakenp i t) (weakenp i ty)
+>     weakenp i (BEscape t ty) = BEscape (weakenp i t) (weakenp i ty)
 
 > instance Weak (Kripke x) where
 >     weakenp i (Kr (f,w)) = Kr (f,weakenp i w)
@@ -367,12 +384,13 @@ Splice the escapes inside a term
 
 > instance Quote Value Normal where
 >     quote (MR r) = MR (quote r)
->     quote (MB b sp) = MB (quote b) (fmap quote sp)
+>     quote (MB (b, ty) sp) = MB (quote b, quote ty) (fmap quote sp)
 
 > instance Quote (Ready Kripke) (Ready Scope) where
 >     quote (RdConst x) = RdConst x
 >     quote RdStar = RdStar
->     quote (RdBind n b sc) = RdBind n (quote b) (Sc (quote (krquote sc)))
+>     quote (RdBind n b@(B _ ty) sc) 
+>         = RdBind n (quote b) (Sc (quote (krquote ty sc)))
 >     quote (RCon t c sp) = RCon t c (fmap quote sp)
 >     quote (RTyCon c sp) = RTyCon c (fmap quote sp)
 >     quote (RdLabel t c) = RdLabel (quote t) (quote c)
@@ -389,14 +407,14 @@ Splice the escapes inside a term
 >     quote (BPrimOp e n) = BPrimOp e n
 >     quote (BP n) = BP n
 >     quote (BV j) = BV j
->     quote (BEval t) = BEval (quote t)
->     quote (BEscape t) = BEscape (quote t)
+>     quote (BEval t ty) = BEval (quote t) (quote ty)
+>     quote (BEscape t ty) = BEscape (quote t) (quote ty)
 
 > instance Quote (MComp Kripke) (MComp Scope) where
 >     quote (MComp n ts) = MComp n (fmap quote ts)
 
-> krquote :: Kripke Value -> Value
-> krquote (Kr (f,w)) = f (weaken w (Wk 1)) (MB (BV 0) Empty)
+> krquote :: Value -> Kripke Value -> Value
+> krquote t (Kr (f,w)) = f (weaken w (Wk 1)) (MB (BV 0, t) Empty)
 
 > instance Quote n m => Quote (Binder n) (Binder m) where
 >     quote (B b ty) = B (quote b) (quote ty)
@@ -408,8 +426,35 @@ Splice the escapes inside a term
 >     quote Pi = Pi
 >     quote Hole = Hole
 
+Quotation to eta long normal form. DOESN'T WORK YET!
+
+> instance Quote (Value, Value) Normal where
+>     quote (v@(MR (RdBind n (B Lambda _) _)), 
+>                 (MR (RdBind _ (B Pi ty) (Kr (f,w)))))
+>         = (MR (RdBind n (B Lambda (quote ty))
+>                (Sc (quote ((apply (VG []) (v) v0), 
+>                      (f w v0))))))
+>       where v0 = MB (BV 0, ty) Empty
+>     quote (v, (MR (RdBind n (B Pi ty) (Kr (f,w)))))
+>         = (MR (RdBind n (B Lambda (quote ty))
+>                (Sc (quote ((apply (VG []) (weaken (Wk 1) v) v0), 
+>                      (f w v0))))))
+>       where v0 = MB (BV 0, ty) Empty
+>     quote ((MB (bl,ty) sp), _)
+>         = MB (quote bl, quote ty) (fst (qspine sp))
+>        where qspine Empty = (Empty, ty)
+>              qspine (Snoc sp v) 
+>                  | (sp', MR (RdBind _ (B Pi t) (Kr (f,w)))) <- qspine sp
+>                      = (Snoc sp' (quote (v,weaken (Wk 1) t)), 
+>                           f w v)
+>                  | (sp', t) <- qspine sp
+>                      = (Snoc sp' (quote v), t)
+> --error $ show (forget ((quote t)::Normal))
+>              v0 t = MB (BV 0, t) Empty
+>     quote (v, t) = quote v
+
 > instance Forget Normal (TT Name) where
->     forget (MB b sp) = makeApp (forget b) (fmap forget sp)
+>     forget (MB (b, _) sp) = makeApp (forget b) (fmap forget sp)
 >     forget (MR r) = forget r
 
 > instance Forget (Blocked Scope) (TT Name) where
@@ -420,8 +465,8 @@ Splice the escapes inside a term
 >     forget (BPrimOp f n) = P n
 >     forget (BP n) = P n
 >     forget (BV i) = V i
->     forget (BEval t) = Stage (Eval (forget t))
->     forget (BEscape t) = Stage (Escape (forget t))
+>     forget (BEval t ty) = Stage (Eval (forget t) (forget ty))
+>     forget (BEscape t ty) = Stage (Escape (forget t) (forget ty))
 
 > instance Forget (Ready Scope) (TT Name) where
 >     forget (RdBind n b (Sc sc)) = Bind n (forget b) (Sc (forget sc))
@@ -455,6 +500,14 @@ Splice the escapes inside a term
 > normalise :: Gamma Name -> (Indexed Name) -> (Indexed Name)
 > normalise g (Ind t) = Ind (forget (quote (nf g (VG []) False t)::Normal))
 
+WARNING: quotation to eta long normal form doesn't work yet.
+
+> etaNormalise :: Gamma Name -> (Indexed Name, Indexed Name) -> (Indexed Name)
+> etaNormalise g (Ind tm, Ind ty) = 
+>     let vtm = (nf g (VG []) False tm)
+>         vty = (nf g (VG []) False ty) in
+>       Ind (forget (quote (vtm, vty)::Normal))
+
 > convNormalise :: Gamma Name -> (Indexed Name) -> (Indexed Name)
 > convNormalise g (Ind t) = Ind (forget (quote (nf g (VG []) True t)::Normal))
 
@@ -480,28 +533,28 @@ Splice the escapes inside a term
           valenv ((n,B _ ty):xs) env = valenv xs ((MB (BP n) Empty):env)
           eval env v = nf g (VG env) v
 
-> natElim :: ElimRule
-> natElim (Snoc args@(Snoc (Snoc (Snoc Empty phi) phiZ) phiS)  
->            (MR (RCon 0 (UN "O") sp)))
->      = return phiZ
-> natElim (Snoc args@(Snoc (Snoc (Snoc Empty phi) phiZ) phiS)  
->            (MR (RCon 1 (UN "S") (Snoc Empty n))))
->      = return (apply (VG []) (apply (VG []) phiS n)
->                  (apply (VG []) rec n))
->    where rec = (MB (BElim natElim (UN "nateElim")) args)
-> natElim _ = Nothing
+-- > natElim :: ElimRule
+-- > natElim (Snoc args@(Snoc (Snoc (Snoc Empty phi) phiZ) phiS)  
+-- >            (MR (RCon 0 (UN "O") sp)))
+-- >      = return phiZ
+-- > natElim (Snoc args@(Snoc (Snoc (Snoc Empty phi) phiZ) phiS)  
+-- >            (MR (RCon 1 (UN "S") (Snoc Empty n))))
+-- >      = return (apply (VG []) (apply (VG []) phiS n)
+-- >                  (apply (VG []) rec n))
+-- >    where rec = (MB (BElim natElim (UN "nateElim")) args)
+-- > natElim _ = Nothing
 
-> genElim :: Int -> Int -> [(Name,Ctxt -> Value)] -> ElimRule
-> genElim arity con red sp
->   | size sp < arity = Nothing
->   | otherwise = case (sp??con) of
->        (MR (RCon t n args)) -> 
->              do v <- lookup n red
->                 let ctx = VG $ (makectx args)++(makectx (lose con sp))
->                 return $ v ctx
->        _ -> Nothing
->   where makectx (Snoc xs x) = x:(makectx xs)
->         makectx Empty = []
+-- > genElim :: Int -> Int -> [(Name,Ctxt -> Value)] -> ElimRule
+-- > genElim arity con red sp
+-- >   | size sp < arity = Nothing
+-- >   | otherwise = case (sp??con) of
+-- >        (MR (RCon t n args)) -> 
+-- >              do v <- lookup n red
+-- >                 let ctx = VG $ (makectx args)++(makectx (lose con sp))
+-- >                 return $ v ctx
+-- >        _ -> Nothing
+-- >   where makectx (Snoc xs x) = x:(makectx xs)
+-- >         makectx Empty = []
 
 
 ====================== Functors for contexts ===============================

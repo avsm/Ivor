@@ -176,9 +176,9 @@
 >         = Ivor.ViewTerm.Quote (vtaux ctxt tm)
 >     vtaux ctxt (Stage (TTCore.Code tm)) 
 >         = Ivor.ViewTerm.Code (vtaux ctxt tm)
->     vtaux ctxt (Stage (TTCore.Eval tm)) 
+>     vtaux ctxt (Stage (TTCore.Eval tm _)) 
 >         = Ivor.ViewTerm.Eval (vtaux ctxt tm)
->     vtaux ctxt (Stage (TTCore.Escape tm)) 
+>     vtaux ctxt (Stage (TTCore.Escape tm _)) 
 >         = Ivor.ViewTerm.Escape (vtaux ctxt tm)
 >     vtaux _ _ = error "Can't happen vtaux"
 

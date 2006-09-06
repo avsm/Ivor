@@ -32,7 +32,7 @@ Raw terms are those read in directly from the user, and may be badly typed.
 
 > data RStage = RQuote Raw
 >             | RCode Raw
->             | REval Raw
+>             | REval Raw 
 >             | REscape Raw
 >   deriving Eq
 
@@ -61,8 +61,8 @@ Stage gives staging annotations
 
 > data Stage n = Quote (TT n)
 >              | Code (TT n)
->              | Eval (TT n)
->              | Escape (TT n)
+>              | Eval (TT n) (TT n) -- term, type
+>              | Escape (TT n) (TT n) -- term, type
 >  deriving Show
 
 Constants
@@ -151,30 +151,32 @@ This keeps both namespaces separate.
 > instance Functor Stage where
 >     fmap f (Quote t) = Quote (fmap f t)
 >     fmap f (Code t) = Code (fmap f t)
->     fmap f (Eval t) = Eval (fmap f t)
->     fmap f (Escape t) = Escape (fmap f t)
+>     fmap f (Eval t ty) = Eval (fmap f t) (fmap f ty)
+>     fmap f (Escape t ty) = Escape (fmap f t) (fmap f ty)
 
 > sLift :: (TT a -> TT b) -> Stage a -> Stage b
 > sLift f (Quote t) = Quote (f t)
 > sLift f (Code t) = Code (f t)
-> sLift f (Eval t) = Eval (f t)
-> sLift f (Escape t) = Escape (f t)
+> sLift f (Eval t ty) = Eval (f t) (f ty)
+> sLift f (Escape t ty) = Escape (f t) (f ty)
 
 > sLiftf :: (TT a -> b) -> Stage a -> b
 > sLiftf f (Quote t) = f t
 > sLiftf f (Code t) = f t
-> sLiftf f (Eval t) = f t
-> sLiftf f (Escape t) = f t
+> sLiftf f (Eval t ty) = f t
+> sLiftf f (Escape t ty) = f t
 
 > sLiftM :: Monad m => (TT a -> m (TT b)) -> Stage a -> m (Stage b)
 > sLiftM f (Quote t) = do x <- f t
 >                         return $ Quote x
 > sLiftM f (Code t) = do x <- f t
 >                        return $ Code x
-> sLiftM f (Eval t) = do x <- f t
->                        return $ Eval x
-> sLiftM f (Escape t) = do x <- f t
->                          return $ Escape x
+> sLiftM f (Eval t ty) = do x <- f t
+>                           xty <- f ty
+>                           return $ Eval x xty
+> sLiftM f (Escape t ty) = do x <- f t
+>                             xty <- f ty
+>                             return $ Escape x xty
 
 > instance Functor Computation where
 >     fmap f (Comp n ts) = Comp (f n) (fmap (fmap f) ts)
@@ -546,8 +548,8 @@ Apply a function to a list of arguments
 > instance Eq n => Eq (Stage n) where
 >     (==) (Quote t) (Quote t') = t == t'
 >     (==) (Code t) (Code t') = t == t'
->     (==) (Eval t) (Eval t') = t == t'
->     (==) (Escape t) (Escape t') = t == t'
+>     (==) (Eval t _) (Eval t' _) = t == t'
+>     (==) (Escape t _) (Escape t' _) = t == t'
 >     (==) _ _ = False
 
 ===================== Forgetful maps ==============================
@@ -646,8 +648,8 @@ Apply a function to a list of arguments
 > instance Show n => Forget (Stage n) RStage where
 >     forget (Code x) = RCode (forget x)
 >     forget (Quote x) = RQuote (forget x)
->     forget (Eval x) = REval (forget x)
->     forget (Escape x) = REscape (forget x)
+>     forget (Eval x _) = REval (forget x)
+>     forget (Escape x _) = REscape (forget x)
 
 > testid = (Bind (UN "x") (B Lambda Star) (Sc (V 0)))
 > testterm = (App testid Star)
@@ -722,7 +724,7 @@ Some handy gadgets for Raw terms
 >        forgetTT (Return t) = RReturn (forgetTT t)
 >        forgetTT (Stage (Quote t)) = RStage (RQuote (forgetTT t))
 >        forgetTT (Stage (Code t)) = RStage (RCode (forgetTT t))
->        forgetTT (Stage (Eval t)) = RStage (REval (forgetTT t))
->        forgetTT (Stage (Escape t)) = RStage (REscape (forgetTT t))
+>        forgetTT (Stage (Eval t _)) = RStage (REval (forgetTT t))
+>        forgetTT (Stage (Escape t _)) = RStage (REscape (forgetTT t))
 >        forgetTT (Const x) = RConst x
 >        forgetTT Star = RStar

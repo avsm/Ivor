@@ -56,3 +56,9 @@
 >     fmap f Empty = Empty
 >     fmap f (Snoc sp x) = Snoc (fmap f sp) (f x)
 
+========= Functions I want in the standard library... =========
+
+> lookupM :: (Monad m, Eq a) => a -> [(a,b)] -> m b
+> lookupM y [] = fail "Not found"
+> lookupM y ((x,v):xs) | x == y = return v
+>                      | otherwise = lookupM y xs

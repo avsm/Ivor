@@ -1,7 +1,7 @@
 DB = --user
 PREFIX = $(HOME)
 # Set this to -p for profiling libraries too
-PROFILE = -p
+PROFILE = 
 GHCOPTS = 
 
 package:

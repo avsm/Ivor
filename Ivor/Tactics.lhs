@@ -85,7 +85,7 @@ no guesses attached (False).
 >           fh env (Stage (Escape t)) = fh env t
 >           fh _ _ = []
 >
->           fhb env (Let x) = fh env x
+>           -- fhb env (Let x) = fh env x
 >           fhb env (Guess x) = fh env x
 >           fhb env _ = []
 

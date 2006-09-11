@@ -1044,10 +1044,10 @@ FIXME: Choose a sensible name here
 > generalise' tm = do rawtm <- raw tm
 >                     runTac (Tactics.generalise rawtm)
 
-> -- | Abstract over the given term in the goal, and also all terms
-> -- which depend on it.
+> -- | Abstract over the given term in the goal, and also all variables
+> -- appearing in the goal whose types depend on it.
 > dependentGeneralise :: IsTerm a => a -> Tactic
-> dependentGeneralise tm = dependentGeneralise' tm >-> attack
+> dependentGeneralise tm = dependentGeneralise' tm
 
 > dependentGeneralise' tm g ctxt = 
 >     do gd <- goalData ctxt False g

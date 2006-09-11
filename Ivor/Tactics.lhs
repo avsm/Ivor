@@ -214,7 +214,7 @@ Begin solving a goal
 >         = tacret $ Ind (Bind x (B (Guess newtm) ty) sc)
 >   where newtm = Bind h0 (B Hole ty) (Sc (P h0))
 >         h0 = uniqify h (x:(map fst env))
-> attack _ _ _ _ = fail "Not an attackable hole"
+> attack _ _ _ t = fail $ "Internal error; not an attackable hole: " ++ show t
 
 Try filling the current goal with a term
 

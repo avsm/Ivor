@@ -32,7 +32,8 @@ compiled terms, etc.
 >            datadefs :: [(Name,Datatype Name)],
 >            -- All elimination rules in their pattern matching form
 >            -- (with type)
->            eliminators :: [(Name, (Indexed Name, [Scheme Name]))],
+>            eliminators :: [(Name, (Indexed Name, 
+>                                    ([RawScheme], [Scheme Name])))],
 >            -- Supercombinators for each definition
 >            runtt :: SCs,
 >            -- Bytecode for each definitions
@@ -89,8 +90,10 @@ Take a data type definition and add constructors and elim rule to the context.
 >                addElim ctxt runtts bcs (erule dt) (e_ischemes dt)
 >            (newdefs, newruntts, newbc) <-
 >                addElim ctxt newruntts newbc (crule dt) (c_ischemes dt)
->            let newelims = (fst (erule dt), (snd (erule dt), e_ischemes dt)):
->                           (fst (crule dt), (snd (crule dt), c_ischemes dt)):
+>            let newelims = (fst (erule dt), (snd (erule dt), 
+>                              (e_rawschemes dt, e_ischemes dt))):
+>                           (fst (crule dt), (snd (crule dt), 
+>                              (c_rawschemes dt, c_ischemes dt))):
 >                           eliminators st
 >            let newdatadefs = (n,dt):(datadefs st)
 >            return $ st { defs = newdefs, datadefs = newdatadefs,

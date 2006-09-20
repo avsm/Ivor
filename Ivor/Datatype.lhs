@@ -39,7 +39,9 @@ Elaborated version with elimination rule and iota schemes.
 >	          erule :: (n, Indexed n),
 >                 crule :: (n, Indexed n),
 >	          e_ischemes :: [Scheme n],
->	          c_ischemes :: [Scheme n]
+>	          c_ischemes :: [Scheme n],
+>	          e_rawschemes :: [RawScheme],
+>	          c_rawschemes :: [RawScheme]
 >	        }
 >       deriving Show
 
@@ -69,7 +71,7 @@ the context and an executable elimination rule.
 >	 esch <- checkSchemes gamma''' er eschemes
 >	 csch <- checkSchemes gamma''' er cschemes
 >	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv) consv numps
->                    (er,ev) (cr,cv) esch csch)
+>                    (er,ev) (cr,cv) esch csch eschemes cschemes)
 
 >    where checkCons gamma t [] = return ([], gamma)
 >          checkCons gamma t ((cn,cty):cs) = 

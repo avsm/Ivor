@@ -125,7 +125,10 @@
 >        Just tm -> return (respondLn st (show (view tm)))
 >        _ -> do tm <- check (context st) n
 >                case view tm of
->                  (Name TypeCon _) -> return (respondLn st "Type constructor")
+>                  (Name TypeCon _) -> do
+>                     -- erule <- getElimRule (context st) (name n) Elim
+>                     -- return (respondLn st $ "Type constructor\n" ++ show erule)
+>                     return (respondLn st "Type constructor")
 >                  (Name ElimOp _) -> return (respondLn st "Elimination operator")
 >                  (Name Free _) -> return (respondLn st "Undefined function")
 >                  (Name DataCon _) -> return (respondLn st "Data constructor")

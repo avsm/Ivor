@@ -584,6 +584,7 @@ Examine pattern matching elimination rules
 > -- | Iota reduction rule
 > data Reduction = Red { red_args :: [ViewTerm],
 >                        reduction :: ViewTerm }
+>   deriving Show
 
 > -- | Types of elimination rule
 > data Rule = Case | Elim
@@ -592,22 +593,22 @@ Examine pattern matching elimination rules
 > getElimRule :: Monad m => Context -> Name -- ^ Type
 >                -> Rule -- ^ Which rule to get patterns for (case/elim)
 >                -> m [Reduction]
-> getElimRule (Ctxt st) nm r = undefined
+> getElimRule (Ctxt st) nm r = 
+>     case (lookupval nm (defs st)) of
+>       Just (TCon _ (Elims erule crule)) ->
+>          do let rule = case r of -- rule :: Name
+>                          Case -> crule
+>                          Ivor.TT.Elim -> erule
+>             elim <- lookupM rule (eliminators st)
+>             return $ map mkRed (fst $ snd elim)
+>       Nothing -> fail $ (show nm) ++ " is not a type constructor"
 
--- >     case (lookupval nm (defs st)) of
--- >       Just (TCon _ (Elims erule crule)) ->
--- >          do let rule = case r of -- rule :: Name
--- >                          Case -> crule
--- >                          Ivor.TT.Elim -> erule
--- >             elim <- lookupM rule (eliminators st)
--- >             return $ map mkRed (snd elim)
--- >       Nothing -> fail $ (show nm) ++ " is not a type constructor"
+>  where mkRed (RSch pats ret) = Red (map viewRaw pats) (viewRaw ret)
 
--- >  where mkRed (Sch pats ret) = Red (map mkTm pats) (view ret)
--- >        mkTm (PVar n) = Name Free n
--- >        mkTm (PCon _ n ty args) 
--- >                 = VTerm.apply (Name DataCon n) (map mkTm args)
--- >        mkTm _ = Placeholder
+>        -- a reduction will only have variables and applications
+>        viewRaw (Var n) = Name Free n
+>        viewRaw (RApp f a) = VTerm.App (viewRaw f) (viewRaw a)
+>        viewRaw _ = VTerm.Placeholder
 
 Get the actions performed by the last tactic
 

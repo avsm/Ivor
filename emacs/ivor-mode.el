@@ -22,7 +22,7 @@
 
 ;;;(regexp-opt '("Data" "Rec" "Qed" "Freeze" "Thaw" "Eval" "Check" "Load"
 ;;;	      "Suspend" "Resume" "Compile" "Repl" "Equality" "Drop"
-;;;	      "Primitives" "Forget" "Let" "Axiom" "Focus" "Declare"))
+;;;	      "Primitives" "Forget" "Let" "Axiom" "Focus" "Declare" "Where"))
 
 ;;;(regexp-opt '("attack" "claim" "local" "refine" "solve" "fill" "return"
 ;;;	      "quote" "call" "abandon" "rename" "intro" "intros" "arg"
@@ -30,7 +30,8 @@
 ;;;	      "compute" "unfold" "trivial" "by" "induction" "case"))
 
 (defconst ivor-font-lock-keywords
-  (list '("\\<\\(Axiom\\|C\\(?:heck\\|ompile\\)\\|D\\(?:ata\\|eclare\\|rop\\)\\|E\\(?:quality\\|val\\)\\|F\\(?:o\\(?:cus\\|rget\\)\\|reeze\\)\\|L\\(?:et\\|oad\\)\\|Primitives\\|Qed\\|Re\\(?:c\\|pl\\|sume\\)\\|Suspend\\|Thaw\\)\\>" . font-lock-keyword-face)
+  (list '("\\<\\(Axiom\\|C\\(?:heck\\|ompile\\)\\|D\\(?:ata\\|eclare\\|rop\\)\\|E\\(?:quality\\|val\\)\\|F\\(?:o\\(?:cus\\|rget\\)\\|reeze\\)\\|L\\(?:et\\|oad\\)\\|Primitives\\|Qed\\|Re\\(?:c\\|pl\\|sume\\)\\|Suspend\\|Thaw\\|where\\)\\>"
+ . font-lock-keyword-face)
         '("\\<\\(a\\(?:bandon\\|rg\\|ttack\\|xiomatise\\)\\|by\\|c\\(?:a\\(?:ll\\|se\\)\\|laim\\|ompute\\)\\|dependent\\|equiv\\|fill\\|generalise\\|in\\(?:duction\\|tros?\\)\\|local\\|quote\\|re\\(?:fine\\|name\\|place\\|turn\\)\\|solve\\|trivial\\|unfold\\)\\>" . font-lock-builtin-face)
 	'("<\\([^:]*\\):[^>]*>" . (1 font-lock-string-face keep t))
 	'("<\\([^>:]*\\)>" . (1 font-lock-string-face keep t))

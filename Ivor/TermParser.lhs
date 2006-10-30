@@ -167,12 +167,16 @@
 >                     indicesM <- many (do lchar '('
 >                                          xs <- bindList ext
 >                                          lchar ')' ; return xs)
->                     ty <- pTerm ext ; lchar '='
+>                     ty <- pTerm ext ; whereIntro
 >                     cons <- sepBy (constructor ext) (lchar '|')
 >                     return $ Inductive (UN nm) 
 >                                        (concat parmsM) 
 >                                        (concat indicesM)
 >                                        ty cons
+>   where whereIntro = do lchar '=' 
+>                         return ()
+>                      <|> do reserved "where"
+>                             return ()
 
 > constructor ext = do nm <- identifier ; lchar ':'
 >                      ty <- pTerm ext

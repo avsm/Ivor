@@ -1,7 +1,7 @@
 Load "fin.tt";
 
-Data Vect (A:*):(n:Nat)* 
-    = vnil:Vect A O
+Data Vect (A:*):(n:Nat)* where
+      vnil:Vect A O
     | vcons:(k:Nat)(x:A)(xs:Vect A k)Vect A (S k);
 
 vtail : (A:*)(k:Nat)(xs:Vect A (S k))Vect A k;

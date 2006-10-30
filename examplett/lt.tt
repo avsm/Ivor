@@ -1,7 +1,8 @@
 Load "nat.tt";
 
-Data Lt : (m,n:Nat)* = ltO : (m:Nat)Lt O (S m)
-		     | ltS : (m,n:Nat)(p:Lt m n)Lt (S m) (S n);
+Data Lt : (m,n:Nat)* where
+    ltO : (m:Nat)Lt O (S m)
+  | ltS : (m,n:Nat)(p:Lt m n)Lt (S m) (S n);
 
 LtmSn : (m,n:Nat)(p:Lt m n)(Lt m (S n));
 intros;

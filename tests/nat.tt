@@ -1,7 +1,7 @@
 Load "eq.tt";
 Load "logic.tt";
 
-Data Nat:* = O:Nat | S:(k:Nat)Nat;
+Data Nat:* where O:Nat | S:(k:Nat)Nat;
 
 plus : Nat -> Nat -> Nat;
 intro m;

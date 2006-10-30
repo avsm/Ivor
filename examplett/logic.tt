@@ -1,14 +1,14 @@
-Data And (A:*)(B:*) : * = and_intro : (a:A)(b:B)(And A B);
+Data And (A:*)(B:*) : * where and_intro : (a:A)(b:B)(And A B);
 
-Data Or (A:*)(B:*) : * 
-     = or_intro_l : (a:A)(Or A B)
+Data Or (A:*)(B:*) : * where
+       or_intro_l : (a:A)(Or A B)
      | or_intro_r : (b:B)(Or A B);
 
-Data Ex (A:*)(P:(a:A)*) : * = ex_intro : (x:A)(p:P x)(Ex A P);
+Data Ex (A:*)(P:(a:A)*) : * where ex_intro : (x:A)(p:P x)(Ex A P);
 
-Data False : * = ;
+Data False : * where ;
 
-Data True : * = II : True ;
+Data True : * where II : True ;
 
 not = [A:*](a:A)False;
 

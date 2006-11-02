@@ -23,19 +23,32 @@ combining tactics and creating new tactics, along the lines of the
 tactic combinators presented in section \ref{combinators}. This
 language is ideal for many purposes, such as our \hdecl{contradiction}
 tactic, but more complex examples such as \hdecl{buildTerm} would
-require extending \Coq{} itself.  Isabelle~\cite{isabelle} is a
+require extending \Coq{} itself. One advantage of using an embedded
+DSL~\cite{hudak-edsl} as provided by \Ivor{} is that it gives complete
+flexibility in the construction of tactics, and allows a close
+relationship between the tactics and the Haskell-implemented
+structures on which they operate (e.g. \hdecl{Raw}).
+
+Isabelle~\cite{isabelle} is a
 generic theorem prover, in that it includes a large body of object
 logics and a meta-language for defining new logics. It includes a
 typed, extensible tactic language, and can be called from ML programs,
 but unlike \Ivor{} is not based on a dependent type theory.
+There is therefore no \remph{proof term} associated with an Isabelle
+proof --- the proof term gives a derivation tree for the
+proof, allowing easy and independent rechecking without referring to
+the tactics used to build the proof. 
 
 The implementation of \Funl{} allows a theorem prover to be attached
 to the language in a straightforward way, using \Ivor{}'s tactics
 directly. This would be a possible method of attaching a theorem
 prover to a more full featured programming language such as the
-Sparkle~\cite{sparkle} prover for Clean~\cite{clean}.
+Sparkle~\cite{sparkle} prover for Clean~\cite{clean}. Implementing a
+full language in this way would require some extra work to deal
+with general recursion and partial definitions (in particular, dealing
+with $\perp$ as a possible value), but the general method remains the same.
 
-\section{Conclusions}
+\section{Conclusions and Further Work}
 
 We have seen an overview of the \Ivor{} library, including basic
 tactics for building proofs similar to the tactics available in other
@@ -62,16 +75,16 @@ but again in the representation of a real programming language general
 recursion may be desirable --- however, this means that correctness
 proofs can no longer be total. The library can optionally allow
 general recursive definitions, but such definitions cannot be
-evaluated by the typechecker. Finally, a command driven interface is
+reduced by the typechecker. Finally, a command driven interface is
 available, which can be accessed as a Haskell API or used from a
 command line driver program, and allows user directed proofs in the
 style of other proof assistants. These and other features are fully
-documented on the web site.
+documented on the web site\footnote{\url{http://www.cs.st-andrews.ac.uk/~eb/Ivor/}}.
 
-\subsection{Further Work}
+%% \subsection{Further Work}
 
 Development of the library has been driven by the requirements of
-our research into Hume~\cite{Hume-GPCE}, a resource bounded functional
+our research into Hume~\cite{Hume-GPCE}, a resource aware functional
 language. We are investigating the use of dependent types in
 representing and verifying resource bounded functional
 programs~\cite{dt-framework}. For this, automatic generation of
@@ -80,7 +93,8 @@ essential~\cite{concon}, as well as an elimination with a
 motive~\cite{elim-motive} tactic. Future versions will include
 optimisations from \cite{brady-thesis} and some support for compiling
 $\source$ terms; this would not only improve the efficiency of the
-library, but also facilitate the use of \Ivor{} in a real language
+library (and in particular its use for evaluating certified code)
+but also facilitate the use of \Ivor{} in a real language
 implementation. Finally, an implementation of coinductive
 types~\cite{coinductive} is likely to be very useful; currently it can
 be achieved by implementing recursive functions which do not reduce at

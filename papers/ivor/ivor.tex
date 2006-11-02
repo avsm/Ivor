@@ -8,9 +8,6 @@
 
 \newenvironment{template}{\sffamily}
 
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{1ex}
-
 \usepackage{graphics,epsfig}
 \usepackage{stmaryrd}
 
@@ -31,11 +28,11 @@
 
 \begin{document}
 
-\title{\Ivor{}, a Proof Engine --- DRAFT}
+\title{\Ivor{}, a Proof Engine}
 \author{Edwin Brady}
 
 \institute{School of Computer Science, \\
- University of St Andrews, St Andrews, Scotland. \\ \texttt{Email: eb@dcs.st-and.ac.uk}.\\
+ University of St Andrews, St Andrews, Scotland. \\ \texttt{Email: eb@cs.st-andrews.ac.uk}.\\
 \texttt{Tel: +44-1334-463253}, \texttt{Fax: +44-1334-463278} \vspace{0.1in}
 }
  
@@ -47,12 +44,12 @@ of theorem proving, program verification and programming language
 design. \Ivor{} is a Haskell library designed to allow easy extending
 and embedding of a type theory based theorem prover in a Haskell
 application. In this paper, I give an overview of the library and show
-how it can be used to implement formal systems such as propositional
-logic.  Furthermore, I sketch an implementation of a simple functional
-programming language using the library; by using type theory as a core
-representation, we can construct and evaluate terms and prove
-correctness properties of those terms within the \remph{same}
-framework, ensuring consistency of the implementation and the theorem prover.
+how it can be used to embed theorem proving technology in an
+implementation of a simple functional programming language; by using
+type theory as a core representation, we can construct and evaluate
+terms and prove correctness properties of those terms within the
+\remph{same} framework, ensuring consistency of the implementation and
+the theorem prover. 
 
 \end{abstract}
 
@@ -78,9 +75,9 @@ This work is generously supported by EPSRC grant EP/C001346/1.
 \begin{small}
 \bibliography{../bib/literature.bib}
 
-\appendix
+%\appendix
 
-\input{code}
+%\input{code}
 
 \end{small}
 \end{document}

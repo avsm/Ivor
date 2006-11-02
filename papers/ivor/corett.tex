@@ -32,12 +32,14 @@ this language is as follows:
 \end{array}
 }
 
-For readability, and a notation more consistent with traditional
-functional programming languages, we may also write the function space
+We may also write the function space
 \mbox{$\all{\vx}{\vS}\SC\vT$} as \mbox{$\fbind{\vx}{\vS}{\vT}$}, or
 abbreviate it to \mbox{$\vS\to\vT$} if $\vx$ is not free in
-$\vT$. 
-Universe levels on types ($\Type_i$) may be left implicit.
+$\vT$. This is both for readability and a notation more consistent
+with traditional functional programming languages.
+
+Universe levels on types ($\Type_i$) may be left implicit and inferred
+by the machine as in~\cite{implicit-pollack}.
 Contexts ($\Gamma$) are defined inductively; the empty context
 is valid, as is a context extended with a $\lambda$, $\forall$ or
 $\LET$ binding:
@@ -113,7 +115,7 @@ sequence of zero or more $\vx$:
 
 \DM{
 \AR{
-\Data\:\TC{T}\:(\tx\Hab\ttt)\Hab\vt\:=
+\Data\:\TC{T}\:(\tx\Hab\ttt)\Hab\vt\hg\Where\hg
 \DC{c}_1\Hab\vt\:\mid\:\ldots\:\mid\:\DC{c}_n\Hab\vt
 }
 }
@@ -127,7 +129,7 @@ constructor are structurally smaller than the value itself.
 The Peano style natural numbers can be declared as follows:
 
 \DM{
-\Data\:\Nat\Hab\Type\:=\:\Z\Hab\Nat\:\mid\:\suc\Hab\fbind{\vk}{\Nat}{\Nat}
+\Data\:\Nat\Hab\Type\hg\Where\hg\Z\Hab\Nat\:\mid\:\suc\Hab\fbind{\vk}{\Nat}{\Nat}
 }
 
 A data type may have zero or more parameters (which are invariant
@@ -136,10 +138,10 @@ example, a list is parametrised over its element type:
 
 \DM{
 \AR{
-\Data\:\List\:(\vA\Hab\Type)\Hab\Type\:
-\AR{
-=\:\nil\Hab\List\:\vA\\
-\mid\:\cons\Hab\fbind{\vx}{\vA}{\fbind{\vxs}{\List\:\vA}{\List\:\vA}}
+\Data\:\List\:(\vA\Hab\Type)\Hab\Type\hg\Where
+\ARd{
+& \nil\Hab\List\:\vA\\
+\mid & \cons\Hab\fbind{\vx}{\vA}{\fbind{\vxs}{\List\:\vA}{\List\:\vA}}
 }
 }
 }
@@ -153,10 +155,12 @@ like $\List$, but \remph{indexed} over its length.
 
 \DM{
 \AR{
-\Data\:\Vect\:(\vA\Hab\Type)\Hab\Nat\to\Type\:
-=\:\Vnil\Hab\Vect\:\vA\:\Z\\
-\hg\hg\hg\hg\mid\:\Vcons\Hab\fbind{\vk}{\Nat}{
+\Data\:\Vect\:(\vA\Hab\Type)\Hab\Nat\to\Type\hg\Where \\
+\hg\hg\ARd{
+& \Vnil\Hab\Vect\:\vA\:\Z\\
+\mid & \Vcons\Hab\fbind{\vk}{\Nat}{
 \fbind{\vx}{\vA}{\fbind{\vxs}{\Vect\:\vA\:\vk}{\Vect\:\vA\:(\suc\:\vk)}}
+}
 }
 }
 }
@@ -234,12 +238,12 @@ similar to a $\LET$ binding, but without any computational force:
  \:\mid\: \guess{\vx}{\vt}{\vt} \:\:(\mbox{guess})
 }
 
-The benefit of using binders to represent holes, as discussed
-in~\cite{mcbride-thesis}, is that in a dependently typed setting one
-value may determine another. Attaching a ``guess'' to a binder 
-ensures that replacing one such value also replaces all of its
-dependencies. The typing rules for binders ensure that no ? bindings
-leak into types, and are given below.
+Using binders to represent holes as discussed in~\cite{mcbride-thesis}
+is useful in a dependently typed setting since one value may determine
+another. Attaching a ``guess'' to a binder ensures that instiating one
+such value also instantiates all of its dependencies. The typing rules for
+binders ensure that no $?$ bindings leak into types, and are given
+below.
 
 \DM{
 \AR{

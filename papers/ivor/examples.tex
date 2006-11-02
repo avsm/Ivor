@@ -1,5 +1,11 @@
 \section{Examples}
 
+In this section we show two examples of embedding \Ivor{} in a Haskell
+program. The first shows an embedding of a simple theorem prover for
+propositional logic. The second example extends this theorem prover by
+using the same logic as a basis for showing properties of a functional
+language.
+
 \subsection{A Propositional Logic Theorem Prover}
 
 \label{example1}
@@ -7,7 +13,7 @@
 Propositional logic is straightforward to model in dependent type
 theory; here we show how \Ivor{} can be used to implement a theorem
 prover for propositional logic. The full implementation is available
-from \url{http://www.dcs.st-and.ac.uk/~eb/Ivor/}.  The language of
+from \url{http://www.cs.st-andrews.ac.uk/~eb/Ivor/}.  The language of
 propositional logic is defined as follows, where $\vx$ stands for an
 arbitrary free variable:
 
@@ -40,8 +46,11 @@ constructor builds a proof of $\vA\land\vB$, given proofs of $\vA$ and
 $\vB$:
 
 \DM{
-\Data\:\Tand\:(\vA,\vB\Hab\Type)\Hab\Type\:=
+\AR{
+\Data\:\Tand\:(\vA,\vB\Hab\Type)\Hab\Type\hg\Where\\
+\hg\hg
 \andintro\Hab\fbind{\va}{\vA}{\fbind{\vb}{\vB}{\Tand\:\vA\:\vB}}
+}
 }
 
 Similarly, $\lor$ is declared as an inductive family; an instance of
@@ -50,9 +59,11 @@ proof of $\vB$ ($\orintror$):
 
 \DM{
 \AR{
-\Data\:\Tor\:(\vA,\vB\Hab\Type)\Hab\Type\\
-\hg=\:\orintrol\Hab\fbind{\va}{\vA}{\Tor\:\vA\:\vB}\\
-\hg\mid\:\orintror\Hab\fbind{\vb}{\vB}{\Tor\:\vA\:\vB}\\
+\Data\:\Tor\:(\vA,\vB\Hab\Type)\Hab\Type\hg\Where\\
+\hg\hg\ARd{
+& \orintrol\Hab\fbind{\va}{\vA}{\Tor\:\vA\:\vB}\\
+\mid & \orintror\Hab\fbind{\vb}{\vB}{\Tor\:\vA\:\vB}
+}
 }
 }
 
@@ -71,7 +82,7 @@ this is a parser from strings to \hdecl{ViewTerm}s:
 To implement negation, we declare the empty type:
 
 \DM{
-\Data\:\False\Hab\Type\:=
+\Data\:\False\Hab\Type\hg\Where
 }
 
 Then $\interp{\neg\ve}\:=\:\interp{\ve}\to\False$. The automatically
@@ -88,19 +99,38 @@ types (using \hdecl{addData}) and propositional variables
 $\vA\ldots\vZ$ (using \hdecl{addAxiom}\footnote{This adds a name with
   a type but no definition to the context.}).
 
-\mysubsubsection{Domain Specific Tactics}
+\subsubsection{Domain Specific Tactics}
 Mostly, the implementation of a propositional logic theorem prover
 consists of a parser and pretty printer for the language $\vL$, and a
 top level loop for applying introduction and elimination
 tactics. However, some domain
 specific tactics are needed, in particular to deal with negation and
-proof by contradiction. For example, the proof by contradiction tactic
-is implemented as follows:
+proof by contradiction. 
 
-\texttt{contradiction :: Name -> Name -> Tactic}\\
-\texttt{contradiction x y =}\\
-\hspace*{0.5in}\texttt{claim $\vf$ $\False$ >+> induction $\vf$ >+>}\\
-\hspace*{0.7in}\texttt{(try (fill ($\vx\:\vy$)) idTac (fill ($\vy\:\vx$)))}\\
+To prove a negation $\neg\vA$, we assume $\vA$ and attempt to prove
+$\bot$. This is achieved with an \hdecl{assumeFalse} tactic which
+assumes the negation of the goal. Negation is defined with a function
+$\FN{not}$; the \hdecl{assumeFalse} tactic then unfolds this name so
+that a goal (in $\source$ syntax) $\FN{not}\:\vA$ is transformed to
+$\vA\:\to\:\False$, then $\vA$ can be introduced.
+
+\begin{verbatim}
+assumeFalse :: Tactic
+assumeFalse = unfold (name "not") >+> intro 
+\end{verbatim}
+
+The proof by contradiction tactic
+is implemented as follows:
+\\
+
+\begin{verbatim}
+contradiction :: String -> String -> Tactic
+contradiction x y = claim (name "false") "False" >+>
+                    induction "false" >+>
+                    (try (fill $ x ++ " " ++ y)
+                          idTac
+                          (fill $ y ++ " " ++ x))
+\end{verbatim}
 
 This tactic takes the names of the two contradiction premises. One is
 of type $\vA\to\False$ for some $\vA$, the other is of type
@@ -117,22 +147,56 @@ to $\vy$.
 \label{example2}
 
 Propositional logic is an example of a simple formal system which can
-be embedded in a Haskell program using \Ivor{}; however, much more
+be embedded in a Haskell program using \Ivor{}; however, more
 complex languages can be implemented. \Funl{} is a simple functional
 language, with primitive recursion over integers and higher order
 functions. It is implemented on top of \Ivor{} as a framework for both
 language representation and correctness proofs. By using the same
 framework for both, it
 is a small step from implementing the language to implementing a
-theorem prover for showing properties of programs in the language.
+theorem prover for showing properties of programs in the language,
+making use of the theorem prover developed in sec. \ref{example1}.
 
 An implementation is available from
-\url{http://www.dcs.st-and.ac.uk/~eb/Funl/}; in this section I will
+\url{http://www.cs.st-andrews.ac.uk/~eb/Funl/}; in this section I will
 sketch some of the important details of this implementation. Like the
 propositional logic theorem prover, much of the detail is in the
 parsing and pretty printing of terms and propositions.
 
-\mysubsubsection{Building Terms}
+\subsubsection{Programs and Properties}
+
+The \Funl{} language allows programs and statements of the properties
+those programs should satisfy to be expressed within the same input file.
+Functions are defined as in the following examples, using \hdecl{rec}
+to mark a primitive recursive definition:
+
+\begin{verbatim}
+fac : Int -> Int =
+     lam x . rec x 1 (lam k. lam recv. (k+1)*recv);
+myplus : Int -> Int -> Int =
+     lam x. lam y. rec x y (lam k. lam ih. 1+ih);
+\end{verbatim}
+
+The \hdecl{myplus} function above defines addition by primitive
+recursion over its input. To show that this really is a definition of
+addition, we may wish to show that it satisfies some appropriate
+properties of addition. In the \Funl{} syntax, we declare the
+properties we wish to show as follows:
+
+\begin{verbatim}
+myplusn0 proves 
+     forall x:Int. myplus x 0 = x;
+myplusnm1 proves 
+     forall x:Int. forall y:Int. myplus x (1+y) = 1+(myplus x y);
+myplus_commutes proves 
+     forall x:Int. forall y:Int. myplus x y = myplus y x;
+\end{verbatim}
+
+On compiling a program, the compiler requires that proofs are provided
+for the stated properties. Once built, the proofs can be saved as
+proof terms, so that properties need only be proved once.
+
+\subsubsection{Building Terms}
 Terms are parsed into a data type \hdecl{Raw}; the name
 \hdecl{Raw} reflects the fact that these are raw, untyped terms; note
 in particular that \hdecl{Rec} is an operator for primitive recursion
@@ -140,21 +204,55 @@ on arbitrary types, like the $\delim$ operators in $\source$ --- it
 would be fairly simple to write a first pass which translated
 recursive calls into such an operator using techniques similar to
 McBride and McKinna's labelled types~\cite{view-left}, which are
-implemented in \Ivor{}. The representation is as follows:
+implemented in \Ivor{}. Using this, we could easily extend the
+language with more primitive types (e.g. lists) or even user defined
+data types. The representation is as follows:
 
-\verb+data Raw = Var String | Lam String Ty Raw | App Raw Raw+\\
-\verb+         | Num Int | Boolval Bool  | InfixOp Op Raw Raw+\\
-\verb+         | If Raw Raw Raw | Rec Raw [Raw]+
+\begin{verbatim}
+data Raw = Var String | Lam String Ty Raw | App Raw Raw
+         | Num Int | Boolval Bool  | InfixOp Op Raw Raw
+         | If Raw Raw Raw | Rec Raw [Raw]
+\end{verbatim}
 
 Building a \Funl{} function consists of creating a \hdecl{theorem} 
-with a goal representating the function's type, then using the
+with a goal representing the function's type, then using the
 \hdecl{buildTerm} tactic to traverse the
 structure of the raw term, constructing a proof of the
 theorem:
 
-\hdecl{buildTerm :: Raw -> Tactic}
+\begin{verbatim}
+buildTerm :: Raw -> Tactic
+buildTerm (Var x) = refine x
+buildTerm (Lam x ty sc) = introName (name x) >+> buildTerm sc
+buildTerm (Language.App f a) = buildTerm f >+> buildTerm a
+buildTerm (Num x) = fill (mkNat x)
+buildTerm (If a t e) = 
+    cases (mkTerm a) >+> buildTerm t >+> buildTerm e
+buildTerm (Rec t alts) =
+    induction (mkTerm t) >+> tacs (map buildTerm alts)
+buildTerm (InfixOp Plus x y) = 
+    refine "plus" >+> buildTerm x >+> buildTerm y
+buildTerm (InfixOp Times x y) = ...
+\end{verbatim}
 
-The definition is given in Appendix \ref{funlapp}.  \Ivor{} handles
+A helper function, \hdecl{mkTerm}, is used to translate simple
+expressions into \hdecl{ViewTerm}s. This is used for the scrutinees of
+\hdecl{if} and \hdecl{rec} expressions, although if more complex
+expressions are desired here, it would be possible to use
+\hdecl{buildTerm} instead.
+
+\begin{verbatim}
+mkTerm :: Raw -> ViewTerm
+mkTerm (Var x) = (Name Unknown (name x))
+mkTerm (Lam x ty sc) = Lambda (name x) (mkType ty) (mkTerm sc)
+mkTerm (Apply f a) = App (mkTerm f) (mkTerm a)
+mkTerm (Num x) = mkNat x
+mkTerm (InfixOp Plus x y) = 
+    App (App (Name Free (name "plus")) (mkTerm x)) (mkTerm y)
+mkTerm (InfixOp Times x y) = ...
+\end{verbatim}
+
+\Ivor{} handles
 the typechecking and any issues with renaming, using techniques from
 \cite{not-a-number}; if there are any type errors in the \hdecl{Raw}
 term, this tactic will fail (although some extra work is required to
@@ -163,9 +261,9 @@ typechecking and evaluation, we are in no danger of evaluating a term
 with type errors.
 
 
-\mysubsubsection{Building Proofs}
+\subsubsection{Building Proofs}
 We also define a language of propositions over terms in \Funl{}.
-This uses propositional calculus, just like the theorem prover in
+This uses propositional logic, just like the theorem prover in
 section \ref{example1}, but extended with equational reasoning. For
 the equational reasoning, we use a library of equality proofs to
 create tactics for applying commutativity and associativity of
@@ -174,9 +272,11 @@ addition and simplification of expressions.
 A basic language of propositions with the obvious translation to
 $\source$ is:
 
-\verb+data Prop = Eq Raw Raw+\\
-\verb+          | And Prop Prop | Or Prop Prop+\\
-\verb+          | All String Ty Prop | FalseProp+
+\begin{verbatim}
+data Prop = Eq Raw Raw
+          | And Prop Prop | Or Prop Prop
+          | All String Ty Prop | FalseProp
+\end{verbatim}
 
 This allows equational reasoning over \Funl{} programs, quantification
 over variables and conjunction and disjunction of propositions. A more

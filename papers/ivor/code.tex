@@ -8,19 +8,7 @@ illustrates the building of complex tactics with \Ivor{}.
 
 \subsection{Propositional Logic}
 
-Two domain specific tactics are needed; firstly to prove a negation
-$\neg\vA$, we assume $\vA$ and attempt to prove $\bot$. This is
-achieved with an \hdecl{assumeFalse} tactic which assumes the negation
-of the goal. Negation is defined with a function $\FN{not}$; the
-\hdecl{assumeFalse} tactic then unfolds this name so that a goal (in
-$\source$ syntax) $\FN{not}\:\vA$ is transformed to
-$\vA\:\to\:\False$, then $\vA$ can be introduced.
-
-\begin{verbatim}
-> assumeFalse :: Tactic
-> assumeFalse = unfold (name "not") >+> intro 
-\end{verbatim}
-
+Two domain specific tactics are needed; firstly 
 Secondly, we need a tactic to prove a contradiction as discussed in
 section \ref{example1}:
 
@@ -40,35 +28,4 @@ section \ref{example1}:
 When building a function definition, we prove a \hdecl{theorem} of the
 appropriate type. Then the \hdecl{buildTerm} tactic traverses the
 structure of the raw term, constructing a proof of the
-theorem. \Ivor{} handles the typechecking; if there are any type
-errors, this tactic will fail.
-
-\begin{verbatim}
-> buildTerm :: Raw -> Tactic
-> buildTerm (Var x) = refine x
-> buildTerm (Lam x ty sc) = introName (name x) >+> buildTerm sc
-> buildTerm (Language.App f a) = buildTerm f >+> buildTerm a
-> buildTerm (Num x) = fill (mkNat x)
-> buildTerm (If a t e) = 
->     cases (mkTerm a) >+> buildTerm t >+> buildTerm e
-> buildTerm (Rec t alts) =
->     induction (mkTerm t) >+> tacs (map buildTerm alts)
-> buildTerm (InfixOp Plus x y) = 
->     refine "plus" >+> buildTerm x >+> buildTerm y
-> buildTerm (InfixOp Times x y) = ...
-\end{verbatim}
-
-A helper function, \hdecl{mkTerm}, is used to translate simple
-expressions into \hdecl{ViewTerm}s:
-
-\begin{verbatim}
-> mkTerm :: Raw -> ViewTerm
-> mkTerm (Var x) = (Name Unknown (name x))
-> mkTerm (Lam x ty sc) = Lambda (name x) (mkType ty) (mkTerm sc)
-> mkTerm (Apply f a) = App (mkTerm f) (mkTerm a)
-> mkTerm (Num x) = mkNat x
-> mkTerm (InfixOp Plus x y) = 
->     App (App (Name Free (name "plus")) (mkTerm x)) (mkTerm y)
-> mkTerm (InfixOp Times x y) = ...
-> mkTerm _ = error "Term is too complicated in this context"
-\end{verbatim}
+theorem. 

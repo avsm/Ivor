@@ -80,7 +80,7 @@
 >               quoteVal,
 >               -- ** Tactic combinators
 >               idTac, tacs,
->               (>->), (>=>), (>+>), try, 
+>               (>->), (>=>), (>+>), (>|>), try, 
 >               traceTac)
 
 >     where
@@ -805,9 +805,9 @@ Tactics
 >                                       (show (proofstate st) ++ "\nHoles" ++ 
 >                                       (show (holequeue st)))) $ return ctxt
 
-Apply two tactics consecutively to the same goal.
+> infixl 5 >->, >=>, >+>, >|>
 
-> infixl 5 >->, >=>, >+>
+Apply two tactics consecutively to the same goal.
 
 > seqTac :: Tactic -> Tactic -> Tactic
 > seqTac tac1 tac2 goalin ctxt@(Ctxt st) = do
@@ -843,7 +843,8 @@ Apply two tactics consecutively to the same goal.
 >     ctxt' <- tac1 goal ctxt
 >     tac2 DefaultGoal ctxt'
 
-> -- | Apply a sequence of tactics to the default goal
+> -- | Apply a sequence of tactics to the default goal. Read the type
+> -- as ['Tactic'] -> 'Tactic'
 > tacs :: Monad m => [Goal -> Context -> m Context] -> 
 >         Goal -> Context -> m Context
 > tacs [] = idTac
@@ -863,6 +864,11 @@ Apply two tactics consecutively to the same goal.
 >     case tac goal ctxt of
 >         Just ctxt' -> success goal ctxt'
 >         Nothing -> failure goal ctxt
+
+> -- | Tries the left tactic, if that fails try the right one. Shorthand for
+> -- 'try' x 'idTac' y.
+> (>|>) :: Tactic -> Tactic -> Tactic
+> (>|>) x y = try x idTac y
 
 Convert an internal tactic into a publicly available tactic.
 

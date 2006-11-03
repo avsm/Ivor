@@ -1,4 +1,4 @@
-Data Eq (A:*)(a:A) : (b:A)* = refl : Eq A a a;
+Data Eq (A:*)(a:A) : (b:A)* where refl : Eq A a a;
 
 repl : (A:*)(a:A)(b:A)(q:Eq _ a b)(P:(a:A)*)(p:P a)(P b);
 intros;

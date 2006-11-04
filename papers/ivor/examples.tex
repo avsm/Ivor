@@ -42,8 +42,8 @@ empty type.
 
 The $\land$ connective is declared as an inductive family, where an
 instance of the family gives a proof of the connective. The $\andintro$
-constructor builds a proof of $\vA\land\vB$, given proofs of $\vA$ and
-$\vB$:
+constructor builds a proof of $\vA\land\vB$, given a proof of $\vA$ and
+a proof of $\vB$:
 
 \DM{
 \AR{
@@ -108,7 +108,7 @@ specific tactics are needed, in particular to deal with negation and
 proof by contradiction. 
 
 To prove a negation $\neg\vA$, we assume $\vA$ and attempt to prove
-$\bot$. This is achieved with an \hdecl{assumeFalse} tactic which
+$\False$. This is achieved with an \hdecl{assumeFalse} tactic which
 assumes the negation of the goal. Negation is defined with a function
 $\FN{not}$; the \hdecl{assumeFalse} tactic then unfolds this name so
 that a goal (in $\source$ syntax) $\FN{not}\:\vA$ is transformed to
@@ -133,30 +133,28 @@ contradiction x y = claim (name "false") "False" >+>
 \end{verbatim}
 
 This tactic takes the names of the two contradiction premises. One is
-of type $\vA\to\False$ for some $\vA$, the other is of type
-$\vA$. The tactic works by claiming there is a contradiction and
-solving the goal by induction over that contradiction (which gives no
-subgoals, since $\Elim{\False}$ has no methods). Finally, using
-\texttt{>+>} to solve the next subgoal, it looks for a contradiction
-(i.e. a value of type $\False$)
-by first applying $\vy$ to $\vx$ then, if that fails, applying $\vx$
-to $\vy$.
+of type $\vA\to\False$ for some $\vA$, the other is of type $\vA$. The
+tactic works by claiming there is a contradiction and solving the goal
+by induction over that assumed contradiction (which gives no subgoals,
+since $\Elim{\False}$ has no methods). Finally, using \texttt{>+>} to
+solve the next subgoal (and discharge the assumption of the
+contradiction), it looks for a value of type $\False$ by first
+applying $\vy$ to $\vx$ then, if that fails, applying $\vx$ to $\vy$.
 
 \subsection{\Funl{}, a Functional Language with a Built-in Theorem Prover}
 
 \label{example2}
 
 Propositional logic is an example of a simple formal system which can
-be embedded in a Haskell program using \Ivor{}; however, more
-complex languages can be implemented. \Funl{} is a simple functional
-language, with primitive recursion over integers and higher order
-functions. It is implemented on top of \Ivor{} as a framework for both
-language representation and correctness proofs. By using the same
-framework for both, it
-is a small step from implementing the language to implementing a
-theorem prover for showing properties of programs in the language,
-making use of the theorem prover developed in sec. \ref{example1}.
-
+be embedded in a Haskell program using \Ivor{}; however, more complex
+languages can be implemented. \Funl{} is a simple functional language,
+with primitive recursion over integers and higher order functions. It
+is implemented on top of \Ivor{} as a framework for both language
+representation and correctness proofs in that language. By using the
+same framework for both, it is a small step from implementing the
+language to implementing a theorem prover for showing properties of
+programs in the language, making use of the theorem prover developed
+in sec. \ref{example1}.
 An implementation is available from
 \url{http://www.cs.st-andrews.ac.uk/~eb/Funl/}; in this section I will
 sketch some of the important details of this implementation. Like the
@@ -174,7 +172,7 @@ to mark a primitive recursive definition:
 fac : Int -> Int =
      lam x . rec x 1 (lam k. lam recv. (k+1)*recv);
 myplus : Int -> Int -> Int =
-     lam x. lam y. rec x y (lam k. lam ih. 1+ih);
+     lam x. lam y. rec x y (lam k. lam recv. 1+recv);
 \end{verbatim}
 
 The \hdecl{myplus} function above defines addition by primitive
@@ -257,8 +255,8 @@ the typechecking and any issues with renaming, using techniques from
 \cite{not-a-number}; if there are any type errors in the \hdecl{Raw}
 term, this tactic will fail (although some extra work is required to
 produce readable error messages). By using \Ivor{} to handle
-typechecking and evaluation, we are in no danger of evaluating a term
-with type errors.
+typechecking and evaluation, we are in no danger of constructing or 
+evaluating an ill-typed term.
 
 
 \subsubsection{Building Proofs}

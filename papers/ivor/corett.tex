@@ -7,18 +7,17 @@
 
 \label{corett}
 
-The core type theory of \Ivor{} is a strongly normalising dependent
-type theory with inductive families~\cite{dybjer94}, similar to Luo's
-UTT~\cite{luo94}, the Calculus of Inductive Constructions in
-\Coq{}~\cite{coq-manual}, or \Epigram{}'s ETT~\cite{epireloaded}. 
-This language, which I call $\source$, is an
-enriched lambda calculus, with the usual reduction rules,
-and properties of subject
-reduction, Church Rosser, and uniqueness of types up to
-conversion. The strong normalisation property (i.e. that evaluation
-always terminates) is guaranteed by allowing only primitive recursion
-over strictly positive inductive datatypes. The syntax of terms in
-this language is as follows:
+The core type theory of \Ivor{} is a strongly normalising dependently
+typed $\lambda$-calculus with inductive families~\cite{dybjer94},
+similar to Luo's UTT~\cite{luo94}, the Calculus of Inductive
+Constructions in \Coq{}~\cite{coq-manual}, or \Epigram{}'s
+ETT~\cite{epireloaded}.  This language, which I call $\source$, is an
+enriched lambda calculus, with the usual reduction rules, and
+properties of subject reduction, Church Rosser, and uniqueness of
+types up to conversion. The strong normalisation property (i.e. that
+evaluation always terminates) is guaranteed by allowing only primitive
+recursion over strictly positive inductive datatypes. The syntax of
+terms in this language is as follows:
 
 \DM{
 \begin{array}{rllrll}
@@ -51,11 +50,13 @@ $\LET$ binding:
 {\Gamma;\vb\proves\RW{valid}}
 }
 
-The typing rules are given below. These depend on
-a conversion relation \mbox{$\Gamma\proves\vx\conv\vy$}, which holds iff $\vx$
-and $\vy$ have a common redex. This requires the typechecker to
-perform some evaluation, so it is important for decidability of
-typechecking that the language is strongly normalising.
+The typing rules are given below. These depend on a conversion
+relation \mbox{$\Gamma\proves\vx\conv\vy$}, which holds if and only if
+$\vx$ and $\vy$ have a common redex. This requires the typechecker to
+perform some evaluation --- in order to find a common redex, types are
+reduced to normal form --- so it is
+important for decidability of typechecking that the language is
+strongly normalising.
 
 \DM{\begin{array}{c}
 \Rule{\Gamma\proves\RW{valid}}
@@ -109,7 +110,9 @@ typechecking that the language is strongly normalising.
 Inductive families \cite{dybjer94} are a form of simultaneously
 defined collection of algebraic data types (such as Haskell
 \texttt{data} declarations) which can be parametrised over
-\remph{values} as well as types.  An inductive family is declared as
+\remph{values} as well as types.  An inductive family is declared 
+in a similar style to a Haskell GADT declaration~\cite{gadts}
+as
 follows, using the de Bruijn telescope notation, $\tx$, to indicate a
 sequence of zero or more $\vx$:
 
@@ -230,7 +233,8 @@ calculus~\cite{mcbride-thesis}.
 
 The basic idea is to extend the syntax for binders with a \remph{hole}
 binding and a \remph{guess} binding. The \remph{guess} binding is
-similar to a $\LET$ binding, but without any computational force:
+similar to a $\LET$ binding, but without any computational force,
+i.e. the bound names do not reduce:
 
 \DM{
 \vb ::= \ldots 
@@ -240,7 +244,7 @@ similar to a $\LET$ binding, but without any computational force:
 
 Using binders to represent holes as discussed in~\cite{mcbride-thesis}
 is useful in a dependently typed setting since one value may determine
-another. Attaching a ``guess'' to a binder ensures that instiating one
+another. Attaching a ``guess'' to a binder ensures that instantiating one
 such value also instantiates all of its dependencies. The typing rules for
 binders ensure that no $?$ bindings leak into types, and are given
 below.

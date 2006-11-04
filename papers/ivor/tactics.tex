@@ -54,7 +54,7 @@ rules for the data type to the context. Again, we assume an instance
 for the syntax presented in section \ref{indfamilies}.
 
 The simplest way to add new function definitions to the context is
-with the \hdecl{addDef} function. Definitions may not be recursive,
+with the \hdecl{addDef} function. Such definitions may not be recursive,
 other than via the automatically generated elimination rules:
 
 \begin{verbatim}
@@ -65,8 +65,8 @@ However, \Ivor{} is primarily a library for constructing proofs; the
 Curry-Howard correspondence identifies programs and proofs, and
 therefore such definitions can be viewed as proofs; to prove a
 theorem is to add a well-typed definition to the context.  We would
-therefore like to be able to construct more complex proofs (and indeed
-programs) interactively --- at the heart of \Ivor{} is a theorem
+like to be able to construct more complex proofs (and indeed
+programs) interactively --- and so at the heart of \Ivor{} is a theorem
 proving engine.
 
 \subsection{Theorems}
@@ -81,7 +81,8 @@ theorem :: (IsTerm a, Monad m) => Context -> Name -> a -> m Context
 \end{verbatim}
 
 A proof state can be thought of as an incomplete term, i.e. a
-term in the development calculus. For example, calling \hdecl{theorem}
+term in the development calculus. 
+For example, calling \hdecl{theorem}
 with the name $\FN{plus}$ and type $\Nat\to\Nat\to\Nat$, an initial
 proof state would be:
 
@@ -116,7 +117,8 @@ any subgoal. A tactic typically works on the bindings in scope and the
 type of the subgoal it is solving.
 
 When there are no remaining subgoals, a proof can be lifted into the
-context with the \texttt{qed} function:
+context, to be used as a complete definition, with the \texttt{qed}
+function:
 
 \begin{verbatim}
 qed :: Monad m => Context -> m Context
@@ -264,7 +266,7 @@ following goals:
 Refinement solves goals by constructing new values; we may also solve
 goals by deconstructing values in the context, using an elimination
 operator as described in section \ref{elimops}. The \texttt{induction}
-and \texttt{case} tactics apply the $\delim$ and $\dcase$ operators
+and \texttt{cases} tactics apply the $\delim$ and $\dcase$ operators
 respectively to the given target:
 
 \begin{verbatim}
@@ -272,9 +274,9 @@ induction, cases :: IsTerm a => a -> Tactic
 \end{verbatim}
 
 These tactics proceed by refinement by the appropriate elimination
-operator. The motive is calculated automatically, and is given by the
-goal to be solved. Each tactic generates subgoals for each method of
-the appropriate elimination rule.
+operator. The motive for the elimination is calculated automatically
+from the goal to be solved. Each tactic generates subgoals for each
+method of the appropriate elimination rule.
 
 %% A more general elimination tactic is \texttt{by}, which takes an
 %% application of an elimination operator to a target.
@@ -313,13 +315,15 @@ case where $\vx$ is zero, and one for the inductive case:
 {
 \AR{
 \hole{\VV{plus\_O}}{\Nat}\\
-\hole{\VV{plus\_S}}{\fbind{\vk}{\Nat}{\fbind{\VV{ih}}{\Nat}{\Nat}}}
+\hole{\VV{plus\_S}}{\fbind{\vk}{\Nat}{\fbind{\VV{k\_H}}{\Nat}{\Nat}}}
 }
 }
 }
 
 By default, the next goal to solve is $\VV{plus\_O}$. However, the
 \hdecl{focus} tactic can be used to change the default goal.
+The $\VV{k\_H}$ argument to the $\VV{plus\_S}$ goal is the result of a
+recursive call on $\vk$.
 
 \subsubsection{Rewriting}
 It is often desirable to rewrite a goal given an equality proof, to
@@ -355,8 +359,9 @@ replace :: (IsTerm a, IsTerm b, IsTerm c, IsTerm d) =>
 \end{verbatim}
 
 The \texttt{Bool} argument determines whether to apply the symmetry
-lemma to the equality proof first, which allows rewriting the right
-hand side to the left hand side. This \hdecl{replace} tactic is
+lemma to the equality proof first, which allows rewriting from right
+to left.
+This \hdecl{replace} tactic is
 similar to \Lego{}'s \texttt{Qrepl} tactic \cite{lego-manual}.
 
 For example, consider the following fragment of proof state:
@@ -400,8 +405,8 @@ This is easy to solve using the \texttt{fill} tactic with $\vx$.
 
 \label{combinators}
 
-\Ivor{} can be seen as an embedded domain specific language for
-building tactics. The library provides a number of
+\Ivor{} provides an embedded domain specific language for
+building tactics, in the form of a number of
 combinators for building more complex tactics from the basic tactics
 previously described. By providing an API for basic tactics and a
 collection of combinators, it becomes easy to extend the library with
@@ -409,7 +414,8 @@ more complex domain specific tactics. We will see examples in
 sections \ref{example1} and \ref{example2}.
 
 \subsubsection{Sequencing Tactics}
-There are three basic operators for combining two tactics to create a third:
+There are three basic operators for combining two tactics to create a 
+new tactic:
 
 \begin{verbatim}
 (>->), (>+>), (>=>) :: Tactic -> Tactic -> Tactic
@@ -435,9 +441,9 @@ tacs :: Monad m => [Goal -> Context -> m Context] ->
                    Goal -> Context -> m Context
 \end{verbatim}
 
-Note that the type of this can be understood as \hdecl{[Tactic] ->
+Note that the type of this is better understood as \hdecl{[Tactic] ->
   Tactic}, but the Haskell typechecker requires that the same monad be
-abstracted over all tactics.
+abstracted over all of the combined tactics.
 
 \subsubsection{Handling Failure}
 Tactics may fail (for example a refinement may be ill-typed). 

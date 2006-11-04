@@ -37,3 +37,16 @@ refine or_intro_l;
 fill b;
 Qed;
 Freeze or_commutes;
+
+implies : ((a:*)(Or a (not a)))->
+          (A:*)(B:*)(A -> B) -> (Or (not A) B);
+intros;
+case (X A);
+intros;
+refine or_intro_r;
+refine X0;
+trivial;
+intros;
+refine or_intro_l;
+fill b;
+Qed;

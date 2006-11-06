@@ -29,7 +29,8 @@ to do with it, when the time comes.
 >     | Undefined          -- Declared but undefined name
 
 > data Elims n = Elims { elimRuleName :: n,
->                        caseRuleName :: n }
+>                        caseRuleName :: n,
+>                        constructors :: [n] }
 
 > data FunOptions = Frozen | Recursive
 >   deriving Eq
@@ -39,7 +40,7 @@ to do with it, when the time comes.
 >     show (ElimRule _) = "<<elim rule>>"
 >     show (PrimOp _) = "<<primitive operator>>"
 >     show (DCon x t) = "DCon " ++ show x ++ "," ++show t
->     show (TCon x (Elims e c)) = "TCon " ++ show x
+>     show (TCon x (Elims e c cons)) = "TCon " ++ show x
 >     show Unreducible = "Unreducible"
 >     show Undefined = "Undefined"
 
@@ -569,7 +570,8 @@ WARNING: quotation to eta long normal form doesn't work yet.
 >     fmap f (Fun opts n) = Fun opts $ fmap f n
 >     fmap f (ElimRule e) = ElimRule e
 >     fmap f (DCon t i) = DCon t i
->     fmap f (TCon i (Elims en cn)) = TCon i (Elims (f en) (f cn))
+>     fmap f (TCon i (Elims en cn cons)) 
+>              = TCon i (Elims (f en) (f cn) (fmap f cons))
 
 
 > arity :: Gamma Name -> Indexed Name -> Int

@@ -20,7 +20,7 @@ and_commutes : (A:*)(B:*)(p:And A B)(And B A);
 intros;
 induction p;
 intros;
-refine and_intro;
+split;
 fill b;
 fill a;
 Qed;

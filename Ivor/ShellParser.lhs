@@ -88,6 +88,7 @@
 >                | Normalise
 >                | Unfold String
 >                | Trivial
+>                | Split
 >                | By ViewTerm
 >                | Induction ViewTerm
 >                | Cases ViewTerm
@@ -318,6 +319,7 @@ which runs it.
 >      <|> do reserved "unfold" ; nm <- identifier ;
 >             semi ; return $ Unfold nm
 >      <|> do reserved "trivial" ; semi ; return Trivial
+>      <|> do reserved "split" ; semi ; return Split
 >      <|> do reserved "by" ; tm <- pTerm ext ; semi ; 
 >             return $ By tm
 >      <|> do reserved "induction" ; tm <- pTerm ext ; semi ; 

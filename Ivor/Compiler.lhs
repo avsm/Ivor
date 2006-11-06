@@ -45,7 +45,7 @@ FIXME! Only does elim, not case.
 >        --hPutStrLn h $ show rtt
 >        compileData gam xs st h
 >  where rulename = case lookupval n gam of
->                      (Just (TCon _ (Elims x _))) -> return x
+>                      (Just (TCon _ (Elims x _ _))) -> return x
 >                      Nothing -> fail "No such type"
 
 This creation of elim rule interfaces only works for completely simple types!

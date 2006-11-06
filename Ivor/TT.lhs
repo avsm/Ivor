@@ -28,7 +28,7 @@
 >               proofterm, getGoals, getGoal, uniqueName, -- getActions
 >               allSolved,qed,
 >               -- * Examining the Context
->               eval, getDef, getAllDefs, 
+>               eval, getDef, getAllDefs, getConstructors,
 >               Reduction(..), Rule(..), getElimRule,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
 >               -- * Goals, tactic types
@@ -335,7 +335,7 @@
 > addPrimitive (Ctxt st) n = do
 >        checkNotExists n (defs st)
 >        let Gam ctxt = defs st
->        let elims = Elims (MN ("none",0)) (MN ("none",0))
+>        let elims = Elims (MN ("none",0)) (MN ("none",0)) []
 >        -- let newdefs = Gam ((n, (G (TCon 0 elims) (Ind TTCore.Star))):ctxt)
 >        newdefs <- gInsert n (G (TCon 0 elims) (Ind TTCore.Star)) (Gam ctxt)
 >        return $ Ctxt st { defs = newdefs }
@@ -579,6 +579,13 @@ Give a parseable but ugly representation of a term.
 >                            reverse (map info ds) -- input order!
 >    where info (n,G _ ty) = (n, Term (ty, Ind TTCore.Star))
 
+> -- | Get the names of all of the constructors of an inductive family
+> getConstructors :: Monad m => Context -> Name -> m [Name]
+> getConstructors (Ctxt st) n 
+>      = case glookup n (defs st) of
+>           Just ((TCon _ (Elims _ _ cs)),ty) -> return cs
+>           _ -> fail "Not a type constructor"
+
 Examine pattern matching elimination rules
 
 > -- | Iota reduction rule
@@ -595,7 +602,7 @@ Examine pattern matching elimination rules
 >                -> m [Reduction]
 > getElimRule (Ctxt st) nm r = 
 >     case (lookupval nm (defs st)) of
->       Just (TCon _ (Elims erule crule)) ->
+>       Just (TCon _ (Elims erule crule cons)) ->
 >          do let rule = case r of -- rule :: Name
 >                          Case -> crule
 >                          Ivor.TT.Elim -> erule

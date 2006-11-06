@@ -17,7 +17,7 @@
 >                        -- * Terms
 >                        Term(..), ViewTerm(..), apply,
 >                        view, viewType, ViewConst, typeof, 
->                        freeIn, occursIn,
+>                        freeIn, occursIn, getApp,
 >                        -- * Inductive types
 >                        Inductive(..)) 
 >    where
@@ -219,3 +219,10 @@
 >    fi n (Ivor.ViewTerm.Eval t) = fi n t
 >    fi n (Ivor.ViewTerm.Escape t) = fi n t
 >    fi n x = n == x
+
+> -- | Get the function from an application. If no application, returns the
+> -- entire term.
+> getApp :: ViewTerm -> ViewTerm
+> getApp (Ivor.ViewTerm.App f a) = getApp f
+> getApp x = x
+

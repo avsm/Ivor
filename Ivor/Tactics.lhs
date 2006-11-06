@@ -445,7 +445,7 @@ otherwise.
 > runCaseTac :: Bool -> TT Name -> [TT Name] -> Tactic
 > runCaseTac rec (TyCon n _) args gam env tm =
 >     case (lookupval n gam) of
->         (Just (TCon _ (Elims erule crule))) -> do
+>         (Just (TCon _ (Elims erule crule cons))) -> do
 >             by (mkapp (Var (if rec then erule else crule))
 >                                (map forget args)) gam env tm
 >         _ -> fail $ (show n) ++ " is not a type constructor"

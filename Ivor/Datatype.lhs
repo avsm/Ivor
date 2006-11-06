@@ -62,7 +62,7 @@ the context and an executable elimination rule.
 > checkType :: Monad m => Gamma Name -> RawDatatype -> m (Datatype Name)
 > checkType gamma (RData (ty,kind) cons numps (er,erty) (cr,crty) eschemes cschemes) = 
 >     do (kv, _) <- typecheck gamma kind
->        let erdata = Elims er cr
+>        let erdata = Elims er cr (map fst cons)
 >	 let gamma' = extend gamma (ty,G (TCon (arity gamma kv) erdata) kv)
 >	 (consv,gamma'') <- checkCons gamma' 0 cons
 >	 (ev, _) <- typecheck gamma'' erty

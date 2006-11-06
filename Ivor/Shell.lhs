@@ -21,6 +21,7 @@
 > import Ivor.ShellParser
 > import Ivor.TermParser
 > import Ivor.TT as TT
+> import Ivor.Decisions
 > import Ivor.Equality
 > import Ivor.Gadgets
 > import Ivor.Primitives
@@ -212,6 +213,7 @@
 > runTactic _ _ Normalise = compute
 > runTactic _ _ (Unfold n) = unfold (name n)
 > runTactic _ _ Trivial = trivial
+> runTactic _ _ Split = split
 > runTactic _ _ (By tm) = by tm
 > runTactic _ _ (Induction tm) = induction tm
 > runTactic _ _ (Cases tm) = cases tm

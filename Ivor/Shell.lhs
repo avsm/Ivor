@@ -214,6 +214,8 @@
 > runTactic _ _ (Unfold n) = unfold (name n)
 > runTactic _ _ Trivial = trivial
 > runTactic _ _ Split = split
+> runTactic _ _ LeftCon = left
+> runTactic _ _ RightCon = right
 > runTactic _ _ (By tm) = by tm
 > runTactic _ _ (Induction tm) = induction tm
 > runTactic _ _ (Cases tm) = cases tm

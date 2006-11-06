@@ -11,7 +11,7 @@
 > -- 
 > -- Some decision procedures
 
-> module Ivor.Decisions(auto,split) where
+> module Ivor.Decisions(auto,split,left,right,useCon) where
 
 > import Ivor.TT
 
@@ -29,16 +29,33 @@
 > -- | Split a goal into subgoals. Type of goal must be a one constructor
 > -- family, with constructor @c@, then proceeds by 'refine' @c@.
 > split :: Tactic
+> split  = useCon 1 0
+
+> -- | Split a goal into subgoals. Type of goal must be a two constructor
+> -- family, with constructors @l@ and @r@, then proceeds by 'refine' @l@.
+> left :: Tactic
+> left = useCon 2 0
+
+> -- | Split a goal into subgoals. Type of goal must be a two constructor
+> -- family, with constructors @l@ and @r@, then proceeds by 'refine' @r@.
+> right :: Tactic
+> right = useCon 2 1
 
 Get the goal, look at the type. Refine by the constructor of that type -
-check that there is only one
+check that there is the right number (num).
 
-> split g ctxt = do
+> -- | Solve the goal by applying a numbered constructor
+> useCon :: Int -- ^ Ensure at least this number of constructors (0 for no constraint)
+>           -> Int -- ^ Use this constructor (0 based, order of definition)
+>           -> Tactic
+> useCon num use g ctxt = do
 >     goal <- goalData ctxt False g
 >     let ty = getApp (view (goalType goal))
 >     case ty of
 >       (Name _ n) -> do cons <- getConstructors ctxt n
->                        splitOneCon cons g ctxt
+>                        splitnCon cons g ctxt
 >       _ -> fail "Not a type constructor"
->    where splitOneCon [c] = refine (Name DataCon c)
->          splitOneCon _ = fail "Not a single constructor family"
+>    where splitnCon cs | length cs >= num || num == 0
+>              = refine (Name DataCon (cs!!use))
+>          splitnCon _ = fail $ "Not a " ++ show num ++ " constructor family"
+

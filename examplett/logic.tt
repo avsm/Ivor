@@ -21,8 +21,8 @@ intros;
 induction p;
 intros;
 split;
-fill b;
-fill a;
+trivial;
+trivial;
 Qed;
 Freeze and_commutes;
 
@@ -31,10 +31,10 @@ intros;
 induction p;
 intros;
 right;
-fill a;
+trivial;
 intros;
 left;
-fill b;
+trivial;
 Qed;
 Freeze or_commutes;
 
@@ -48,5 +48,7 @@ refine X0;
 trivial;
 intros;
 left;
-fill b;
+trivial;
 Qed;
+
+

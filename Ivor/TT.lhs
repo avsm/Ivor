@@ -40,7 +40,7 @@
 >               -- ** Basics
 >               intro,
 >               introName,
->               intros,
+>               intros,intros1,
 >               introsNames,
 >               Ivor.TT.addArg,
 >               generalise,
@@ -1177,7 +1177,8 @@ FIXME: Choose a sensible name here
 >          tryall ps g ctxt
 >    where tryall [] g ctxt = fail "No trivial solution found"
 >          tryall ((x,ty):xs) g ctxt 
->              = do ctxt' <- try (refine (Name Free x)) idTac idTac g ctxt
+>              = do ctxt' <- ((refine (Name Free x)) >|> (fill (Name Free x))
+>                                 >|> idTac)  g ctxt
 >                   if (numUnsolved ctxt' < numUnsolved ctxt)
 >                      then return ctxt'
 >                      else tryall xs g ctxt

@@ -14,6 +14,7 @@
 > module Ivor.Decisions(auto,split,left,right,useCon) where
 
 > import Ivor.TT
+> import Debug.Trace
 
 > -- | Tries to solve a simple goal automatically by trying each of these 
 > --   in turn:
@@ -24,7 +25,14 @@
 > --    on each constructor in turn.
 > auto :: Int -- ^ Search depth
 >         -> Tactic
-> auto _ = fail "auto undefined"
+> auto 0 = \g ctxt -> fail "auto got bored, try a bigger search depth"
+> auto n = \g ctxt -> if (allSolved ctxt) then return ctxt else
+>            trace ("Auto "++ show n) $
+>            ((trivial >+> (auto n)) >|>
+>            (intros1 >+> (auto n)) >|>
+>            (split >+> (auto n)) >|>
+>            (left >+> (auto (n-1))) >|>
+>            (right >+> (auto (n-1)))) g ctxt
 
 > -- | Split a goal into subgoals. Type of goal must be a one constructor
 > -- family, with constructor @c@, then proceeds by 'refine' @c@.
@@ -57,5 +65,5 @@ check that there is the right number (num).
 >       _ -> fail "Not a type constructor"
 >    where splitnCon cs | length cs >= num || num == 0
 >              = refine (Name DataCon (cs!!use))
->          splitnCon _ = fail $ "Not a " ++ show num ++ " constructor family"
+>          splitnCon _ = \g ctxt -> fail $ "Not a " ++ show num ++ " constructor family"
 

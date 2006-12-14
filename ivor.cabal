@@ -13,7 +13,7 @@ Synopsis:	Theorem proving library based on dependent type theory
 Exposed-modules:
 		Ivor.TT, Ivor.Shell, Ivor.Primitives, 
 		Ivor.TermParser, Ivor.ViewTerm, Ivor.Equality,
-		Ivor.Decisions
+		Ivor.Construction
 Other-modules:	Ivor.Nobby, Ivor.TTCore, Ivor.State, 
 		Ivor.Tactics, Ivor.Typecheck,
 		Ivor.Gadgets, Ivor.SC, Ivor.Bytecode,

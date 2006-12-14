@@ -21,7 +21,7 @@
 > import Ivor.ShellParser
 > import Ivor.TermParser
 > import Ivor.TT as TT
-> import Ivor.Decisions
+> import Ivor.Construction
 > import Ivor.Equality
 > import Ivor.Gadgets
 > import Ivor.Primitives

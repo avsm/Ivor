@@ -1,7 +1,7 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
 > -- | 
-> -- Module      : Ivor.Decisions
+> -- Module      : Ivor.Construction
 > -- Copyright   : Edwin Brady
 > -- Licence     : BSD-style (see LICENSE in the distribution)
 > --
@@ -9,9 +9,9 @@
 > -- Stability   : experimental
 > -- Portability : non-portable
 > -- 
-> -- Some decision procedures and helpers
+> -- Some generic tactics for solving goals by applying constructors
 
-> module Ivor.Decisions(auto,split,left,right,useCon,exists) where
+> module Ivor.Construction(auto,split,left,right,useCon,exists) where
 
 > import Ivor.TT
 > import Debug.Trace

@@ -217,6 +217,7 @@
 > runTactic _ _ LeftCon = left
 > runTactic _ _ RightCon = right
 > runTactic _ _ AutoSolve = auto 20
+> runTactic _ _ (Exists tm) = exists tm
 > runTactic _ _ (By tm) = by tm
 > runTactic _ _ (Induction tm) = induction tm
 > runTactic _ _ (Cases tm) = cases tm

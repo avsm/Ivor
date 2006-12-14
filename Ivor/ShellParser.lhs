@@ -89,6 +89,7 @@
 >                | Unfold String
 >                | Trivial
 >                | Split | LeftCon | RightCon | AutoSolve
+>                | Exists ViewTerm
 >                | By ViewTerm
 >                | Induction ViewTerm
 >                | Cases ViewTerm
@@ -322,6 +323,8 @@ which runs it.
 >      <|> do reserved "split" ; semi ; return Split
 >      <|> do reserved "left" ; semi ; return LeftCon
 >      <|> do reserved "right" ; semi ; return RightCon
+>      <|> do reserved "exists" ; tm <- pTerm ext ; semi ; 
+>             return $ Exists tm
 >      <|> do reserved "auto" ; semi ; return AutoSolve
 >      <|> do reserved "by" ; tm <- pTerm ext ; semi ; 
 >             return $ By tm

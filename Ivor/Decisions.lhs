@@ -9,9 +9,9 @@
 > -- Stability   : experimental
 > -- Portability : non-portable
 > -- 
-> -- Some decision procedures
+> -- Some decision procedures and helpers
 
-> module Ivor.Decisions(auto,split,left,right,useCon) where
+> module Ivor.Decisions(auto,split,left,right,useCon,exists) where
 
 > import Ivor.TT
 > import Debug.Trace
@@ -23,6 +23,8 @@
 > --  * Splitting the goal, then solving each subgoal by 'auto'
 > --  * If the goal is of a type with more than one constructor, try 'auto'
 > --    on each constructor in turn.
+> -- FIXME: not that this actually works yet.
+
 > auto :: Int -- ^ Search depth
 >         -> Tactic
 > auto 0 = \g ctxt -> fail "auto got bored, try a bigger search depth"
@@ -66,4 +68,13 @@ check that there is the right number (num).
 >    where splitnCon cs | length cs >= num || num == 0
 >              = refine (Name DataCon (cs!!use))
 >          splitnCon _ = \g ctxt -> fail $ "Not a " ++ show num ++ " constructor family"
+
+> -- | Solve an existential by providing a witness.
+> -- More generally; apply the first constructor of the 
+> -- goal's type and provide the witness as its first non-inferrable argument.
+> exists :: IsTerm a => a -- ^Witness 
+>                       -> Tactic
+> exists t = useCon 1 0 >+> fill t
+
+
 

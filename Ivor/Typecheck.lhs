@@ -43,8 +43,7 @@ returning a pair of a term and its type
 
 > typecheck :: Monad m => Gamma Name -> Raw -> m (Indexed Name,Indexed Name)
 > typecheck gamma term = do t <- check gamma [] term Nothing
->			    {-trace (show t) $-}
->                           return t
+>			    return t
 
 > tcClaim :: Monad m => Gamma Name -> Raw -> m (Indexed Name,Indexed Name)
 > tcClaim gamma term = do (Ind t, Ind v) <- check gamma [] term Nothing

@@ -27,12 +27,13 @@
 ;;;(regexp-opt '("attack" "claim" "local" "refine" "solve" "fill" "return"
 ;;;	      "quote" "call" "abandon" "rename" "intro" "intros" "arg"
 ;;;	      "equiv" "generalise" "dependent" "replace" "axiomatise"
-;;;	      "compute" "unfold" "trivial" "by" "induction" "case"))
+;;;	      "compute" "unfold" "trivial" "by" "induction" "case" 
+;;;           "auto" "left" "right" "split" "exists"))
 
 (defconst ivor-font-lock-keywords
   (list '("\\<\\(Axiom\\|C\\(?:heck\\|ompile\\)\\|D\\(?:ata\\|eclare\\|rop\\)\\|E\\(?:quality\\|val\\)\\|F\\(?:o\\(?:cus\\|rget\\)\\|reeze\\)\\|L\\(?:et\\|oad\\)\\|Primitives\\|Qed\\|Re\\(?:c\\|pl\\|sume\\)\\|Suspend\\|Thaw\\|where\\)\\>"
  . font-lock-keyword-face)
-        '("\\<\\(a\\(?:bandon\\|rg\\|ttack\\|xiomatise\\)\\|by\\|c\\(?:a\\(?:ll\\|se\\)\\|laim\\|ompute\\)\\|dependent\\|equiv\\|fill\\|generalise\\|in\\(?:duction\\|tros?\\)\\|local\\|quote\\|re\\(?:fine\\|name\\|place\\|turn\\)\\|solve\\|trivial\\|unfold\\)\\>" . font-lock-builtin-face)
+        '("a\\(?:bandon\\|rg\\|ttack\\|uto\\|xiomatise\\)\\|by\\|c\\(?:a\\(?:ll\\|se\\)\\|laim\\|ompute\\)\\|dependent\\|e\\(?:quiv\\|xists\\)\\|fill\\|generalise\\|in\\(?:duction\\|tros?\\)\\|l\\(?:eft\\|ocal\\)\\|quote\\|r\\(?:e\\(?:fine\\|name\\|place\\|turn\\)\\|ight\\)\\|s\\(?:olve\\|plit\\)\\|trivial\\|unfold" . font-lock-builtin-face)
 	'("<\\([^:]*\\):[^>]*>" . (1 font-lock-string-face keep t))
 	'("<\\([^>:]*\\)>" . (1 font-lock-string-face keep t))
 	'("^\\([a-zA-Z0-9\\'\\_]+\\)\\s-*:" . (1 font-lock-function-name-face keep t))

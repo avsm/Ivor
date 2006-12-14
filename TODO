@@ -1,5 +1,7 @@
 Short term things to do:
 
+* Fix naming bug --- terms of form t1 -> t2 automatically give t1 the
+  name X, which can clash. Particularly a problem in data type declarations.
 * Current naive proof state representation is far too slow. Come up
   with something better.
 * Keep track of level in proof state.

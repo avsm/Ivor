@@ -598,8 +598,8 @@ Examine pattern matching elimination rules
 
 > -- | Get the pattern matching elimination rule for a type
 > getElimRule :: Monad m => Context -> Name -- ^ Type
->                -> Rule -- ^ Which rule to get patterns for (case/elim)
->                -> m [Reduction]
+>                  -> Rule -- ^ Which rule to get patterns for (case or elim)
+>                  -> m [Reduction]
 > getElimRule (Ctxt st) nm r = 
 >     case (lookupval nm (defs st)) of
 >       Just (TCon _ (Elims erule crule cons)) ->
@@ -609,10 +609,8 @@ Examine pattern matching elimination rules
 >             elim <- lookupM rule (eliminators st)
 >             return $ map mkRed (fst $ snd elim)
 >       Nothing -> fail $ (show nm) ++ " is not a type constructor"
-
 >  where mkRed (RSch pats ret) = Red (map viewRaw pats) (viewRaw ret)
-
->        -- a reduction will only have variables and applications
+>         -- a reduction will only have variables and applications
 >        viewRaw (Var n) = Name Free n
 >        viewRaw (RApp f a) = VTerm.App (viewRaw f) (viewRaw a)
 >        viewRaw _ = VTerm.Placeholder

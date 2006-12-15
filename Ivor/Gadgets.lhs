@@ -62,3 +62,13 @@
 > lookupM y [] = fail "Not found"
 > lookupM y ((x,v):xs) | x == y = return v
 >                      | otherwise = lookupM y xs
+
+Look for a file in each directory listed in turn. If present, return the
+contents, otherwise fail
+
+> findFile :: [FilePath] -> FilePath -> IO String
+> findFile [] fn = fail "File not found in search path"
+> findFile (d:ds) fn = do
+>     catch (do content <- readFile $ d ++ "/" ++ fn
+>               return content)
+>           (\e -> findFile ds fn)

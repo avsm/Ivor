@@ -14,7 +14,7 @@ and upload it.
 > import Data.Version
 
 > repo = "http://www-fp.dcs.st-and.ac.uk/~eb/darcs/Ivor/"
-> server = "eb@cumbrae.dcs.st-and.ac.uk:public_html/Ivor/"
+> server = "eb@home-staff.dcs.st-and.ac.uk:public_html/Ivor/"
 
 > main :: IO ()
 > main = do args <- getArgs

@@ -12,7 +12,7 @@
 > -- Shell interface to theorem prover
 
 > module Ivor.Shell(ShellState,
->                     runShell, importFile,
+>                     runShell, importFile, addModulePath,
 >                     getContext, newShell, 
 >                     sendCommand, sendCommandIO, addTactic,
 >                     extendParser, configureEq,
@@ -45,7 +45,9 @@
 >                          response :: String,
 >                          usertactics :: forall m.Monad m => [(String, String -> Goal -> Context -> m Context)],
 >                          imported :: [String],
->                          extensions :: Maybe (Parser ViewTerm)
+>                          extensions :: Maybe (Parser ViewTerm),
+>                          -- search path for modules to load
+>                          modulePath :: [FilePath]
 >                          }
 
 > respond, respondLn :: ShellState -> String -> ShellState
@@ -57,7 +59,7 @@
 > -- | Create a new shell state.
 > newShell :: Context -- ^ Initial system state
 >          -> ShellState
-> newShell ctxt = Shell Nothing "> " False ctxt "" [] [] Nothing
+> newShell ctxt = Shell Nothing "> " False ctxt "" [] [] Nothing ["."]
 
 > -- | Add a user defined tactic to the shell.
 > addTactic :: String -- ^ Tactic name.
@@ -339,11 +341,12 @@ Special case for importFile. Grr.
 
 If the given file is already loaded, do nothing.
 
-> -- | Import a file of shell commands.
+> -- | Import a file of shell commands; fails if the module does not exist 
+> -- in the search path, does nothing if already loaded.
 > importFile :: FilePath -> ShellState -> IO ShellState
 > importFile fp st 
 >     | fp `elem` imported st = return st
->     | otherwise = do inp <- readFile fp
+>     | otherwise = do inp <- findFile (modulePath st) fp
 >                      st' <- processFile [] inp st
 >                      --resp <- readFile tmpf
 >                      return $ st' { imported = fp:(imported st') }
@@ -356,6 +359,10 @@ If the given file is already loaded, do nothing.
 >         -- Now eat the whitespace at the end
 >         processFile (x:xs) [] st | isSpace x = processFile xs [] st
 >                                  | otherwise = fail "Unexpected end of file"
+
+> -- | Add a directory to the module search path
+> addModulePath :: ShellState -> FilePath -> ShellState
+> addModulePath shell fp = shell { modulePath = fp:(modulePath shell) }
 
 > environment :: String -> IO (Maybe String)
 > environment x = catch (do e <- getEnv x

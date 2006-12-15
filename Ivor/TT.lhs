@@ -14,7 +14,8 @@
 > module Ivor.TT(-- * System state
 >               emptyContext, Context,
 >               Ivor.TT.check,
->               checkCtxt,converts,Ivor.TT.compile,
+>               checkCtxt,converts,
+>               Ivor.TT.compile,
 >               -- * Exported view of terms
 >               module VTerm, IsTerm, IsData,
 >               -- * Definitions and Theorems

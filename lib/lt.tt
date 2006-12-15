@@ -1,0 +1,85 @@
+Data le : (m,n:Nat)* =
+    leO : (n:Nat)(le O n)
+  | leS : (m,n:Nat)(p:le m n)(le (S m) (S n));
+
+leSuc : (m,n:Nat)(p:le m n)(le m (S n));
+intros;
+induction p;
+intros;
+refine leO;
+intros;
+refine leS;
+refine p_IH;
+Qed;
+
+leSym : (m:Nat)(le m m);
+intros;
+induction m;
+refine leO;
+intros;
+refine leS;
+refine k_IH;
+Qed;
+
+lePlus : (m,n:Nat)(le m (plus m n));
+intros;
+induction m;
+refine leO;
+intros;
+refine leS;
+fill k_IH;
+Qed;
+
+Data Compare : (m,n:Nat)* =
+    cmpLT : (k,m:Nat)(Compare m (plus m (S k)))
+  | cmpEQ : (n:Nat)(Compare n n)
+  | cmpGT : (k,n:Nat)(Compare (plus n (S k)) n);
+
+compare : (m,n:Nat)(Compare m n);
+intro;
+induction m;
+intro;
+induction n;
+refine cmpEQ;
+intros;
+fill cmpLT k O;
+intros;
+induction n0;
+fill cmpGT k O;
+intros;
+induction (k_IH k0);
+intros;
+fill cmpLT k1 (S m1);
+intros;
+refine cmpEQ;
+intros;
+fill cmpGT k2 (S n2);
+Qed;
+
+mkLT : (m,n:Nat)(Maybe (le m n));
+intros;
+induction (compare m n);
+intros;
+refine just;
+refine lePlus;
+intros;
+refine just;
+refine leSym;
+intros;
+refine nothing;
+Qed;
+
+isBounded : (n,min,max:Nat)(Maybe (And (le min n) (le n max)));
+intros;
+induction mkLT min n;
+refine nothing;
+intros;
+induction mkLT n max;
+refine nothing;
+intros;
+refine just;
+refine and_intro;
+refine a;
+refine a0;
+Qed;
+

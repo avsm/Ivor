@@ -1,0 +1,31 @@
+Equality Eq refl;
+
+repl : (A:*)(x:A)(y:A)(q:Eq _ _ x y)(P:(m:A)*)(p:P x)(P y);
+intros;
+by EqElim _ _ _ q;
+fill p;
+Qed;
+Freeze repl;
+
+trans : (A:*)(a:A)(b:A)(c:A)(p:Eq _ _ a b)(q:Eq _ _ b c)(Eq _ _ a c);
+intros;
+by EqElim _ _ _ q;
+fill p;
+Qed;
+Freeze trans;
+
+sym : (A:*)(a:A)(b:A)(p:Eq _ _ a b)(Eq _ _ b a);
+intros;
+by EqElim _ _ _ p;
+refine refl;
+Qed;
+Freeze sym;
+
+Repl Eq repl sym;
+
+eq_resp_f:(A,B:*)(f:(a:A)B)(x:A)(y:A)(q:Eq _ _ x y)(Eq _ _ (f x) (f y));
+intros;
+by EqElim _ _ _ q;
+refine refl;
+Qed;
+Freeze eq_resp_f;

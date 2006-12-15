@@ -6,11 +6,14 @@ PROFILE =
 GHCOPTS = 
 
 package:
+	echo "module Ivor.Prefix where prefix = \"$(PREFIX)\"" > Ivor/Prefix.hs
 	runhaskell Setup.lhs configure --user --ghc --prefix=$(PREFIX) $(PROFILE)
 	runhaskell Setup.lhs build
 
 install: .PHONY
 	runhaskell Setup.lhs install $(DB)
+	mkdir -p $(PREFIX)/lib/ivor
+	install lib/* $(PREFIX)/lib/ivor
 
 unregister:
 	runhaskell Setup.lhs unregister $(DB)

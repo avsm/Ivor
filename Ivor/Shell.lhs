@@ -12,7 +12,7 @@
 > -- Shell interface to theorem prover
 
 > module Ivor.Shell(ShellState,
->                     runShell, importFile, addModulePath,
+>                     runShell, importFile, addModulePath, prefix,
 >                     getContext, newShell, 
 >                     sendCommand, sendCommandIO, addTactic,
 >                     extendParser, configureEq,
@@ -25,6 +25,7 @@
 > import Ivor.Equality
 > import Ivor.Gadgets
 > import Ivor.Primitives
+> import qualified Ivor.Prefix
 > -- import Ivor.Plugin
 
 > import IO
@@ -338,6 +339,10 @@ Special case for importFile. Grr.
 
 > gettacs :: [(String, String -> Goal -> Context -> IO Context)] -> [String]
 > gettacs = map fst
+
+> -- | Get the install prefix of the library
+> prefix :: FilePath
+> prefix = Ivor.Prefix.prefix
 
 If the given file is already loaded, do nothing.
 

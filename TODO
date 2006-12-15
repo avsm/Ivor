@@ -1,5 +1,6 @@
 Short term things to do:
 
+* Either String better rhan Monad m?
 * Fix naming bug --- terms of form t1 -> t2 automatically give t1 the
   name X, which can clash. Particularly a problem in data type declarations.
 * Current naive proof state representation is far too slow. Come up
@@ -29,12 +30,13 @@ Things which could be done to the library, in no particular order
 * Namespace management.
 * Some useful error messages from the Parsec parsers would be nice.
 * Proper type universes, of some form.
-* Generate DRec as well as DElim/DCase.
-* Build in Sigma types?
+* Generate DRec and DNoConfusion as well as DElim/DCase.
+* Build in Sigma types? (At least a nicer syntax?)
+* Infix operators, especially = would be nice.
 
 Tactics:
 
 * Injectivity.
 * Discriminate.
-* Inversion, likewise.
+* Inversion.
 

@@ -1,0 +1,5 @@
+Load "nat.tt";
+
+Data List (A:*) : *
+  = nil : List A
+  | cons : (x:A)->(xs:List A)->(List A);

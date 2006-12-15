@@ -13,7 +13,7 @@ package:
 install: .PHONY
 	runhaskell Setup.lhs install $(DB)
 	mkdir -p $(PREFIX)/lib/ivor
-	install lib/* $(PREFIX)/lib/ivor
+	install lib/*.tt $(PREFIX)/lib/ivor
 
 unregister:
 	runhaskell Setup.lhs unregister $(DB)

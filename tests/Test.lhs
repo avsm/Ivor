@@ -8,10 +8,13 @@
 > import Ivor.TT
 > import Ivor.Shell
 
-> natShell = importFile "nat.tt" (newShell emptyContext)
-> ackShell = importFile "ack.tt" (newShell emptyContext)
-> partialShell = importFile "partial.tt" (newShell emptyContext)
-> vectShell = importFile "vect.tt" (newShell emptyContext)
+> stdlibShell = addModulePath (newShell emptyContext)
+>                  (prefix ++ "/lib/ivor")
+
+> natShell = importFile "nat.tt" stdlibShell
+> ackShell = importFile "ack.tt" stdlibShell
+> partialShell = importFile "partial.tt" stdlibShell
+> vectShell = importFile "vect.tt" stdlibShell
 
 > doEval :: ShellState -> String -> String
 > doEval st tm = case (parse (shellParseTerm st) "(test)" tm) of

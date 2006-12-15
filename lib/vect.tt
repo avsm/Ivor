@@ -9,7 +9,7 @@ Data Fin : (n:Nat)*
     | fs : (k:Nat)(i:Fin k)(Fin (S k));
 
 lookup:(A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A;
-local lookupAux:(A:*)(n:Nat)(i:Fin n)(n':Nat)(xs:Vect A n')(p:Eq _ n n')A;
+local lookupAux:(A:*)(n:Nat)(i:Fin n)(n':Nat)(xs:Vect A n')(p:Eq _ _ n n')A;
 intro A n i;
 induction i;
 intro k n' xs;

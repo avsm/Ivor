@@ -36,6 +36,7 @@
 
 > data Command = Def String ViewTerm
 >              | TypedDef String ViewTerm ViewTerm
+>              | PatternDef String ViewTerm Patterns
 >              | Data Inductive
 >              | Axiom String ViewTerm
 >              | Declare String ViewTerm
@@ -114,6 +115,28 @@ which runs it.
 >          name <- identifier ; lchar ':'; ty <- pTerm ext
 >          lchar '=' ; term <- pTerm ext ; semi
 >          return $ TypedDef name term ty
+
+> pclause :: Maybe (Parser ViewTerm) -> Parser PClause
+> pclause ext
+>     = do name <- identifier; 
+>          args <- many (pNoApp ext)
+>          lchar '=' ;
+>          ret <- pTerm ext
+>          return $ PClause args ret
+
+> ppatterns :: Maybe (Parser ViewTerm) -> Parser Patterns
+> ppatterns ext
+>     = do clauses <- sepBy (pclause ext) (lchar '|' )
+>          return $ Patterns clauses
+
+> ppatternDef :: Maybe (Parser ViewTerm) -> Parser Command
+> ppatternDef ext
+>     = do reserved "Patt"
+>          name <- identifier ; lchar ':' ; ty <- pTerm ext
+>          lchar '='
+>          patts <- ppatterns ext
+>          semi
+>          return $ PatternDef name ty patts
 
 > pdata :: Maybe (Parser ViewTerm) -> Parser Command
 > pdata ext = do reserved "Data"
@@ -270,7 +293,7 @@ which runs it.
 > command :: Maybe (Parser ViewTerm) -> Parser Command
 > command ext = tryall [def ext, typeddef ext, pdata ext, axiom ext, 
 >                       ptheorem ext, pdeclare ext, pinter ext, pforget, 
->                       eval ext, check ext, 
+>                       eval ext, check ext, ppatternDef ext,
 >                       pdrop, repldata, pqed, pprint, pfreeze, pthaw, pprf, 
 >                       pundo, psuspend, presume, pgenrec, pjme,
 >                       pload, pcompile, pfocus, pdump, pprfstate, pprims,

@@ -23,6 +23,8 @@
 >               theorem,interactive,
 >               addPrimitive,addBinOp,addPrimFn,addExternalFn,
 >               addEquality,forgetDef,addGenRec,
+>               -- * Pattern matching definitions
+>               PClause(..), Patterns(..),addPatternDef,
 >               -- * Manipulating Proof State
 >               proving,numUnsolved,suspend,resume,
 >               save, restore, clearSaved,
@@ -100,6 +102,7 @@
 > import qualified Ivor.Tactics as Tactics
 > import Ivor.Compiler as Compiler
 > import Ivor.CodegenC
+> import Ivor.PatternDefs
 
 > import List
 > import Debug.Trace
@@ -185,6 +188,28 @@
 >                                 Just Undefined -> return ()
 >                                 Just _ -> fail $ show n ++ " already defined"
 >                                 Nothing -> return ()
+
+> data PClause = PClause {
+>                         arguments :: [ViewTerm],
+>                         returnval :: ViewTerm
+>                        }
+
+> data Patterns = Patterns [PClause]
+
+> mkRawClause :: PClause -> RawScheme
+> mkRawClause (PClause args ret) =
+>     RSch (map forget args) (forget ret)
+
+> -- |Add a new definition, with its type to the global state.
+> -- These definitions can be recursive, so use with care.
+> addPatternDef :: (IsTerm ty, Monad m) => 
+>                Context -> Name -> ty -> Patterns -> m Context
+> addPatternDef (Ctxt st) n ty pats = do
+>         checkNotExists n (defs st)
+>         inty <- raw ty
+>         let (Patterns clauses) = pats
+>         foo <- checkDef (defs st) n inty (map mkRawClause clauses)
+>         trace (show foo) $ fail "unfinished"
 
 > -- |Add a new definition, with its type to the global state.
 > -- These definitions can be recursive, so use with care.

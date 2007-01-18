@@ -100,6 +100,9 @@
 > runCommand (TypedDef nm tm ty) st = do
 >     ctxt <- addTypedDef (context st) (name nm) tm ty
 >     return st { context = ctxt }
+> runCommand (PatternDef nm ty pats) st = do
+>     ctxt <- addPatternDef (context st) (name nm) ty pats
+>     return st { context = ctxt }
 > runCommand (Data dat) st = do ctxt <- addData (context st) dat
 >                               return st { context = ctxt }
 > runCommand (Axiom nm tm) st = do ctxt <- addAxiom (context st) (name nm) tm

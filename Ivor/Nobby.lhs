@@ -66,6 +66,17 @@ to do with it, when the time comes.
 > glookup ::  Eq n => n -> Gamma n -> Maybe (Global n,Indexed n)
 > glookup n (Gam xs) = fmap (\x -> (getglob x,gettype x)) (lookup n xs)
 
+Get a type name from the context
+
+> getTyName :: Monad m => Gamma Name -> Name -> m Name
+> getTyName  gam n = case lookuptype n gam of
+>                            Just (Ind ty) -> return $ getFnName ty
+>                            Nothing -> fail $ "No such name " ++ show n
+>   where getFnName (TyCon x _) = x
+>         getFnName (App f x) = getFnName f
+>         getFnName (Bind _ _ (Sc x)) = getFnName x
+>         getFnName x = MN ("Dunno: "++show x, 0)
+
 > insertGam :: n -> Gval n -> Gamma n -> Gamma n
 > insertGam nm val (Gam gam) = Gam $ (nm,val):gam
 

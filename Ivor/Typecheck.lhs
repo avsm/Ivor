@@ -260,6 +260,48 @@ Insert inferred values into the term
 >       (Ind Star) -> return (B (Guess vv) tv)
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
 
+Check a raw term representing a pattern. Return the pattern, and the 
+extended environment.
+
+> checkPatt :: Monad m => Gamma Name -> Env Name -> Maybe (Pattern Name) ->
+>              Raw -> Raw -> 
+>              m (Pattern Name, Env Name)
+> checkPatt gam env acc (Var n) ty = trace (show n ++ ": "++ show env) $ do
+>      (Ind tyc, _) <- check gam env ty (Just (Ind Star))
+>      (pat, t) <- mkVarPatt (lookupi n env 0) (glookup n gam) (Ind tyc)
+>      --checkConvEnv env gam (Ind tyc) (Ind t) $
+>      --   show ty ++ " and " ++ show t ++ " are not convertible"
+>      return (combinepats acc pat, (n, (B Pi tyc)):env)
+>   where
+>        mkVarPatt (Just (i, B _ t)) _ _ = return (PVar n, t)
+>        mkVarPatt Nothing (Just ((DCon tag i), (Ind t))) _
+>            = do tyname <- getTyName gam n
+>                 return (PCon tag n tyname [], t)
+>        mkVarPatt Nothing Nothing (Ind defty) = return (PVar n, defty)
+>        lookupi x [] _ = Nothing
+>        lookupi x ((n,t):xs) i | x == n = Just (i,t)
+>        lookupi x (_:xs) i = lookupi x xs (i+1)
+
+> checkPatt gam env acc (RApp f a) ty = do
+>      (Ind tyc, _) <- trace (show ty) $ check gam env ty (Just (Ind Star))
+>      let (RBind _ _ fscope) = ty
+>      let (Bind nm (B _ nmt) _) = tyc
+>      (fpat, fbindingsin) <- checkPatt gam env Nothing f ty
+>      let fbindings = ((nm,(B Pi nmt)):fbindingsin)
+>      (apat, abindings) <- checkPatt gam (fbindings++env) 
+>                                       (Just fpat) a fscope
+>      return (combinepats (Just fpat) apat, fbindings++abindings)
+
+   where
+        mkEnv = map (\ (n,Ind t) -> (n, B Pi t))
+
+> checkPatt gam env acc RInfer ty = return (combinepats acc PTerm, env)
+> checkPatt gam env _ _ _ = fail "Invalid pattern"
+
+> combinepats Nothing x = x
+> combinepats (Just (PVar n)) x = error "can't apply things to a variable"
+> combinepats (Just (PCon tag n ty args)) x = PCon tag n ty (args++[x])
+
 > discharge :: Monad m =>
 >              Gamma Name -> Name -> Binder (TT Name) -> 
 >	       (Scope (TT Name)) -> (Scope (TT Name)) ->

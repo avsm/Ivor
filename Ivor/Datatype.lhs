@@ -68,8 +68,8 @@ the context and an executable elimination rule.
 >	 (ev, _) <- typecheck gamma'' erty
 >	 (cv, _) <- typecheck gamma'' crty
 >	 let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev)
->	 esch <- checkSchemes gamma''' er eschemes
->	 csch <- checkSchemes gamma''' er cschemes
+>	 esch <- mapM (checkScheme gamma''' er) eschemes
+>	 csch <- mapM (checkScheme gamma''' er) cschemes
 >	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv) consv numps
 >                    (er,ev) (cr,cv) esch csch eschemes cschemes)
 
@@ -80,13 +80,6 @@ the context and an executable elimination rule.
 >		  let gamma' = extend gamma (cn,ccon)
 >		  (rest,gamma'') <- checkCons gamma' (t+1) cs
 >	          return (((cn,ccon):rest), gamma'')
-
-> checkSchemes :: Monad m => 
->	          Gamma Name -> Name -> [RawScheme] -> m [Scheme Name]
-> checkSchemes gamma n [] = return []
-> checkSchemes gamma n (i:is) = do di <- checkScheme gamma n i
->			           dis <- checkSchemes gamma n is
->				   return (di:dis)
 
 checkScheme takes a raw iota scheme and returns a scheme with a well-typed
 RHS (or fails if there is a type error).
@@ -113,7 +106,8 @@ Make a pattern from a raw term. Anything weird, just make it a "PTerm".
 >        where mkPatV n (Just (DCon t x)) = PCon t n tyname []
 >              mkPatV n (Just (TCon x _)) = PCon 0 n (UN "Type") []
 >              mkPatV n _ = PVar n
->              tyname = getTyName gam n
+>              tyname = case (getTyName gam n) of
+>                         Just x -> x
 > mkPat gam (RApp f a) = pat' (unwind f a)
 >   where unwind (RApp f s) a = let (f',as) = unwind f s in
 >				    (f',(mkPat gam a):as)
@@ -124,7 +118,8 @@ Make a pattern from a raw term. Anything weird, just make it a "PTerm".
 >         mkPatV n (Just (DCon t x)) as = PCon t n tyname as
 >         mkPatV n (Just (TCon x _)) as = PCon 0 n (UN "Type") as
 >         mkPatV _ _ _ = PTerm
->         tyname = getTyName gam (getname (getappfun f))
+>         tyname = case (getTyName gam (getname (getappfun f))) of
+>                    Just x -> x
 >         getname (Var n) = n
 > mkPat gam _ {-(RBind _ _ _)-} = PTerm
 > {-
@@ -133,16 +128,6 @@ Make a pattern from a raw term. Anything weird, just make it a "PTerm".
 > properly (and we'll certainly need this for optimisation)
 > mkPat gam x = error $ "Can't make a pattern from " ++ show x
 > -}
-
-Given how we construct patterns, this can't fail. Oh yes.
-
-> getTyName :: Gamma Name -> Name -> Name
-> getTyName  gam n = case lookuptype n gam of
->                            Just (Ind ty) -> getFnName ty
->   where getFnName (TyCon x _) = x
->         getFnName (App f x) = getFnName f
->         getFnName (Bind _ _ (Sc x)) = getFnName x
->         getFnName x = MN ("Dunno: "++show x, 0)
 
 Get the pattern variables from the patterns, and work out what the projection 
 function for each name is.

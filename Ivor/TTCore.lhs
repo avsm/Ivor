@@ -522,6 +522,7 @@ Apply a function to a list of arguments
 >         t==t' && n==n' && cs == cs'
 >     (==) (RReturn t) (RReturn t') = t == t'
 >     (==) (RStage t) (RStage t') = t == t'
+>     (==) RInfer RInfer = True
 >     (==) _ _ = False
 
 > instance Eq n => Eq (TT n) where

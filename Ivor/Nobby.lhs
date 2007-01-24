@@ -214,11 +214,11 @@ Do the actual evaluation
 >          evalP (Just (PrimOp f)) = (MB (BPrimOp f n, pty n) Empty)
 >          evalP (Just (Fun opts (Ind v))) 
 > --               | Frozen `elem` opts && not conv = MB (BP n) Empty
->                -- recursive functions only reduce if at least one
->                -- argument is constructor headed
->                -- | Recursive `elem` opts 
->                --     = MB (BRec n (eval stage gamma g v)) Empty
->                -- | otherwise 
+>                -- recursive functions don't reduce in conversion check, to
+>                -- maintain decidability of typechecking
+>                  | Recursive `elem` opts  && conv
+>                    = MB (BP n, pty n) Empty
+>                  | otherwise 
 >                    = eval stage gamma g v
 >          evalP _ = (MB (BP n, pty n) Empty)
 >              --error $ show n ++ 

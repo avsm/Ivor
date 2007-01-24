@@ -60,7 +60,7 @@
 > -- | Create a new shell state.
 > newShell :: Context -- ^ Initial system state
 >          -> ShellState
-> newShell ctxt = Shell Nothing "> " False ctxt "" [] [] Nothing ["."]
+> newShell ctxt = Shell Nothing "> " False ctxt "" [] [] Nothing []
 
 > -- | Add a user defined tactic to the shell.
 > addTactic :: String -- ^ Tactic name.
@@ -350,7 +350,7 @@ Special case for importFile. Grr.
 If the given file is already loaded, do nothing.
 
 > -- | Import a file of shell commands; fails if the module does not exist 
-> -- in the search path, does nothing if already loaded.
+> -- in the current directory or search path, does nothing if already loaded.
 > importFile :: FilePath -> ShellState -> IO ShellState
 > importFile fp st 
 >     | fp `elem` imported st = return st

@@ -44,7 +44,8 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 
 > generateAll :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> m [PMRaw]
 > generateAll gam fn ty _ = do
->   x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [RInfer]])
+>   x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
+>   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
 >   fail $ show x
 
 Given a raw term, recursively expand all of its arguments which are in
@@ -58,8 +59,8 @@ constructor form
 >     -- expandas contains all the possibilites for each argument
 >     -- [[arg1poss1,arg1poss2,...], [arg2poss1,arg2pss2,...], ...]
 >     case isConPatt gam f of
->         Nothing -> return $ mostSpec $ expandf f expandas
->         Just ns -> return $ mostSpec $ (expandf f expandas) ++ (mkConPatts ns)
+>         Nothing -> return.mostSpec $ expandf RInfer expandas
+>         Just ns -> return.mostSpec $ (expandf f expandas) ++ (mkConPatts ns)
 >   where expandf :: Raw -> [[Raw]] -> [Raw]
 >         expandf f args = map (mkapp f) (combine args)
 >         mkConPatts [] = []
@@ -76,25 +77,20 @@ constructor form
 Filter out more general entries; e.g. if (c _ _) and (c_ (d _)) keep the latter
 only
 
-> -- TMP HACK!
-> mostSpec xs = let xs' = reverse (mostSpec' xs) in
->               mostSpec' xs'
-
-> mostSpec' :: [Raw] -> [Raw]
-> mostSpec' [] = []
-> mostSpec' (x:xs) | x `lessSpec` xs = mostSpec' xs
->                  | otherwise = x:(mostSpec' xs)
->    where lessSpec x [] = False
->          lessSpec x (y:ys) = (moreSpec y x) || x==y || (lessSpec x ys) 
+> mostSpec :: [Raw] -> [Raw]
+> mostSpec xs = ms' xs []
+>   where ms' [] acc = acc
+>         ms' (x:xs) acc | x `lessSpec` xs || x `lessSpec` acc = ms' xs acc
+>                        | otherwise = ms' xs (x:acc)
+>         lessSpec x [] = False
+>         lessSpec x (y:ys) = (moreSpec y x) || x==y || (lessSpec x ys) 
 
 > moreSpec :: Raw -> Raw -> Bool
-> moreSpec x y = ms' x y
-
-> ms' (Var _) (Var _) = False
-> ms' RInfer RInfer = False
-> ms' _ RInfer = True
-> ms' (RApp x y) (RApp x2 y2) = moreSpec x x2 || moreSpec y y2
-> ms' _ _ = False
+> moreSpec (Var _) (Var _) = False
+> moreSpec RInfer RInfer = False
+> moreSpec _ RInfer = True
+> moreSpec (RApp x y) (RApp x2 y2) = moreSpec x x2 || (x==x2 && moreSpec y y2)
+> moreSpec _ _ = False
 
 Given a raw term, return whether it is a constructor pattern. If so,
 return all of the constructor names and arities

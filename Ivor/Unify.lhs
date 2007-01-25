@@ -46,6 +46,7 @@ Make the local environment something that Nobby knows about. Very hacky...
 >              | loc x envl == loc y envr && loc x envl >=0
 >                  = return []
 >          un envl envr (P x) t | hole envl x = return [(x,t)]
+>          un envl envr t (P x) | hole envl x = return [(x,t)]
 >          un envl envr (Bind x b@(B Hole ty) (Sc sc)) t
 >             = un ((x,b):envl) envr sc t
 >          un envl envr (Bind x b (Sc sc)) (Bind x' b' (Sc sc')) =
@@ -65,7 +66,7 @@ Make the local environment something that Nobby knows about. Very hacky...
 >          un envl envr x y 
 >                     | x == y = return []
 >                     | otherwise = fail $ "Can't unify " ++ show x ++
->                                          " and " ++ show y
+>                                          " and " ++ show y ++ " (not equal)"
 >          unb envl envr (B b ty) (B b' ty') = 
 >              do bu <- unbb envl envr b b'
 >                 tyu <- un envl envr ty ty'
@@ -75,7 +76,7 @@ Make the local environment something that Nobby knows about. Very hacky...
 >          unbb envl envr Hole Hole = return []
 >          unbb envl envr (Let v) (Let v') = un envl envr v v'
 >          unbb envl envr (Guess v) (Guess v') = un envl envr v v'
->          unbb envl envr x y = fail $ "Can't unify "++show x++" and "++show y
+>          unbb envl envr x y = fail $ "Can't unify "++show x++" and "++show y ++ " (not equal in binder)"
 
 >          unst envl envr (Quote x) (Quote y) = un envl envr x y
 >          unst envl envr (Code x) (Code y) = un envl envr x y
@@ -96,7 +97,7 @@ Make the local environment something that Nobby knows about. Very hacky...
 >                       then do rest <- combine xs ys
 >                               return $ (n,tm):rest
 >                       else fail $ "Can't unify " ++ show tm ++ 
->                                   " and " ++ show tm'
+>                                   " and " ++ show tm' ++ " (combine failed)"
 >              | otherwise = do rest <- combine xs ys
 >                               return $ (n,tm):rest
 >          loc x xs = loc' 0 x xs

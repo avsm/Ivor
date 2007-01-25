@@ -43,10 +43,63 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
          mkEnv = map (\ (n,Ind t) -> (n, B Pi t))
 
 > generateAll :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> m [PMRaw]
-> generateAll gam fn ty _ = do
->   x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
+> generateAll gam fn tyin pats = do
+>   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
->   fail $ show x
+>   clausesIn <- mapM (expandClause gam) pats
+>   let clauses = nub (concat clausesIn)
+>   let clauses' = filter (mostSpecClause clauses) clauses
+>   (ty,_) <- typecheck gam tyin
+>   clauses' <- validClauses gam fn ty clauses'
+>   fail $ showClauses clauses'
+
+> expandClause :: Monad m => Gamma Name -> RawScheme -> m [[Raw]]
+> expandClause gam (RSch ps ret) = do
+>   expanded <- mapM (expandCon gam) ps
+>   return $ combine expanded
+
+Remove the clauses which can't possibly be type correct
+
+> validClauses :: Monad m => Gamma Name -> Name -> Indexed Name -> 
+>                 [[Raw]] -> m [[Raw]]
+> validClauses gam fn ty cs = do
+>     -- add fn:ty to the context as an axiom
+>     checkNotExists fn gam
+>     gam' <- gInsert fn (G Undefined ty) gam
+>     checkValid gam' [] cs
+>  where checkValid gam acc [] = return acc
+>        checkValid gam acc (c:cs) 
+>           = do let app = mkapp (Var fn) c
+>                case typecheck gam app of
+>                  Nothing -> checkValid gam acc cs
+>                  Just _ -> checkValid gam (c:acc) cs
+>        checkNotExists n gam = case lookupval n gam of
+>                                 Just Undefined -> return ()
+>                                 Just _ -> fail $ show n ++ " already defined"
+>                                 Nothing -> return ()
+
+
+Return true if the given pattern clause is the most specific in a list
+
+> mostSpecClause :: [[Raw]] -> [Raw] -> Bool
+> mostSpecClause cs c = msc c (filter (/= c) cs)
+>    where msc c [] = True
+>          msc c (x:xs) | moreSpecClause x c = False
+>                       | otherwise = msc c xs
+
+> moreSpecClause :: [Raw] -> [Raw] -> Bool
+> moreSpecClause [] [] = True
+> moreSpecClause (x:xs) (y:ys)
+>       | moreSpec x y = moreSpecClause xs ys
+>       | x == y = moreSpecClause xs ys
+>       | otherwise = False
+
+
+> showClauses [] = ""
+> showClauses (x:xs) = showClause x ++ "\n" ++ showClauses xs
+
+> showClause [] = " -> "
+> showClause (r:rs) = "(" ++ show r ++ ") " ++ showClause rs
 
 Given a raw term, recursively expand all of its arguments which are in
 constructor form
@@ -66,6 +119,9 @@ constructor form
 >         mkConPatts [] = []
 >         mkConPatts ((n,ar):xs) 
 >            = (mkapp (Var n) (take ar (repeat RInfer))):(mkConPatts xs)
+
+Turn a list of possibilities for each argument into a list of all
+possible applications
 
 > combine :: [[a]] -> [[a]]
 > combine [] = [[]]

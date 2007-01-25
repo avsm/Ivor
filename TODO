@@ -1,7 +1,7 @@
 Short term things to do:
 
 * Recursive functions shouldn't reduce at type level.
-* Either String better rhan Monad m?
+* Either better than Monad m? Define an Error type.
 * Pattern matching compiler with totality checker would be very
   useful, as a stop gap in place of elimination with a motive. This
   probably involves adding a 'TotallyImpossible' construct to TT, and

@@ -14,6 +14,15 @@
 Use the iota schemes from Datatype to represent pattern matching definitions.
 
 > type PMRaw = RawScheme
+
+For equality of patterns, we're only interested in whether the LHS are
+equal. This is so that we can easily filter out overlapping cases when
+generating cases for coverage/type checking. Checking for overlapping
+is dealt with later.
+
+> instance Eq PMRaw where
+>     (==) (RSch ps r) (RSch ps' r') = ps == ps'
+
 > type PMDef n = Scheme n
 
 > data PMFun n = PMFun [PMDef n]
@@ -27,22 +36,23 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >     -- TODO: Coverage and termination checking
 >     -- return $ PMFun schs
 
-> checkClause :: Monad m => Gamma Name -> Name -> Raw -> PMRaw -> 
->                m (PMDef Name)
-> checkClause gam n ty sch@(RSch args ret) = trace (show sch) $ do
->     (argscheck, bs) <- checkArgs [] args ty
->     (ret, _) <- check gam bs (getrettype ty) Nothing
->     return $ Sch argscheck ret
->   where checkArgs bindings [] _ = return ([], bindings)
->         checkArgs bindings (x:xs) (RBind nm (B Pi t) ts) = trace (show x ++ " : " ++ show t ++ ", " ++ show bindings) $ do
->             (xcheck, bs) <- checkPatt gam bindings Nothing x t
->             (Ind tyc, _) <- check gam bs t (Just (Ind Star))
->             (xscheck, bs') <- checkArgs ((nm,B Pi tyc):bs) xs ts
->             return (xcheck:xscheck, bs')
+-- > checkClause :: Monad m => Gamma Name -> Name -> Raw -> PMRaw -> 
+-- >                m (PMDef Name)
+-- > checkClause gam n ty sch@(RSch args ret) = trace (show sch) $ do
+-- >     (argscheck, bs) <- checkArgs [] args ty
+-- >     (ret, _) <- check gam bs (getrettype ty) Nothing
+-- >     return $ Sch argscheck ret
+-- >   where checkArgs bindings [] _ = return ([], bindings)
+-- >         checkArgs bindings (x:xs) (RBind nm (B Pi t) ts) = trace (show x ++ " : " ++ show t ++ ", " ++ show bindings) $ do
+-- >             (xcheck, bs) <- checkPatt gam bindings Nothing x t
+-- >             (Ind tyc, _) <- check gam bs t (Just (Ind Star))
+-- >             (xscheck, bs') <- checkArgs ((nm,B Pi tyc):bs) xs ts
+-- >             return (xcheck:xscheck, bs')
 
          mkEnv = map (\ (n,Ind t) -> (n, B Pi t))
 
-> generateAll :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> m [PMRaw]
+> generateAll :: Monad m => Gamma Name -> Name -> Raw -> 
+>                [PMRaw] -> m (PMFun Name)
 > generateAll gam fn tyin pats = do
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
@@ -50,56 +60,79 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >   let clauses = nub (concat clausesIn)
 >   let clauses' = filter (mostSpecClause clauses) clauses
 >   (ty,_) <- typecheck gam tyin
->   clauses' <- validClauses gam fn ty clauses'
->   fail $ showClauses clauses'
+>   checkNotExists fn gam
+>   gam' <- gInsert fn (G Undefined ty) gam
+>   clauses' <- validClauses gam' fn ty clauses'
+>   matchClauses gam' fn pats tyin clauses'
 
-> expandClause :: Monad m => Gamma Name -> RawScheme -> m [[Raw]]
-> expandClause gam (RSch ps ret) = do
->   expanded <- mapM (expandCon gam) ps
->   return $ combine expanded
-
-Remove the clauses which can't possibly be type correct
-
-> validClauses :: Monad m => Gamma Name -> Name -> Indexed Name -> 
->                 [[Raw]] -> m [[Raw]]
-> validClauses gam fn ty cs = do
->     -- add fn:ty to the context as an axiom
->     checkNotExists fn gam
->     gam' <- gInsert fn (G Undefined ty) gam
->     checkValid gam' [] cs
->  where checkValid gam acc [] = return acc
->        checkValid gam acc (c:cs) 
->           = do let app = mkapp (Var fn) c
->                case typecheck gam app of
->                  Nothing -> checkValid gam acc cs
->                  Just _ -> checkValid gam (c:acc) cs
->        checkNotExists n gam = case lookupval n gam of
+>     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
 >                                 Just _ -> fail $ show n ++ " already defined"
 >                                 Nothing -> return ()
 
 
+For each Raw clause, try to match it against a generated and checked clause.
+Match up the inferred arguments to the names (so getting the types of the
+names bound in patterns) then type check the right hand side.
+
+> matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw -> 
+>                 [(Indexed Name, Indexed Name)] -> m (PMFun Name)
+> matchClauses gam fn pats tyin gen = do
+>    let raws = map mkRaw pats
+>    checkpats <- mapM (mytypecheck gam) raws
+>    fail $ show checkpats
+
+    where mkRaw (RSch pats r) = mkPBind pats tyin r
+          mkPBind [] _ r = r
+          mkPBind (p:ps) (RBind n (B _ t) tsc) r 
+              = RBind n (B (Pattern p) t) (mkPBind ps tsc r)
+
+>   where mkRaw (RSch pats r) = mkapp (Var fn) pats
+>         mytypecheck gam r = trace (show r) $ typecheckAndBind gam r
+
+
+> expandClause :: Monad m => Gamma Name -> RawScheme -> m [RawScheme]
+> expandClause gam (RSch ps ret) = do
+>   expanded <- mapM (expandCon gam) ps
+>   return $ map (\p -> RSch p ret) (combine expanded)
+
+Remove the clauses which can't possibly be type correct.
+
+> validClauses :: Monad m => Gamma Name -> Name -> Indexed Name -> 
+>                 [RawScheme] -> m [(Indexed Name, Indexed Name)]
+> validClauses gam fn ty cs = do
+>     -- add fn:ty to the context as an axiom
+>     checkValid gam [] cs
+>  where checkValid gam acc [] = return acc
+>        checkValid gam acc ((RSch c r):cs) 
+>           = do let app = mkapp (Var fn) c
+>                case typecheck gam app of
+>                  Nothing -> checkValid gam acc cs
+>                  Just (v,t) -> checkValid gam ((v,t):acc) cs
+
+
 Return true if the given pattern clause is the most specific in a list
 
-> mostSpecClause :: [[Raw]] -> [Raw] -> Bool
+> mostSpecClause :: [RawScheme] -> RawScheme -> Bool
 > mostSpecClause cs c = msc c (filter (/= c) cs)
 >    where msc c [] = True
 >          msc c (x:xs) | moreSpecClause x c = False
 >                       | otherwise = msc c xs
 
-> moreSpecClause :: [Raw] -> [Raw] -> Bool
-> moreSpecClause [] [] = True
-> moreSpecClause (x:xs) (y:ys)
->       | moreSpec x y = moreSpecClause xs ys
->       | x == y = moreSpecClause xs ys
+> moreSpecClause (RSch pa _) (RSch pb _) 
+>    = moreSpecClause' pa pb
+
+> moreSpecClause' :: [Raw] -> [Raw] -> Bool
+> moreSpecClause' [] [] = True
+> moreSpecClause' (x:xs) (y:ys)
+>       | moreSpec x y = moreSpecClause' xs ys
+>       | x == y = moreSpecClause' xs ys
 >       | otherwise = False
 
 
 > showClauses [] = ""
-> showClauses (x:xs) = showClause x ++ "\n" ++ showClauses xs
+> showClauses ((x,r):xs) = show x ++ " -> " ++ show r ++ "\n" ++ showClauses xs
 
-> showClause [] = " -> "
-> showClause (r:rs) = "(" ++ show r ++ ") " ++ showClause rs
 
 Given a raw term, recursively expand all of its arguments which are in
 constructor form

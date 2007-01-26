@@ -82,6 +82,8 @@ Constants
 >     | Let n
 >     | Hole
 >     | Guess n
+>     | Pattern n
+>     | MatchAny
 >    deriving (Show, Eq)
 
 Local environments
@@ -131,6 +133,8 @@ This keeps both namespaces separate.
 >     fmap f (Let x) = Let (f x)
 >     fmap f Hole = Hole
 >     fmap f (Guess x) = Guess (f x)
+>     fmap f (Pattern x) = Pattern (f x)
+>     fmap f MatchAny = MatchAny
 
 > instance Functor TT where
 >     fmap f (P x) = P (f x)
@@ -275,6 +279,13 @@ we get a duff term when we go back to the indexed version.
 >     do ty' <- uniqifyAllState ty
 >        v' <- uniqifyAllState v
 >        return (B (Guess v') ty')
+> uniqifyAllStateB (B (Pattern v) ty) = 
+>     do ty' <- uniqifyAllState ty
+>        v' <- uniqifyAllState v
+>        return (B (Pattern v') ty')
+> uniqifyAllStateB (B MatchAny ty) = 
+>     do ty' <- uniqifyAllState ty
+>        return (B MatchAny ty')
 > uniqifyAllStateC (Comp n cs) =
 >     do cs' <- mapM uniqifyAllState cs
 >        return (Comp n cs')
@@ -328,6 +339,8 @@ Map a function across all binders in a term
 >     = (f n b ty):(binderMap f v) ++ (binderMap f ty) ++ (binderMap f sc)
 > binderMap f (Bind n (B b@(Guess v) ty) (Sc sc))
 >     = (f n b ty):(binderMap f v) ++ (binderMap f ty) ++ (binderMap f sc)
+> binderMap f (Bind n (B b@(Pattern v) ty) (Sc sc))
+>     = (f n b ty):(binderMap f v) ++ (binderMap f ty) ++ (binderMap f sc)
 > binderMap f (Bind n (B b ty) (Sc sc))
 >     = (f n b ty):(binderMap f ty) ++ (binderMap f sc)
 > binderMap bf (App f a) = binderMap bf f ++ binderMap bf a
@@ -369,6 +382,7 @@ Return all the names used in a scope
 >     p' x = []
 >     pb' (B (Let v) ty) = p' v ++ p' ty
 >     pb' (B (Guess v) ty) = p' v ++ p' ty
+>     pb' (B (Pattern v) ty) = p' v ++ p' ty
 >     pb' (B _ ty) = p' ty
 
 Return all the bound names used in a scope
@@ -386,6 +400,7 @@ Return all the bound names used in a scope
 >     p' x = []
 >     pb' (B (Let v) ty) = p' v ++ p' ty
 >     pb' (B (Guess v) ty) = p' v ++ p' ty
+>     pb' (B (Pattern v) ty) = p' v ++ p' ty
 >     pb' (B _ ty) = p' ty
 
 The following gadgets expect a fully explicitly named term, rather than
@@ -579,6 +594,11 @@ Apply a function to a list of arguments
 >       fPrec x (RBind n (B (Guess v) t) sc) = bracket x 2 $
 >           "try "++forget n ++":"++fPrec 10 t
 >                 ++"=" ++ fPrec 10 v ++ " in " ++ fPrec 10 sc
+>       fPrec x (RBind n (B (Pattern v) t) sc) = bracket x 2 $
+>           "patt "++forget n ++":"++fPrec 10 t
+>                 ++"=" ++ fPrec 10 v ++ " in " ++ fPrec 10 sc
+>       fPrec x (RBind n (B MatchAny t) sc) = bracket x 2 $
+>           "patt "++forget n ++":"++fPrec 10 t ++ " in " ++ fPrec 10 sc
 >       fPrec _ (RLabel t c) =
 >           "< "++fPrec 10 t++" : "++fcomp c++" >"
 >       fPrec x (RCall c t) = bracket x 3 $
@@ -626,6 +646,8 @@ Apply a function to a list of arguments
 >                    (RBind (UN (show n)) (B Lambda (forget t)) (forget sc))
 >        forgetTT (Bind n (B Pi t) (Sc sc)) =
 >                    (RBind (UN (show n)) (B Pi (forget t)) (forget sc))
+>        forgetTT (Bind n (B MatchAny t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B MatchAny (forget t)) (forget sc))
 >        forgetTT (Bind n (B (Let v) t) (Sc sc)) =
 >                    (RBind (UN (show n)) (B (Let (forget v)) (forget t))
 >                      (forget sc))
@@ -633,6 +655,9 @@ Apply a function to a list of arguments
 >                    (RBind (UN (show n)) (B Hole (forget t)) (forget sc))
 >        forgetTT (Bind n (B (Guess v) t) (Sc sc)) =
 >                    (RBind (UN (show n)) (B (Guess (forget v)) (forget t))
+>                      (forget sc))
+>        forgetTT (Bind n (B (Pattern v) t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B (Pattern (forget v)) (forget t))
 >                      (forget sc))
 >        forgetTT (Proj n i t) = RAnnot $ (show t)++"!"++(show i)++":"++show n
 >        forgetTT (Label t (Comp n cs)) = RLabel (forgetTT t)
@@ -714,6 +739,9 @@ Some handy gadgets for Raw terms
 >                    (RBind (UN (show n)) (B Hole (forget t)) (forget sc))
 >        forgetTT (Bind n (B (Guess v) t) (Sc sc)) =
 >                    (RBind (UN (show n)) (B (Guess (forget v)) (forget t))
+>				(forget sc))
+>        forgetTT (Bind n (B (Pattern v) t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B (Pattern (forget v)) (forget t))
 >				(forget sc))
 >        forgetTT (Proj n i t) = RAnnot $ (show t)++"!"++(show i)++":"++show n
 >        forgetTT (Label t (Comp n cs)) = RLabel (forgetTT t)

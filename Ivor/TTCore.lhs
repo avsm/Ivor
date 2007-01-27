@@ -119,6 +119,30 @@ This keeps both namespaces separate.
 >     | MN (String,Int) 
 >   deriving Eq
 
+Data declarations and pattern matching
+
+> data RawScheme = RSch [Raw] Raw
+>   deriving Show
+
+> data Scheme n = Sch [Pattern n] (Indexed n)
+>         deriving Show
+
+> type PMRaw = RawScheme
+
+For equality of patterns, we're only interested in whether the LHS are
+equal. This is so that we can easily filter out overlapping cases when
+generating cases for coverage/type checking. Checking for overlapping
+is dealt with later.
+
+> instance Eq PMRaw where
+>     (==) (RSch ps r) (RSch ps' r') = ps == ps'
+
+> type PMDef n = Scheme n
+
+> data PMFun n = PMFun Int -- arity
+>                      [PMDef n] -- patterns
+>    deriving Show
+
 ====================== Functors ===============================
 
 > instance Functor Scope where

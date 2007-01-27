@@ -7,8 +7,6 @@
 
 > import Debug.Trace
 
-Original declaration
-
 > data Datadecl = Datadecl {
 >                           datatycon :: Name,
 >                           params :: [(Name,Raw)],
@@ -29,9 +27,6 @@ Elaborated version with elimination rule and iota schemes.
 >	   }
 >   deriving Show
 
-> data RawScheme = RSch [Raw] Raw
->   deriving Show
-
 > data Datatype n =
 >	   Data { tycon :: (n, Gval n),
 >	          datacons :: [(n, Gval n)],
@@ -44,9 +39,6 @@ Elaborated version with elimination rule and iota schemes.
 >	          c_rawschemes :: [RawScheme]
 >	        }
 >       deriving Show
-
-> data Scheme n = Sch [Pattern n] (Indexed n)
->         deriving Show
 
 > getPat (Sch p i) = p
 > getRed (Sch p i) = i

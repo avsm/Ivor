@@ -208,8 +208,9 @@
 >         checkNotExists n (defs st)
 >         inty <- raw ty
 >         let (Patterns clauses) = pats
->         foo <- checkDef (defs st) n inty (map mkRawClause clauses)
->         trace (show foo) $ fail "unfinished"
+>         (pmdef, fty) <- checkDef (defs st) n inty (map mkRawClause clauses)
+>         newdefs <- gInsert n (G (PatternDef pmdef) fty) (defs st)
+>         return $ Ctxt st { defs = newdefs }
 
 > -- |Add a new definition, with its type to the global state.
 > -- These definitions can be recursive, so use with care.
@@ -405,7 +406,7 @@
 >              = case cast x of
 >                   Just x' -> case Ivor.TT.check (Ctxt st) $ f x' of
 >                                  Just (Term (Ind v,_)) ->
->                                      Just $ nf (Gam []) (VG []) False v
+>                                      Just $ nf (Gam []) (VG []) [] False v
 >                                  Nothing -> Nothing
 >                   Nothing -> Nothing
 >          mkfun _ = Nothing
@@ -431,7 +432,7 @@
 >               else case (Ivor.TT.check (Ctxt st) (runf xs)) of
 >                  Nothing -> Nothing
 >                  Just (Term (Ind tm, _)) -> 
->                      Just $ nf (Gam []) (VG []) False tm
+>                      Just $ nf (Gam []) (VG []) [] False tm
 
 Using 'Star' here is a bit of a hack; I don't want to export vt from
 ViewTerm, and I don't want to cut&paste code, and it's thrown away anyway...

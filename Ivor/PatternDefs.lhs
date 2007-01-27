@@ -13,57 +13,21 @@
 
 Use the iota schemes from Datatype to represent pattern matching definitions.
 
-> type PMRaw = RawScheme
-
-For equality of patterns, we're only interested in whether the LHS are
-equal. This is so that we can easily filter out overlapping cases when
-generating cases for coverage/type checking. Checking for overlapping
-is dealt with later.
-
-> instance Eq PMRaw where
->     (==) (RSch ps r) (RSch ps' r') = ps == ps'
-
-> type PMDef n = Scheme n
-
-> data PMFun n = PMFun [PMDef n]
->    deriving Show
-
-> checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> m (PMFun Name)
-> checkDef gam n ty rschs = do 
->     cases <- generateAll gam n ty rschs
->     fail "unfinished"
->     -- schs <- mapM (checkClause gam n ty) rschs
->     -- TODO: Coverage and termination checking
->     -- return $ PMFun schs
-
--- > checkClause :: Monad m => Gamma Name -> Name -> Raw -> PMRaw -> 
--- >                m (PMDef Name)
--- > checkClause gam n ty sch@(RSch args ret) = trace (show sch) $ do
--- >     (argscheck, bs) <- checkArgs [] args ty
--- >     (ret, _) <- check gam bs (getrettype ty) Nothing
--- >     return $ Sch argscheck ret
--- >   where checkArgs bindings [] _ = return ([], bindings)
--- >         checkArgs bindings (x:xs) (RBind nm (B Pi t) ts) = trace (show x ++ " : " ++ show t ++ ", " ++ show bindings) $ do
--- >             (xcheck, bs) <- checkPatt gam bindings Nothing x t
--- >             (Ind tyc, _) <- check gam bs t (Just (Ind Star))
--- >             (xscheck, bs') <- checkArgs ((nm,B Pi tyc):bs) xs ts
--- >             return (xcheck:xscheck, bs')
-
-         mkEnv = map (\ (n,Ind t) -> (n, B Pi t))
-
-> generateAll :: Monad m => Gamma Name -> Name -> Raw -> 
->                [PMRaw] -> m (PMFun Name)
-> generateAll gam fn tyin pats = do
+> checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> 
+>             m (PMFun Name, Indexed Name)
+> checkDef gam fn tyin pats = do 
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
 >   clausesIn <- mapM (expandClause gam) pats
 >   let clauses = nub (concat clausesIn)
 >   let clauses' = filter (mostSpecClause clauses) clauses
->   (ty,_) <- typecheck gam tyin
+>   (ty@(Ind ty'),_) <- typecheck gam tyin
+>   let arity = length (getExpected ty')
 >   checkNotExists fn gam
 >   gam' <- gInsert fn (G Undefined ty) gam
 >   clauses' <- validClauses gam' fn ty clauses'
->   matchClauses gam' fn pats tyin clauses'
+>   pmdef <- matchClauses gam' fn pats tyin clauses'
+>   return (PMFun arity pmdef, ty)
 
 >     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
@@ -76,11 +40,13 @@ Match up the inferred arguments to the names (so getting the types of the
 names bound in patterns) then type check the right hand side.
 
 > matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw -> 
->                 [(Indexed Name, Indexed Name)] -> m (PMFun Name)
+>                 [(Indexed Name, Indexed Name)] -> m [PMDef Name]
 > matchClauses gam fn pats tyin gen = do
->    let raws = map mkRaw pats
+>    let raws = zip (map mkRaw pats) (map getRet pats)
 >    checkpats <- mapM (mytypecheck gam) raws
->    fail $ show checkpats
+>    checkCoverage (map fst checkpats) (map fst gen)
+>    -- TODO: Well foundedness
+>    return $ map (mkScheme gam) checkpats
 
     where mkRaw (RSch pats r) = mkPBind pats tyin r
           mkPBind [] _ r = r
@@ -88,7 +54,53 @@ names bound in patterns) then type check the right hand side.
               = RBind n (B (Pattern p) t) (mkPBind ps tsc r)
 
 >   where mkRaw (RSch pats r) = mkapp (Var fn) pats
->         mytypecheck gam r = trace (show r) $ typecheckAndBind gam r
+>         getRet (RSch pats r) = r
+>         mytypecheck gam (clause, ret) = 
+>             do (tm, pty, env) <- typecheckAndBind gam clause
+>                (rtm, rty) <- check gam env ret Nothing 
+>                checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible"
+>                return (tm, rtm)
+
+> mkScheme :: Gamma Name -> (Indexed Name, Indexed Name) -> PMDef Name
+> mkScheme gam (Ind pat, ret) = Sch (map mkpat (getPatArgs pat)) ret
+>   where mkpat (P n) = PVar n
+>         mkpat (App f a) = addPatArg (mkpat f) (mkpat a)
+>         mkpat (Con i nm ar) = mkPatV nm (lookupval nm gam)
+>         mkpat _ = PTerm
+
+>         mkPatV n (Just (DCon t x)) = PCon t n (tyname n) []
+>         mkPatV n _ = PVar n
+>         tyname n = case (getTyName gam n) of
+>                         Just x -> x
+
+>         addPatArg (PCon i t ty args) arg = PCon i t ty (args++[arg])
+>         addPatArg _ _ = PTerm
+
+>         getPatArgs (App (P f) a) = [a]
+>         getPatArgs (App f a) = getPatArgs f ++ [a]
+>         getPatArgs _ = []
+
+Return whether the patterns in the first argument cover the necessary
+cases in the second argument. Each of the necessary cases in 'covering'
+must match one of 'pats'.
+fails, reporting which case isn't matched, if patterns don't cover.
+
+TODO!
+
+> checkCoverage :: Monad m => [Indexed Name] -> [Indexed Name] -> m ()
+> checkCoverage pats [] = return ()
+> checkCoverage pats (c:cs)
+>     | length (filter (matches c) pats) > 0 = checkCoverage pats cs
+>     | otherwise = fail $ "Missing clause: " ++ show c
+
+> matches (Ind p) (Ind t) = matches' p t
+> matches' (App f a) (App f' a') = matches' f f' && matches' a a'
+> matches' (Con _ x _) (Con _ y _) | x == y = True
+> matches' (TyCon x _) (TyCon y _) | x == y = True
+> matches' (P x) (P y) | x == y = True
+> matches' (P (MN ("INFER",_))) _ = True
+> matches' _ (P (MN ("INFER",_))) = True
+> matches' x y = False
 
 
 > expandClause :: Monad m => Gamma Name -> RawScheme -> m [RawScheme]
@@ -187,9 +199,11 @@ return all of the constructor names and arities
 > isConPatt :: Gamma Name -> Raw -> Maybe [(Name, Int)]
 > isConPatt gam r | (Var name) <- getappfun r = do
 >     conty <- lookuptype name gam
->     let (Var tyname) = getappfun (getrettype (forget conty))
->     TCon i (Elims _ _ cons) <- lookupval tyname gam
->     return $ map (\n -> (n, arity n)) cons
+>     case getappfun (getrettype (forget conty)) of
+>          (Var tyname) -> do
+>              TCon i (Elims _ _ cons) <- lookupval tyname gam
+>              return $ map (\n -> (n, arity n)) cons
+>          _ -> Nothing
 >                 | otherwise = Nothing
 >   where arity nm = case lookuptype nm gam of
 >                      Just (Ind ty) -> length (getExpected ty)

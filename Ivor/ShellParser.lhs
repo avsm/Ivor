@@ -9,6 +9,7 @@
 > import Text.ParserCombinators.Parsec
 > import Text.ParserCombinators.Parsec.Language
 > import qualified Text.ParserCombinators.Parsec.Token as PTok
+> import Monad
 
 > import Debug.Trace
 
@@ -116,17 +117,18 @@ which runs it.
 >          lchar '=' ; term <- pTerm ext ; semi
 >          return $ TypedDef name term ty
 
-> pclause :: Maybe (Parser ViewTerm) -> Parser PClause
-> pclause ext
+> pclause :: String -> Maybe (Parser ViewTerm) -> Parser PClause
+> pclause nm ext
 >     = do name <- identifier; 
+>          when (name /= nm) $ fail $ show nm ++ " & " ++ show name ++ " do not match"
 >          args <- many (pNoApp ext)
 >          lchar '=' ;
 >          ret <- pTerm ext
 >          return $ PClause args ret
 
-> ppatterns :: Maybe (Parser ViewTerm) -> Parser Patterns
-> ppatterns ext
->     = do clauses <- sepBy (pclause ext) (lchar '|' )
+> ppatterns :: String -> Maybe (Parser ViewTerm) -> Parser Patterns
+> ppatterns name ext
+>     = do clauses <- sepBy (pclause name ext) (lchar '|' )
 >          return $ Patterns clauses
 
 > ppatternDef :: Maybe (Parser ViewTerm) -> Parser Command
@@ -134,7 +136,7 @@ which runs it.
 >     = do reserved "Patt"
 >          name <- identifier ; lchar ':' ; ty <- pTerm ext
 >          lchar '='
->          patts <- ppatterns ext
+>          patts <- ppatterns name ext
 >          semi
 >          return $ PatternDef name ty patts
 

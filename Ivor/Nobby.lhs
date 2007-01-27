@@ -6,9 +6,11 @@
 > import Ivor.Gadgets
 > import Ivor.Constant
 
-> import Debug.Trace
 > import List
+> import Monad
 > import Data.Typeable
+
+> import Debug.Trace
 
 To begin, we need to define the context in which normalisation takes place.
 The context maps names to user defined functions, constructors and
@@ -21,6 +23,7 @@ to do with it, when the time comes.
 > data Global n
 >     = Fun [FunOptions] (Indexed n)    -- User defined function
 >     | Partial (Indexed n) [n] -- Unfinished definition
+>     | PatternDef (PMFun n) -- Pattern matching definition
 >     | ElimRule ElimRule  -- Elimination Rule
 >     | PrimOp PrimOp      -- Primitive function
 >     | DCon Int Int       -- Data Constructor, tag and arity
@@ -163,6 +166,7 @@ Model represents normal forms, including Ready (reducible) and Blocked
 >     = BCon Int Name Int
 >     | BTyCon Name Int
 >     | BElim ElimRule Name
+>     | BPatDef (PMFun Name) Name
 >     | BPrimOp PrimOp Name
 >     | BRec Name Value
 >     | BP Name
@@ -184,6 +188,8 @@ class.
 
 > newtype Ctxt = VG [Value]
 
+> type PatVals = [(Name, Value)]
+
 The normalisation function itself.
 
 We take a flag saying whether this is for conversion checking or not. This is
@@ -191,15 +197,16 @@ necessary because staged evaluation will not reduce things inside a quote
 to normal form, but we need a normal form to compare.
 
 > nf :: Gamma Name -> Ctxt 
+>    -> PatVals
 >    -> Bool -- ^ For conversion
 >    -> TT Name -> Value
-> nf g c conv t = {-trace (show t) $-} eval 0 g c t where
+> nf g c patvals conv t = {-trace (show t) $-} eval 0 g c t where
 >
 
 Get the type of a given name in the context
 
 >  pty n = case lookuptype n g of
->             (Just (Ind ty)) -> nf g c conv ty
+>             (Just (Ind ty)) -> nf g c [] conv ty
 >             Nothing -> error "Can't happen, no such name, Nobby.lhs"
 
 Do the actual evaluation
@@ -207,9 +214,13 @@ Do the actual evaluation
 >  eval stage gamma (VG g) (V n) 
 >      | (length g) <= n = error "Reference out of context!" -- MB (BV n) Empty
 >      | otherwise = g!!n
->  eval stage gamma g (P n) = evalP (lookupval n gamma)
+>  eval stage gamma g (P n) 
+>      = case lookup n patvals of
+>           Just val -> val
+>           Nothing -> evalP (lookupval n gamma)
 >    where evalP (Just Unreducible) = (MB (BP n,pty n) Empty)
 >          evalP (Just Undefined) = (MB (BP n, pty n) Empty)
+>          evalP (Just (PatternDef p)) = (MB (BPatDef p n, pty n) Empty)
 >          evalP (Just (Partial (Ind v) _)) = (MB (BP n, pty n) Empty)
 >          evalP (Just (PrimOp f)) = (MB (BPrimOp f n, pty n) Empty)
 >          evalP (Just (Fun opts (Ind v))) 
@@ -247,7 +258,7 @@ Do the actual evaluation
 >  eval stage gamma g (Proj _ x t) = case (eval stage gamma g t) of
 >			 MR (RCon _ _ sp) -> (listify sp)!!x
 >			 _ -> error "Foo" -- MB (BProj x (eval stage gamma g t))
->  eval stage gamma g (App f a) = apply g (eval stage gamma g f) (eval stage gamma g a)
+>  eval stage gamma g (App f a) = apply gamma g (eval stage gamma g f) (eval stage gamma g a)
 >  eval stage gamma g (Call c t) = docall g (evalcomp stage gamma g c) (eval stage gamma g t)
 >  eval stage gamma g (Label t c) = MR (RdLabel (eval stage gamma g t) (evalcomp stage gamma g c))
 >  eval stage gamma g (Return t) = MR (RdReturn (eval stage gamma g t))
@@ -291,13 +302,19 @@ Do the actual evaluation
 > docall g _ (MR (RdReturn v)) = v
 > docall g c v = MR (RdCall c v)
 
-> apply :: Ctxt -> Value -> Value -> Value
-> apply = app where -- oops
+> apply :: Gamma Name -> Ctxt -> Value -> Value -> Value
+> apply gam = app where
 >  app g (MR (RdBind _ (B Lambda ty) k)) v = krApply k v
 >  app g (MB (BElim e n, ty) sp) v =
 >      case e (Snoc sp v) of
 >         Nothing -> (MB (BElim e n, ty) (Snoc sp v))
 >         (Just v) -> v
+>  app g (MB pat@(BPatDef (PMFun ar pats) n, ty) sp) v
+>      | size (Snoc sp v) == ar = 
+>         case patmatch gam pats (listify (Snoc sp v)) of
+>           Nothing -> (MB pat (Snoc sp v))
+>           Just v -> v
+>      | otherwise = MB pat (Snoc sp v)
 >  app g (MB (BPrimOp e n, ty) sp) v =
 >      case e (Snoc sp v) of
 >         Nothing -> (MB (BPrimOp e n, ty) (Snoc sp v))
@@ -317,6 +334,36 @@ Do the actual evaluation
 
 > krApply :: Kripke Value -> Value -> Value
 > krApply (Kr (f,w)) x = f w x
+
+> patmatch :: Gamma Name -> [PMDef Name] -> [Value] -> Maybe Value
+> patmatch gam [] _ = Nothing
+> patmatch gam ((Sch pats ret):ps) vs = case pm gam pats vs ret [] of
+>                         Nothing -> patmatch gam ps vs
+>                         Just v -> Just v
+
+> pm :: Gamma Name -> [Pattern Name] -> [Value] -> Indexed Name -> 
+>       [(Name, Value)] -> -- matches so far
+>       Maybe Value
+> pm gam [] [] (Ind ret) vals = Just $ nf gam (VG []) vals False ret
+> pm gam (pat:ps) (val:vs) ret vals 
+>    = do newvals <- pmatch pat val vals
+>         newvals <- checkdups newvals
+>         pm gam ps vs ret newvals
+
+> checkdups v = Just v
+
+> pmatch :: Pattern Name -> Value -> [(Name,Value)] -> Maybe [(Name, Value)]
+> pmatch PTerm x vs = Just vs
+> pmatch (PVar n) v vs = Just ((n,v):vs)
+> pmatch (PCon t _ _ args) (MR (RCon t' _ sp)) vs | t == t' =
+>    pmatches args (listify sp) vs
+>   where pmatches [] [] vs = return vs
+>         pmatches (a:as) (b:bs) vs = do vs' <- pmatch a b vs
+>                                        pmatches as bs vs'
+> pmatch _ _ _ = Nothing
+
+
+ RCon Int Name (Spine (Model s))
 
  applySpine :: Ctxt -> Value -> Spine Value -> Value -> Value
  applySpine g fn Empty v = apply g fn v
@@ -375,6 +422,7 @@ Splice the escapes inside a term
 >     weakenp i (BCon t n j) = BCon t n j
 >     weakenp i (BTyCon n j) = BTyCon n j
 >     weakenp i (BElim e n) = BElim e n
+>     weakenp i (BPatDef p n) = BPatDef p n
 >     weakenp i (BRec n v) = BRec n v
 >     weakenp i (BPrimOp e n) = BPrimOp e n
 >     weakenp i (BP n) = BP n
@@ -415,6 +463,7 @@ Splice the escapes inside a term
 >     quote (BCon t n j) = BCon t n j
 >     quote (BTyCon n j) = BTyCon n j
 >     quote (BElim e n) = BElim e n
+>     quote (BPatDef p n) = BPatDef p n
 >     quote (BRec n v) = BRec n v
 >     quote (BPrimOp e n) = BPrimOp e n
 >     quote (BP n) = BP n
@@ -440,30 +489,30 @@ Splice the escapes inside a term
 
 Quotation to eta long normal form. DOESN'T WORK YET!
 
-> instance Quote (Value, Value) Normal where
->     quote (v@(MR (RdBind n (B Lambda _) _)), 
->                 (MR (RdBind _ (B Pi ty) (Kr (f,w)))))
->         = (MR (RdBind n (B Lambda (quote ty))
->                (Sc (quote ((apply (VG []) (v) v0), 
->                      (f w v0))))))
->       where v0 = MB (BV 0, ty) Empty
->     quote (v, (MR (RdBind n (B Pi ty) (Kr (f,w)))))
->         = (MR (RdBind n (B Lambda (quote ty))
->                (Sc (quote ((apply (VG []) (weaken (Wk 1) v) v0), 
->                      (f w v0))))))
->       where v0 = MB (BV 0, ty) Empty
->     quote ((MB (bl,ty) sp), _)
->         = MB (quote bl, quote ty) (fst (qspine sp))
->        where qspine Empty = (Empty, ty)
->              qspine (Snoc sp v) 
->                  | (sp', MR (RdBind _ (B Pi t) (Kr (f,w)))) <- qspine sp
->                      = (Snoc sp' (quote (v,weaken (Wk 1) t)), 
->                           f w v)
->                  | (sp', t) <- qspine sp
->                      = (Snoc sp' (quote v), t)
-> --error $ show (forget ((quote t)::Normal))
->              v0 t = MB (BV 0, t) Empty
->     quote (v, t) = quote v
+-- > instance Quote (Value, Value) Normal where
+-- >     quote (v@(MR (RdBind n (B Lambda _) _)), 
+-- >                 (MR (RdBind _ (B Pi ty) (Kr (f,w)))))
+-- >         = (MR (RdBind n (B Lambda (quote ty))
+-- >                (Sc (quote ((apply (VG []) (v) v0), 
+-- >                      (f w v0))))))
+-- >       where v0 = MB (BV 0, ty) Empty
+-- >     quote (v, (MR (RdBind n (B Pi ty) (Kr (f,w)))))
+-- >         = (MR (RdBind n (B Lambda (quote ty))
+-- >                (Sc (quote ((apply (VG []) (weaken (Wk 1) v) v0), 
+-- >                      (f w v0))))))
+-- >       where v0 = MB (BV 0, ty) Empty
+-- >     quote ((MB (bl,ty) sp), _)
+-- >         = MB (quote bl, quote ty) (fst (qspine sp))
+-- >        where qspine Empty = (Empty, ty)
+-- >              qspine (Snoc sp v) 
+-- >                  | (sp', MR (RdBind _ (B Pi t) (Kr (f,w)))) <- qspine sp
+-- >                      = (Snoc sp' (quote (v,weaken (Wk 1) t)), 
+-- >                           f w v)
+-- >                  | (sp', t) <- qspine sp
+-- >                      = (Snoc sp' (quote v), t)
+-- > --error $ show (forget ((quote t)::Normal))
+-- >              v0 t = MB (BV 0, t) Empty
+-- >     quote (v, t) = quote v
 
 > instance Forget Normal (TT Name) where
 >     forget (MB (b, _) sp) = makeApp (forget b) (fmap forget sp)
@@ -473,6 +522,7 @@ Quotation to eta long normal form. DOESN'T WORK YET!
 >     forget (BCon t n j) = Con t n j
 >     forget (BTyCon n j) = TyCon n j
 >     forget (BElim e n) = Elim n
+>     forget (BPatDef p n) = P n
 >     forget (BRec n v) = P n
 >     forget (BPrimOp f n) = P n
 >     forget (BP n) = P n
@@ -510,18 +560,20 @@ Quotation to eta long normal form. DOESN'T WORK YET!
 > makeApp f (Snoc xs x) = (App (makeApp f xs)) x
 
 > normalise :: Gamma Name -> (Indexed Name) -> (Indexed Name)
-> normalise g (Ind t) = Ind (forget (quote (nf g (VG []) False t)::Normal))
+> normalise g (Ind t) = Ind (forget (quote (nf g (VG []) [] False t)::Normal))
 
 WARNING: quotation to eta long normal form doesn't work yet.
 
 > etaNormalise :: Gamma Name -> (Indexed Name, Indexed Name) -> (Indexed Name)
-> etaNormalise g (Ind tm, Ind ty) = 
->     let vtm = (nf g (VG []) False tm)
->         vty = (nf g (VG []) False ty) in
->       Ind (forget (quote (vtm, vty)::Normal))
+> etaNormalise g (Ind tm, Ind ty) = undefined
+
+-- >     let vtm = (nf g (VG []) [] False tm)
+-- >         vty = (nf g (VG []) [] False ty) in
+-- >       Ind (forget (quote (vtm, vty)::Normal))
 
 > convNormalise :: Gamma Name -> (Indexed Name) -> (Indexed Name)
-> convNormalise g (Ind t) = Ind (forget (quote (nf g (VG []) True t)::Normal))
+> convNormalise g (Ind t) 
+>     = Ind (forget (quote (nf g (VG []) [] True t)::Normal))
 
 > normaliseEnv :: Env Name -> Gamma Name -> Indexed Name -> Indexed Name
 > normaliseEnv env g t

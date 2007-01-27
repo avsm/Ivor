@@ -15,6 +15,7 @@
 > ackShell = importFile "ack.tt" stdlibShell
 > partialShell = importFile "partial.tt" stdlibShell
 > vectShell = importFile "vect.tt" stdlibShell
+> pattShell = importFile "patt.tt" stdlibShell
 
 > doEval :: ShellState -> String -> String
 > doEval st tm = case (parse (shellParseTerm st) "(test)" tm) of
@@ -30,18 +31,29 @@
 > vect2 st = doEval st "lookup _ _ (fs _ (fz (S O))) (vcons _ _ O (vcons _ _ (S O) (vcons _ _ (S (S O)) (vnil Nat))))"
 > vect3 st = doEval st "lookup _ _ (fs _ (fs _ (fz O))) (vcons _ _ O (vcons _ _ (S O) (vcons _ _ (S (S O)) (vnil Nat))))"
 
+> patt1 st = doEval st "treeSum _ testTree"
+> patt2 st = doEval st "vtail _ _ testvec"
+> patt3 st = doEval st "vadd _ (vcons _ _ (S (S (S O))) (vcons _ _ (S (S O)) (vnil Nat))) (vcons _ _ (S (S (S O))) (vcons _ _ (S (S O)) (vnil Nat)))"
+> patt4 st = doEval st "vlookup _ _ (fs _ (fz _)) testvec"
+
+
 > tests :: IO Test
 > tests = do
 >    nat <- natShell
 >    ack <- ackShell
 >    partial <- partialShell
 >    vect <- vectShell
+>    patt <- pattShell
 >    return $ test ["nat1" ~: "2+2" ~: "S (S (S (S O)))" ~=? nat1 nat,
 >                   "ack1" ~: "ack 3 4" ~: "125" ~=? ack1 ack,
 >                   "partial1" ~: "partialfact" ~: "Later Nat (Later Nat (Later Nat (Now Nat (S (S (S (S (S (S O)))))))))" ~=? partial1 partial,
 >                   "vect1" ~: "lookup 0 [0,1,2]" ~: "O" ~=? vect1 vect,
 >                   "vect2" ~: "lookup 1 [0,1,2]" ~: "S O" ~=? vect2 vect,
->                   "vect3" ~: "lookup 2 [0,1,2]" ~: "S (S O)" ~=? vect3 vect]
+>                   "vect3" ~: "lookup 2 [0,1,2]" ~: "S (S O)" ~=? vect3 vect,
+>                   "patt1" ~: "treesum" ~: "S (S (S (S O)))" ~=? patt1 patt,
+>                   "patt2" ~: "vtail" ~: "vcons Nat (S O) (S (S (S O))) (vcons Nat O (S (S O)) (vnil Nat))" ~=? patt2 patt,
+>                   "patt3" ~: "vadd" ~: "vcons Nat (S O) (S (S (S (S (S (S O)))))) (vcons Nat O (S (S (S (S O)))) (vnil Nat))" ~=? patt3 patt,
+>                   "patt4" ~: "vlookup" ~: "S (S (S O))" ~=? patt4 patt]
 
 > main = do 
 >    t <- tests

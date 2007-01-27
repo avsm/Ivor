@@ -108,6 +108,7 @@ typechecker...
 >    where mkTT (Just (i, B _ t)) _ = return (Ind (P n), Ind t)
 >          mkTT Nothing (Just ((Fun _ _),t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just ((Partial _ _),t)) = return (Ind (P n), t)
+>          mkTT Nothing (Just ((PatternDef _),t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just (Unreducible,t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just (Undefined,t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just ((ElimRule _),t)) = return (Ind (Elim n), t)

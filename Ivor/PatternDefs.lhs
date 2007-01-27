@@ -106,7 +106,7 @@ fails, reporting which case isn't matched, if patterns don't cover.
 > matches' (P x) (P y) | x == y = True
 > matches' (P (MN ("INFER",_))) _ = True
 > matches' _ (P _) = True
-> matches' x y = False
+> matches' x y = x == y
 
 
 > expandClause :: Monad m => Gamma Name -> RawScheme -> m [RawScheme]

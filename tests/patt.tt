@@ -1,5 +1,34 @@
 Load "vect.tt";
 
+Env = Vect *;
+
+Data ValEnv : (n:Nat)(G:Env n)* =
+   empty : ValEnv O (vnil *)
+ | extend : (T:*)(t:T)(n:Nat)(G:Env n)(Gv:ValEnv n G)
+              (ValEnv (S n) (vcons * n T G));
+
+Patt vlookup : (A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A =
+    vlookup _ _ (fz _) (vcons _ _ x xs) = x
+  | vlookup _ _ (fs n i) (vcons _ n x xs) = vlookup _ _ i xs;
+
+Patt envlookup : (n:Nat)(i:Fin n)(G:Env n)(Gv:ValEnv n G)(vlookup _ _ i G) =
+    envlookup _ (fz _) _ (extend _ t _ _ r) = t
+  | envlookup _ (fs _ i) _ (extend _ t _ _ r) = envlookup _ i _ r;
+
+Data Bool : * = true:Bool | false:Bool;
+
+testEnv = vcons _ _ Nat (vcons _ _ Bool (vcons _ _ Nat (vnil *)));
+
+testValEnv : ValEnv _ testEnv;
+refine extend;
+fill (S (S (S O)));
+refine extend;
+fill false;
+refine extend;
+fill (S (S O));
+refine empty;
+Qed;
+
 Data Le : (n:Nat)(m:Nat)* =
    leO : (n:Nat)(Le O n)
  | leS : (n,m:Nat)(Le n m)->(Le (S n) (S m)); 
@@ -11,10 +40,6 @@ Patt minus : (m,n:Nat)(Le n m)->Nat =
 Patt plusp : Nat -> Nat -> Nat =
     plusp O x = x
   | plusp (S x) y = S (plusp x y);
-
-Patt vlookup : (A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A =
-    vlookup _ _ (fz _) (vcons _ _ x xs) = x
-  | vlookup _ _ (fs n i) (vcons _ n x xs) = vlookup _ _ i xs;
 
 Data tree (A:*) : (n:Nat)* =
    leaf : tree A O

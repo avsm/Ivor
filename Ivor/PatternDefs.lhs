@@ -27,13 +27,22 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >   gam' <- gInsert fn (G Undefined ty) gam
 >   clauses' <- validClauses gam' fn ty clauses'
 >   pmdef <- matchClauses gam' fn pats tyin clauses'
+>   checkWellFounded pmdef
 >   return (PMFun arity pmdef, ty)
-
 >     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
 >                                 Just _ -> fail $ show n ++ " already defined"
 >                                 Nothing -> return ()
 
+
+A definition is well founded if, for every clause, there is an argument
+position i such that all recursive calls have an argument in position i 
+which is structurally smaller than the pattern in position i.
+
+TODO!
+
+> checkWellFounded :: Monad m => [PMDef Name] -> m ()
+> checkWellFounded _ = return ()
 
 For each Raw clause, try to match it against a generated and checked clause.
 Match up the inferred arguments to the names (so getting the types of the
@@ -45,7 +54,6 @@ names bound in patterns) then type check the right hand side.
 >    let raws = zip (map mkRaw pats) (map getRet pats)
 >    checkpats <- mapM (mytypecheck gam) raws
 >    checkCoverage (map fst checkpats) (map fst gen)
->    -- TODO: Well foundedness
 >    return $ map (mkScheme gam) checkpats
 
     where mkRaw (RSch pats r) = mkPBind pats tyin r
@@ -85,8 +93,6 @@ cases in the second argument. Each of the necessary cases in 'covering'
 must match one of 'pats'.
 fails, reporting which case isn't matched, if patterns don't cover.
 
-TODO!
-
 > checkCoverage :: Monad m => [Indexed Name] -> [Indexed Name] -> m ()
 > checkCoverage pats [] = return ()
 > checkCoverage pats (c:cs)
@@ -99,7 +105,7 @@ TODO!
 > matches' (TyCon x _) (TyCon y _) | x == y = True
 > matches' (P x) (P y) | x == y = True
 > matches' (P (MN ("INFER",_))) _ = True
-> matches' _ (P (MN ("INFER",_))) = True
+> matches' _ (P _) = True
 > matches' x y = False
 
 

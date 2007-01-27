@@ -66,7 +66,7 @@ Make the local environment something that Nobby knows about. Very hacky...
 >          un envl envr x y 
 >                     | x == y = return []
 >                     | otherwise = fail $ "Can't unify " ++ show x ++
->                                          " and " ++ show y ++ " (not equal)"
+>                                          " and " ++ show y
 >          unb envl envr (B b ty) (B b' ty') = 
 >              do bu <- unbb envl envr b b'
 >                 tyu <- un envl envr ty ty'
@@ -76,7 +76,7 @@ Make the local environment something that Nobby knows about. Very hacky...
 >          unbb envl envr Hole Hole = return []
 >          unbb envl envr (Let v) (Let v') = un envl envr v v'
 >          unbb envl envr (Guess v) (Guess v') = un envl envr v v'
->          unbb envl envr x y = fail $ "Can't unify "++show x++" and "++show y ++ " (not equal in binder)"
+>          unbb envl envr x y = fail $ "Can't unify "++show x++" and "++show y
 
 >          unst envl envr (Quote x) (Quote y) = un envl envr x y
 >          unst envl envr (Code x) (Code y) = un envl envr x y
@@ -97,7 +97,7 @@ Make the local environment something that Nobby knows about. Very hacky...
 >                       then do rest <- combine xs ys
 >                               return $ (n,tm):rest
 >                       else fail $ "Can't unify " ++ show tm ++ 
->                                   " and " ++ show tm' ++ " (combine failed)"
+>                                   " and " ++ show tm'
 >              | otherwise = do rest <- combine xs ys
 >                               return $ (n,tm):rest
 >          loc x xs = loc' 0 x xs

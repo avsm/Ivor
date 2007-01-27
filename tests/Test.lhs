@@ -35,6 +35,7 @@
 > patt2 st = doEval st "vtail _ _ testvec"
 > patt3 st = doEval st "vadd _ (vcons _ _ (S (S (S O))) (vcons _ _ (S (S O)) (vnil Nat))) (vcons _ _ (S (S (S O))) (vcons _ _ (S (S O)) (vnil Nat)))"
 > patt4 st = doEval st "vlookup _ _ (fs _ (fz _)) testvec"
+> patt5 st = doEval st "minus (S (S (S O))) (S O) (leS _ _ (leO _))"
 
 
 > tests :: IO Test
@@ -53,7 +54,8 @@
 >                   "patt1" ~: "treesum" ~: "S (S (S (S O)))" ~=? patt1 patt,
 >                   "patt2" ~: "vtail" ~: "vcons Nat (S O) (S (S (S O))) (vcons Nat O (S (S O)) (vnil Nat))" ~=? patt2 patt,
 >                   "patt3" ~: "vadd" ~: "vcons Nat (S O) (S (S (S (S (S (S O)))))) (vcons Nat O (S (S (S (S O)))) (vnil Nat))" ~=? patt3 patt,
->                   "patt4" ~: "vlookup" ~: "S (S (S O))" ~=? patt4 patt]
+>                   "patt4" ~: "vlookup" ~: "S (S (S O))" ~=? patt4 patt,
+>                   "patt5" ~: "3-1" ~: "S (S O)" ~=? patt5 patt]
 
 > main = do 
 >    t <- tests

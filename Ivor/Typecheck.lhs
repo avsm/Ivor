@@ -278,6 +278,11 @@ Insert inferred values into the term
 >     case ttnf of
 >       (Ind Star) -> return (B Pi tv)
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
+
+>  checkbinder gamma env lvl n (B (Let v) RInfer) = do
+>     (Ind vv,Ind vt) <- tcfixup env lvl v Nothing
+>     return (B (Let vv) vt)
+
 >  checkbinder gamma env lvl n (B (Let v) t) = do
 >     (Ind tv,Ind tt) <- tcfixup env lvl t Nothing
 >     (Ind vv,Ind vt) <- tcfixup env lvl v (Just (Ind tv))

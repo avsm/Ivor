@@ -596,6 +596,7 @@ Apply a function to a list of arguments
 
 > instance Forget Name String where
 >     forget (UN n) = n
+>     forget (MN ("INFER",i)) = "z"++show i
 >     forget (MN (x,i)) = x ++ "[" ++ show i ++ "]"
 
 > instance Forget Raw String where

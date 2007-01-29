@@ -1,5 +1,6 @@
 Short term things to do:
 
+* Improve error messages!
 * Recursive functions shouldn't reduce at type level.
 * Either better than Monad m? Define an Error type.
 * Pattern matching compiler with totality checker would be very

@@ -206,11 +206,11 @@
 
 > -- |Add a new definition, with its type to the global state.
 > -- By default, these definitions must cover all cases and be well-founded,
-> -- but can be optionally partial/general recursive
+> -- but can be optionally partial or general recursive
 > addPatternDef :: (IsTerm ty, Monad m) => 
 >                Context -> Name -> ty -> Patterns -> 
->                [PattOpt] -> -- ^ Options to set which definitions will be accepted
->                m Context
+>                [PattOpt] -- ^ Options to set which definitions will be accepted
+>                -> m Context
 > addPatternDef (Ctxt st) n ty pats opts = do
 >         checkNotExists n (defs st)
 >         inty <- raw ty

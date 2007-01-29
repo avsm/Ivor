@@ -1,3 +1,4 @@
+* Non-termination if trying to parse an expression with no closing bracket.
 * Tactics should know what level they operate at; currently we need to
   allow escapes at the top level in the typechecker as a hack, and
   trust people to get it right.

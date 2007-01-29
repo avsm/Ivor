@@ -100,8 +100,8 @@
 > runCommand (TypedDef nm tm ty) st = do
 >     ctxt <- addTypedDef (context st) (name nm) tm ty
 >     return st { context = ctxt }
-> runCommand (PatternDef nm ty pats) st = do
->     ctxt <- addPatternDef (context st) (name nm) ty pats
+> runCommand (PatternDef nm ty pats opts) st = do
+>     ctxt <- addPatternDef (context st) (name nm) ty pats opts
 >     return st { context = ctxt }
 > runCommand (Data dat) st = do ctxt <- addData (context st) dat
 >                               return st { context = ctxt }
@@ -175,9 +175,10 @@
 >                         let st' = respondLn st $ 
 >                                      showProofState st { context = ctxt }
 >                         return st' { context = ctxt }
-> runCommand (GenRec n) st = do ctxt <- addGenRec (context st) (name n)
->                               let st' = respondLn st $ "Added general recursion rule"
->                               return st' { context = ctxt }
+> runCommand (Ivor.ShellParser.GenRec n) st 
+>     = do ctxt <- addGenRec (context st) (name n)
+>          let st' = respondLn st $ "Added general recursion rule"
+>          return st' { context = ctxt }
 > runCommand (JMEq n c) st = do ctxt <- addEquality (context st) (name n) 
 >                                         (name c)
 >                               let st' = respondLn st $ "Added dependent equality"

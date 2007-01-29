@@ -24,7 +24,7 @@
 >               addPrimitive,addBinOp,addPrimFn,addExternalFn,
 >               addEquality,forgetDef,addGenRec,
 >               -- * Pattern matching definitions
->               PClause(..), Patterns(..),addPatternDef,
+>               PClause(..), Patterns(..),PattOpt(..),addPatternDef,
 >               -- * Manipulating Proof State
 >               proving,numUnsolved,suspend,resume,
 >               save, restore, clearSaved,
@@ -200,15 +200,23 @@
 > mkRawClause (PClause args ret) =
 >     RSch (map forget args) (forget ret)
 
+> data PattOpt = Partial -- ^ No need to cover all cases
+>              | GenRec -- ^ No termination checking
+>   deriving Eq
+
 > -- |Add a new definition, with its type to the global state.
-> -- These definitions can be recursive, so use with care.
+> -- By default, these definitions must cover all cases and be well-founded,
+> -- but can be optionally partial/general recursive
 > addPatternDef :: (IsTerm ty, Monad m) => 
->                Context -> Name -> ty -> Patterns -> m Context
-> addPatternDef (Ctxt st) n ty pats = do
+>                Context -> Name -> ty -> Patterns -> 
+>                [PattOpt] -> -- ^ Options to set which definitions will be accepted
+>                m Context
+> addPatternDef (Ctxt st) n ty pats opts = do
 >         checkNotExists n (defs st)
 >         inty <- raw ty
 >         let (Patterns clauses) = pats
 >         (pmdef, fty) <- checkDef (defs st) n inty (map mkRawClause clauses)
+>                            (elem Ivor.TT.Partial opts) (elem GenRec opts)
 >         newdefs <- gInsert n (G (PatternDef pmdef) fty) (defs st)
 >         return $ Ctxt st { defs = newdefs }
 
@@ -494,9 +502,9 @@ Slightly annoying, but we'll cope.
 > resume :: Monad m => Context -> Name -> m Context
 > resume ctxt@(Ctxt st) n = 
 >     case glookup n (defs st) of
->         Just ((Partial _ _),_) -> do let (Ctxt st) = suspend ctxt
->                                      st' <- resumeProof st n
->                                      return (Ctxt st')
+>         Just ((Ivor.Nobby.Partial _ _),_) -> do let (Ctxt st) = suspend ctxt
+>                                                 st' <- resumeProof st n
+>                                                 return (Ctxt st')
 >         Just (Unreducible,ty) -> 
 >             do let st' = st { defs = remove n (defs st) }
 >                theorem (Ctxt st') n (Term (ty, Ind TTCore.Star))

@@ -37,7 +37,7 @@
 
 > data Command = Def String ViewTerm
 >              | TypedDef String ViewTerm ViewTerm
->              | PatternDef String ViewTerm Patterns
+>              | PatternDef String ViewTerm Patterns [PattOpt]
 >              | Data Inductive
 >              | Axiom String ViewTerm
 >              | Declare String ViewTerm
@@ -131,14 +131,21 @@ which runs it.
 >     = do clauses <- sepBy (pclause name ext) (lchar '|' )
 >          return $ Patterns clauses
 
+> pPattOpt :: Parser PattOpt
+> pPattOpt = do reserved "Partial"
+>               return Partial
+>            <|> do reserved "Rec"
+>                   return Ivor.TT.GenRec
+
 > ppatternDef :: Maybe (Parser ViewTerm) -> Parser Command
 > ppatternDef ext
->     = do reserved "Patt"
+>     = do reserved "Match"
+>          opts <- many pPattOpt
 >          name <- identifier ; lchar ':' ; ty <- pTerm ext
 >          lchar '='
 >          patts <- ppatterns name ext
 >          semi
->          return $ PatternDef name ty patts
+>          return $ PatternDef name ty patts opts
 
 > pdata :: Maybe (Parser ViewTerm) -> Parser Command
 > pdata ext = do reserved "Data"
@@ -213,7 +220,7 @@ which runs it.
 > pgenrec :: Parser Command
 > pgenrec = do reserved "General" ; 
 >              nm <- identifier ; semi
->              return $ GenRec nm
+>              return $ Ivor.ShellParser.GenRec nm
 
 > pjme :: Parser Command
 > pjme = do reserved "Equality" ; 

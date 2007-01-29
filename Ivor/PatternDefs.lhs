@@ -10,12 +10,15 @@
 
 > import Debug.Trace
 > import Data.List
+> import Monad
 
 Use the iota schemes from Datatype to represent pattern matching definitions.
 
 > checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> 
+>             Bool -> -- Check for coverage
+>             Bool -> -- Check for well-foundedness
 >             m (PMFun Name, Indexed Name)
-> checkDef gam fn tyin pats = do 
+> checkDef gam fn tyin pats cover wellfounded = do 
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
 >   clausesIn <- mapM (expandClause gam) pats
@@ -26,8 +29,8 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >   checkNotExists fn gam
 >   gam' <- gInsert fn (G Undefined ty) gam
 >   clauses' <- validClauses gam' fn ty clauses'
->   pmdef <- matchClauses gam' fn pats tyin clauses'
->   checkWellFounded pmdef
+>   pmdef <- matchClauses gam' fn pats tyin cover clauses'
+>   when wellfounded $ checkWellFounded pmdef
 >   return (PMFun arity pmdef, ty)
 >     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
@@ -48,12 +51,13 @@ For each Raw clause, try to match it against a generated and checked clause.
 Match up the inferred arguments to the names (so getting the types of the
 names bound in patterns) then type check the right hand side.
 
-> matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw -> 
+> matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw ->
+>                 Bool -> -- Check coverage
 >                 [(Indexed Name, Indexed Name)] -> m [PMDef Name]
-> matchClauses gam fn pats tyin gen = do
+> matchClauses gam fn pats tyin cover gen = do
 >    let raws = zip (map mkRaw pats) (map getRet pats)
 >    checkpats <- mapM (mytypecheck gam) raws
->    checkCoverage (map fst checkpats) (map fst gen)
+>    when cover $ checkCoverage (map fst checkpats) (map fst gen)
 >    return $ map (mkScheme gam) checkpats
 
     where mkRaw (RSch pats r) = mkPBind pats tyin r

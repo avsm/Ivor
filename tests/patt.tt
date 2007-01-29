@@ -7,11 +7,11 @@ Data ValEnv : (n:Nat)(G:Env n)* =
  | extend : (T:*)(t:T)(n:Nat)(G:Env n)(Gv:ValEnv n G)
               (ValEnv (S n) (vcons * n T G));
 
-Patt vlookup : (A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A =
+Match vlookup : (A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A =
     vlookup _ _ (fz _) (vcons _ _ x xs) = x
   | vlookup _ _ (fs n i) (vcons _ n x xs) = vlookup _ _ i xs;
 
-Patt envlookup : (n:Nat)(i:Fin n)(G:Env n)(Gv:ValEnv n G)(vlookup _ _ i G) =
+Match envlookup : (n:Nat)(i:Fin n)(G:Env n)(Gv:ValEnv n G)(vlookup _ _ i G) =
     envlookup _ (fz _) _ (extend _ t _ _ r) = t
   | envlookup _ (fs _ i) _ (extend _ t _ _ r) = envlookup _ i _ r;
 
@@ -33,11 +33,11 @@ Data Le : (n:Nat)(m:Nat)* =
    leO : (n:Nat)(Le O n)
  | leS : (n,m:Nat)(Le n m)->(Le (S n) (S m)); 
 
-Patt minus : (m,n:Nat)(Le n m)->Nat =
+Match minus : (m,n:Nat)(Le n m)->Nat =
     minus m O (leO m) = m
   | minus (S m) (S n) (leS n m p) = minus m n p;
 
-Patt plusp : Nat -> Nat -> Nat =
+Match plusp : Nat -> Nat -> Nat =
     plusp O x = x
   | plusp (S x) y = S (plusp x y);
 
@@ -46,7 +46,7 @@ Data tree (A:*) : (n:Nat)* =
  | node : (n:Nat)(left:tree A n)(a:A)
           (m:Nat)(right:tree A m)(tree A (S (plus n m)));
 
-Patt treeSum : (n:Nat)(t:tree Nat n)Nat =
+Match treeSum : (n:Nat)(t:tree Nat n)Nat =
    treeSum _ (leaf _) = O
  | treeSum _ (node _ _ l a _ r) = plus a (plus (treeSum _ l) (treeSum _ r));
 
@@ -55,11 +55,11 @@ testTree = node _ _ (node _ _ (leaf _) (S (S O)) _ (leaf _)) O
 
 testvec = (vcons _ _ (S (S (S (S O)))) (vcons _ _ (S (S (S O))) (vcons _ _ (S (S O)) (vnil Nat))));
 
-Patt vadd : (n:Nat)(xs,ys:Vect Nat n)->(Vect Nat n) =
+Match vadd : (n:Nat)(xs,ys:Vect Nat n)->(Vect Nat n) =
     vadd _ (vnil _) (vnil _) = vnil Nat
   | vadd _ (vcons _ _ x xs) (vcons _ _ y ys)
        = vcons _ _ (plus x y) (vadd _ xs ys);
 
-Patt vtail : (A:*)(n:Nat)(xs:Vect A (S n))(Vect A n) =
+Match vtail : (A:*)(n:Nat)(xs:Vect A (S n))(Vect A n) =
     vtail _ _ (vcons _ _ _ xs) = xs;
 

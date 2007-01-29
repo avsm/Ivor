@@ -78,6 +78,7 @@ names bound in patterns) then type check the right hand side.
 >   where mkpat (P n) = PVar n
 >         mkpat (App f a) = addPatArg (mkpat f) (mkpat a)
 >         mkpat (Con i nm ar) = mkPatV nm (lookupval nm gam)
+>         mkpat (Const c) = PConst c
 >         mkpat _ = PTerm
 
 >         mkPatV n (Just (DCon t x)) = PCon t n (tyname n) []

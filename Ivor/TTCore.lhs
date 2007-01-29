@@ -100,10 +100,32 @@ Pattern represents the patterns used to define iota schemes.
 > data Pattern n =
 >	 PVar n  -- Variable
 >      | PCon Int n n [Pattern n] -- Constructor, with tag and type
+>      | forall c.(Constant c) => PConst !c
 >      | PMarkCon n [Pattern n] -- Detagged constructor
 >      | PTerm -- Presupposed term (don't care what it is)
 >      | PMark n  -- Marked variable
->    deriving (Show, Eq)
+
+> instance Show n => Show (Pattern n) where
+>     show (PVar n) = show n
+>     show (PCon t n ty ts) = show n ++ show ts
+>     show (PConst c) = show c
+>     show (PMarkCon n ts) = show n ++ show ts
+>     show PTerm = "_"
+>     show (PMark n) = "[" ++ show n ++ "]"
+
+> instance Eq n => Eq (Pattern n) where
+>     (==) (PVar x) (PVar y) = x == y
+>     (==) (PCon t1 n1 ty1 ts1) (PCon t2 n2 ty2 ts2) = t1 == t2 &&
+>                                                      n1 == n2 &&
+>                                                      ty1 == ty2 &&
+>                                                      ts1 == ts2
+>     (==) (PConst x) (PConst y) = case cast x of
+>                                     Just x' -> x' == y
+>                                     _ -> False
+>     (==) (PMarkCon n1 ts1) (PMarkCon n2 ts2) = n1 == n2 && ts1 == ts2
+>     (==) PTerm PTerm = True
+>     (==) (PMark x) (PMark y) = x == y
+>     (==) _ _ = False
 
       {- | forall c. Constant c => PConst c -- Constant (don't think it makes sense) -}
 

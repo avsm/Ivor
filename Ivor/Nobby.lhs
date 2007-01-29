@@ -355,6 +355,9 @@ Do the actual evaluation
 > pmatch :: Pattern Name -> Value -> [(Name,Value)] -> Maybe [(Name, Value)]
 > pmatch PTerm x vs = Just vs
 > pmatch (PVar n) v vs = Just ((n,v):vs)
+> pmatch (PConst t) (MR (RdConst t')) vs = do tc <- cast t
+>                                             if tc == t' then Just vs
+>                                                    else Nothing
 > pmatch (PCon t _ _ args) (MR (RCon t' _ sp)) vs | t == t' =
 >    pmatches args (listify sp) vs
 >   where pmatches [] [] vs = return vs

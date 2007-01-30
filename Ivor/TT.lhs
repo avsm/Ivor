@@ -216,7 +216,8 @@
 >         inty <- raw ty
 >         let (Patterns clauses) = pats
 >         (pmdef, fty) <- checkDef (defs st) n inty (map mkRawClause clauses)
->                            (elem Ivor.TT.Partial opts) (elem GenRec opts)
+>                            (not (elem Ivor.TT.Partial opts))
+>                            (not (elem GenRec opts))
 >         newdefs <- gInsert n (G (PatternDef pmdef) fty) (defs st)
 >         return $ Ctxt st { defs = newdefs }
 

@@ -30,7 +30,7 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >   gam' <- gInsert fn (G Undefined ty) gam
 >   clauses' <- validClauses gam' fn ty clauses'
 >   pmdef <- matchClauses gam' fn pats tyin cover clauses'
->   when wellfounded $ checkWellFounded pmdef
+>   when wellfounded $ checkWellFounded fn [0..arity-1] pmdef
 >   return (PMFun arity pmdef, ty)
 >     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
@@ -42,10 +42,68 @@ A definition is well founded if, for every clause, there is an argument
 position i such that all recursive calls have an argument in position i 
 which is structurally smaller than the pattern in position i.
 
-TODO!
+An argument position is considered 'well-founded' if
+in any recursive call, has a structurally smaller argument.
 
-> checkWellFounded :: Monad m => [PMDef Name] -> m ()
-> checkWellFounded _ = return ()
+A clause is well-founded if there are no recursive calls, or it has a 
+well-founded argument in common with all other recursive calls. We keep a list
+of which arguments are well-founded
+
+Nested recursive calls are not allowed.
+
+> checkWellFounded :: Monad m =>
+>                     Name -> -- recursive function name
+>                     [Int] -> -- set of well founded args
+>                     [PMDef Name] -> m ()
+> checkWellFounded fn args [] = return ()
+> checkWellFounded fn args (c:cs) = do args <- wfClause args c
+>                                      checkWellFounded fn args cs
+>   where wfClause args (Sch pats (Ind t)) = do
+>            let recs = findRec [] t
+>            case recs of
+>               [] -> return args
+>               _ -> wfRec args pats recs Nothing
+
+>         findRec args (App f a) = findRec (a:args) f
+>         findRec args (P n) | n == fn = [args]
+>         findRec args (Label t _) = findRec [] t
+>                                    ++ (concat (map (findRec []) args))
+>         findRec args (Bind _ (B (Let v) _) (Sc sc)) = findRec [] v ++
+>                                                     findRec [] sc
+>                                    ++ (concat (map (findRec []) args))
+>         findRec args (Bind _ _ (Sc sc)) = findRec [] sc
+>                                    ++ (concat (map (findRec []) args))
+>         findRec args _ = concat $ map (findRec []) args
+
+>         wfRec [] _ _ (Just last) = fail $ "Not a well-founded call: " 
+>                                             ++ show last
+>         wfRec args pats [] _ = return args
+>         wfRec args pats (a:as) _ =
+>             case concat (map (findRec []) a) of
+>                (_:_) -> fail $ "Nested recursive calls not allowed "
+>                                ++ show (mkRec a)
+>                _ -> do args <- wfRec1 args 0 pats a
+>                        wfRec args pats as (Just (mkRec a))
+
+>         mkRec as = appArgs (P fn) as
+
+>         wfRec1 args i [] [] = return args
+>         wfRec1 args i (p:ps) (a:as)
+>             | structurallySmaller a p = wfRec1 args (i+1) ps as
+>             | otherwise = wfRec1 (args \\ [i]) (i+1) ps as
+
+>         structurallySmaller n p = ss False n p
+>         ss True n p | pattEq n p = True -- inside, check for equality
+>         ss _ n (PCon _ _ _ ps) = any (ss True n) ps -- look under cons
+>         ss _ _ _ = False
+
+>         pattEq (P n) (PVar n') = n == n'
+>         pattEq (Con t _ _) (PCon t' _ _ []) = t == t'
+>         pattEq (App f a) (PCon t' _ _ xs) = eqApp t' (App f a) (reverse xs)
+>             where eqApp t (App f a) (x:xs) = pattEq a x && eqApp t f xs
+>                   eqApp t (Con t' _ _) [] = t == t'
+>                   eqApp _ _ _ = False
+>         pattEq _ _ = False
 
 For each Raw clause, try to match it against a generated and checked clause.
 Match up the inferred arguments to the names (so getting the types of the

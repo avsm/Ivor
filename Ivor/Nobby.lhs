@@ -80,6 +80,20 @@ Get a type name from the context
 >         getFnName (Bind _ _ (Sc x)) = getFnName x
 >         getFnName x = MN ("Dunno: "++show x, 0)
 
+Return whether a name is a recursive constructor (i.e, its family name
+occurs anywhere in its arguments).
+
+> recCon :: Name -> Gamma Name -> Bool
+> recCon n gam = case glookup n gam of
+>                  (Just (DCon _ t, Ind ty)) ->
+>                      checkRec (conFamily ty) (map snd (getExpected ty))
+>                  _ -> False
+>    where conFamily t = fname (getFun (getReturnType t))
+>          fname (TyCon n _) = n
+>          fname _ = MN ("ERROR!",0)
+>          checkRec n [] = False
+>          checkRec n (x:xs) = nameOccurs n (forget x) || checkRec n xs
+
 > insertGam :: n -> Gval n -> Gamma n -> Gamma n
 > insertGam nm val (Gam gam) = Gam $ (nm,val):gam
 

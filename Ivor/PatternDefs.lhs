@@ -30,7 +30,7 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >   gam' <- gInsert fn (G Undefined ty) gam
 >   clauses' <- validClauses gam' fn ty clauses'
 >   pmdef <- matchClauses gam' fn pats tyin cover clauses'
->   when wellfounded $ checkWellFounded fn [0..arity-1] pmdef
+>   when wellfounded $ checkWellFounded gam fn [0..arity-1] pmdef
 >   return (PMFun arity pmdef, ty)
 >     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
@@ -38,12 +38,12 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >                                 Nothing -> return ()
 
 
-A definition is well founded if, for every clause, there is an argument
+1) A definition is well founded if, for every clause, there is an argument
 position i such that all recursive calls have an argument in position i 
 which is structurally smaller than the pattern in position i.
 
 An argument position is considered 'well-founded' if
-in any recursive call, has a structurally smaller argument.
+in any recursive call, it has a structurally smaller argument.
 
 A clause is well-founded if there are no recursive calls, or it has a 
 well-founded argument in common with all other recursive calls. We keep a list
@@ -51,18 +51,58 @@ of which arguments are well-founded
 
 Nested recursive calls are not allowed.
 
+2) Alternatively, a definition is well founded if in every recursive call 
+there are no increasing arguments and at least one decreasing argument.
+
 > checkWellFounded :: Monad m =>
+>                     Gamma Name ->
 >                     Name -> -- recursive function name
 >                     [Int] -> -- set of well founded args
 >                     [PMDef Name] -> m ()
-> checkWellFounded fn args [] = return ()
-> checkWellFounded fn args (c:cs) = do args <- wfClause args c
->                                      checkWellFounded fn args cs
->   where wfClause args (Sch pats (Ind t)) = do
+> checkWellFounded gam fn args cs = case cwf1 fn args cs of
+>                                     Failure err -> cwf2 fn cs err
+>                                     Success v -> return ()
+>   where cwf1 fn args [] = return ()
+>         cwf1 fn args (c:cs) = do args <- wfClause args c
+>                                  cwf1 fn args cs
+>
+>         cwf2 fn [] _ = return ()
+>         cwf2 fn (c:cs) err = do allDec c err
+>                                 cwf2 fn cs err
+
+Check for definition 1 above: one argument position is well founded
+
+>         wfClause args (Sch pats (Ind t)) = do
 >            let recs = findRec [] t
 >            case recs of
 >               [] -> return args
->               _ -> wfRec args pats recs Nothing
+>               _ ->  wfRec args pats recs Nothing
+
+Check for definition 2 above: all recursive calls have a decreasing argument
+and no increasing arguments
+
+>         allDec (Sch pats (Ind t)) err = do
+>            let recs = findRec [] t
+>            case allRecDec pats recs of
+>              Success v -> return v
+>              _ -> fail err
+
+Check each recursive call has at least one decreasing argument and no
+increasing arguments (iterature through calls)
+
+>         allRecDec _ [] = return ()
+>         allRecDec pats (r:rs) = do oneDec pats r 0 False
+>                                    allRecDec pats rs
+
+Check each recursive call has at least one decreasing argument and no
+increasing arguments (iterature through arguments in a call)
+
+>         oneDec [] [] i True = return ()
+>         oneDec [] [] i False = fail "No decreasing arguments"
+>         oneDec (p:ps) (c:cs) i smaller
+>                | structurallySmaller c p = oneDec ps cs (i+1) True 
+>                | ss True c p = oneDec ps cs (i+1) smaller
+>                | otherwise = fail $ show c ++ " bigger than " ++ show p
 
 >         findRec args (App f a) = findRec (a:args) f
 >         findRec args (P n) | n == fn = [args]
@@ -92,9 +132,13 @@ Nested recursive calls are not allowed.
 >             | structurallySmaller a p = wfRec1 args (i+1) ps as
 >             | otherwise = wfRec1 (args \\ [i]) (i+1) ps as
 
+A non-recursive constructor application is structurally smaller than 
+anything.
+
 >         structurallySmaller n p = ss False n p
 >         ss True n p | pattEq n p = True -- inside, check for equality
 >         ss _ n (PCon _ _ _ ps) = any (ss True n) ps -- look under cons
+>         ss _ n p | isNonrec (getFun n) = True
 >         ss _ _ _ = False
 
 >         pattEq (P n) (PVar n') = n == n'
@@ -104,6 +148,9 @@ Nested recursive calls are not allowed.
 >                   eqApp t (Con t' _ _) [] = t == t'
 >                   eqApp _ _ _ = False
 >         pattEq _ _ = False
+
+>         isNonrec (Con _ n _) = not (recCon n gam)
+>         isNonrec _ = False
 
 For each Raw clause, try to match it against a generated and checked clause.
 Match up the inferred arguments to the names (so getting the types of the

@@ -204,11 +204,12 @@
 >              | GenRec -- ^ No termination checking
 >   deriving Eq
 
-> -- |Add a new definition, with its type to the global state.
+> -- |Add a new definition to the global state.
 > -- By default, these definitions must cover all cases and be well-founded,
 > -- but can be optionally partial or general recursive
 > addPatternDef :: (IsTerm ty, Monad m) => 
->                Context -> Name -> ty -> Patterns -> 
+>                Context -> Name -> ty -- ^ Type
+>                  -> Patterns -> -- ^ Definition
 >                [PattOpt] -- ^ Options to set which definitions will be accepted
 >                -> m Context
 > addPatternDef (Ctxt st) n ty pats opts = do

@@ -24,6 +24,9 @@ doc:
 test:
 	make -C tests
 
+sdist:
+	runhaskell Setup.lhs sdist
+
 jones: .PHONY package install
 	cd Jones; ghc $(GHCOPTS) Main.lhs -o jones -package ivor
 

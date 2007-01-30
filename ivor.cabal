@@ -10,6 +10,27 @@ Build-depends:	base, haskell98, util, parsec, mtl
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,
 		ExistentialQuantification, OverlappingInstances
 Synopsis:	Theorem proving library based on dependent type theory
+Description:    Ivor is a type theory based theorem prover, with a
+                Haskell API, designed for easy extending and embedding
+                of theorem proving technology in Haskell
+                applications. It provides an implementation of the
+                type theory and tactics for building terms, more or
+                less along the lines of systems such as Coq or Agda,
+                and taking much of its inspiration from Conor
+                McBride's presentation of OLEG.
+                The API provides a collection of primitive tactics and
+                combinators for building new tactics. It is therefore
+                possible to build new tactics to suit specific
+                applications. Ivor features a dependent type theory
+                similar to Luo's ECC with definitions (and similar to
+                that implemented in Epigram), with dependent pattern
+                matching, and experimental multi-stage programming
+                support. Optionally, it can be extended with
+                heterogenous equality, primitive types and operations,
+                new parser rules, user defined tactics and (if you
+                want your proofs to be untrustworthy) a fixpoint
+                combinator.
+Category:       Theorem provers
 Exposed-modules:
 		Ivor.TT, Ivor.Shell, Ivor.Primitives, 
 		Ivor.TermParser, Ivor.ViewTerm, Ivor.Equality,

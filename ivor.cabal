@@ -1,5 +1,5 @@
 Name:		ivor
-Version:	0.3
+Version:	0.1.3
 Author:		Edwin Brady
 License:	BSD3
 License-file:	LICENSE
@@ -26,7 +26,7 @@ Description:    Ivor is a type theory based theorem prover, with a
                 that implemented in Epigram), with dependent pattern
                 matching, and experimental multi-stage programming
                 support. Optionally, it can be extended with
-                heterogenous equality, primitive types and operations,
+                heterogeneous equality, primitive types and operations,
                 new parser rules, user defined tactics and (if you
                 want your proofs to be untrustworthy) a fixpoint
                 combinator.

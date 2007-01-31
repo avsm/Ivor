@@ -209,8 +209,8 @@
 > -- but can be optionally partial or general recursive
 > addPatternDef :: (IsTerm ty, Monad m) => 
 >                Context -> Name -> ty -- ^ Type
->                  -> Patterns -> -- ^ Definition
->                [PattOpt] -- ^ Options to set which definitions will be accepted
+>                  -> Patterns -- ^ Definition
+>                -> [PattOpt] -- ^ Options to set which definitions will be accepted
 >                -> m Context
 > addPatternDef (Ctxt st) n ty pats opts = do
 >         checkNotExists n (defs st)

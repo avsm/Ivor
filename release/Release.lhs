@@ -53,7 +53,8 @@ and upload it.
 
 > getVer [] = "none"
 > getVer (major:[]) = show major
-> getVer (major:minor:_) = show major ++ "." ++ show minor
+> getVer (major:minor:[]) = show major ++ "." ++ show minor
+> getVer (major:minor:pl) = show major ++ "." ++ show minor ++ "." ++ show pl
 
 > shell :: String -> IO ()
 > shell cmd = do p <- runCommand cmd

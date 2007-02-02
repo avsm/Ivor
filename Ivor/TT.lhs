@@ -219,7 +219,7 @@
 >         (pmdef, fty) <- checkDef (defs st) n inty (map mkRawClause clauses)
 >                            (not (elem Ivor.TT.Partial opts))
 >                            (not (elem GenRec opts))
->         newdefs <- gInsert n (G (PatternDef pmdef) fty) (defs st)
+>         newdefs <- gInsert n (G (PatternDef pmdef) fty defplicit) (defs st)
 >         return $ Ctxt st { defs = newdefs }
 
 > -- |Add a new definition, with its type to the global state.
@@ -238,7 +238,7 @@
 >              (Success (v,t,_)) -> do
 >                 if (convert (defs st) inty t)
 >                     then (do
->                       newdefs <- gInsert n (G (Fun [Recursive] v) t) (Gam ctxt)
+>                       newdefs <- gInsert n (G (Fun [Recursive] v) t defplicit) (Gam ctxt)
 >                               -- = Gam ((n,G (Fun [] v) t):ctxt)
 >                       let scs = lift n (levelise (normalise (Gam []) v))
 >                       let bc = compileAll (runtts++scs) scs
@@ -258,7 +258,7 @@
 >         let runtts = runtt st
 >         case (typecheck (Gam ctxt) v) of
 >             (Success (v,t)) -> do
->                 newdefs <- gInsert n (G (Fun [] v) t) (Gam ctxt)
+>                 newdefs <- gInsert n (G (Fun [] v) t defplicit) (Gam ctxt)
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
 >                 let scs = lift n (levelise (normalise (Gam []) v))
 >                 let bc = compileAll (runtts++scs) scs
@@ -292,7 +292,7 @@
 >          case (typecheck (Gam tmp) general) of
 >              (Success (v,t)) -> do
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
->                 newdefs <- gInsert n (G (Fun [] v) t) (Gam ctxt)
+>                 newdefs <- gInsert n (G (Fun [] v) t defplicit) (Gam ctxt)
 >                 let scs = lift n (levelise (normalise (Gam []) v))
 >                 let bc = compileAll (runtts++scs) scs
 >                 let newbc = bc++(bcdefs st)
@@ -360,7 +360,7 @@
 >           (Success (t, ty)) ->
 >              do checkConv (defs st) ty (Ind TTCore.Star) "Not a type"
 >                 -- let newdefs = Gam ((n, (G und (finalise t))):ctxt)
->                 newdefs <- gInsert n (G und (finalise t)) (Gam ctxt)
+>                 newdefs <- gInsert n (G und (finalise t) defplicit) (Gam ctxt)
 >                 return $ Ctxt st { defs = newdefs }
 >           (Failure err) -> fail err
 
@@ -374,7 +374,7 @@
 >        let Gam ctxt = defs st
 >        let elims = Elims (MN ("none",0)) (MN ("none",0)) []
 >        -- let newdefs = Gam ((n, (G (TCon 0 elims) (Ind TTCore.Star))):ctxt)
->        newdefs <- gInsert n (G (TCon 0 elims) (Ind TTCore.Star)) (Gam ctxt)
+>        newdefs <- gInsert n (G (TCon 0 elims) (Ind TTCore.Star) defplicit) (Gam ctxt)
 >        return $ Ctxt st { defs = newdefs }
 
 > -- | Add a new binary operator on constants. Warning: The type you give
@@ -387,7 +387,7 @@
 >        let fndef = PrimOp mkfun
 >        let Gam ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
->        newdefs <- gInsert n (G fndef ty) (Gam ctxt)
+>        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
 >        return $ Ctxt st { defs = newdefs }
 >    where mkfun :: Spine Value -> Maybe Value
 >          mkfun (Snoc (Snoc Empty (MR (RdConst x))) (MR (RdConst y)))
@@ -409,7 +409,7 @@
 >        let fndef = PrimOp mkfun
 >        let Gam ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
->        newdefs <- gInsert n (G fndef ty) (Gam ctxt)
+>        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
 >        return $ Ctxt st { defs = newdefs }
 >    where mkfun :: Spine Value -> Maybe Value
 >          mkfun (Snoc Empty (MR (RdConst x)))
@@ -434,7 +434,7 @@
 >        let fndef = PrimOp mkfun
 >        let Gam ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
->        newdefs <- gInsert n (G fndef ty) (Gam ctxt)
+>        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
 >        return $ Ctxt st { defs = newdefs }
 >    where mkfun :: Spine Value -> Maybe Value
 >          mkfun sx | xs <- listify sx
@@ -614,7 +614,7 @@ Give a parseable but ugly representation of a term.
 > getAllDefs :: Context -> [(Name,Term)]
 > getAllDefs (Ctxt st) = let (Gam ds) = defs st in
 >                            reverse (map info ds) -- input order!
->    where info (n,G _ ty) = (n, Term (ty, Ind TTCore.Star))
+>    where info (n,G _ ty _) = (n, Term (ty, Ind TTCore.Star))
 
 > -- | Get the names of all of the constructors of an inductive family
 > getConstructors :: Monad m => Context -> Name -> m [Name]
@@ -787,7 +787,7 @@ Tactics
 > qed (Ctxt st)
 >     = do case proofstate st of
 >            Just prf -> do
->              newdef@(name,val@(G (Fun _ ind) _)) <- 
+>              newdef@(name,val@(G (Fun _ ind) _ _)) <- 
 >                  qedLift (defs st) False prf
 >              let isrec = rec name
 >              let (Gam olddefs) = remove name (defs st)
@@ -812,7 +812,7 @@ Tactics
 >             (Ind (Bind x (B (TTCore.Let v) ty) (Sc (P n)))) | n == x =
 >     do let (Ind vnorm) = convNormalise (Gam []) (finalise (Ind v))
 >        verify gam (Ind v)
->        return $ (x, G (Fun opts (Ind vnorm)) (finalise (Ind ty)))
+>        return $ (x, G (Fun opts (Ind vnorm)) (finalise (Ind ty)) defplicit)
 >   where opts = if freeze then [Frozen] else []
 > qedLift _ _ tm = fail $ "Not a complete proof " ++ show tm
 
@@ -929,7 +929,7 @@ Convert an internal tactic into a publicly available tactic.
 >           addgoals ((Tactics.AddAxiom n ty):xs) st
 >               = let Gam ctxt = defs st in
 >                     addgoals xs (st 
->                        { defs = Gam ((n,G Unreducible (finalise (Ind ty))):ctxt) })
+>                        { defs = Gam ((n,G Unreducible (finalise (Ind ty)) defplicit):ctxt) })
 >           addgoals ((Tactics.HideGoal n):xs) st
 >               = addgoals xs (st { hidden = nub (n:(hidden st)) })
 >           addgoals (_:xs) st = addgoals xs st

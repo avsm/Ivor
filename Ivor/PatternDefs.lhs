@@ -27,7 +27,7 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >   (ty@(Ind ty'),_) <- typecheck gam tyin
 >   let arity = length (getExpected ty')
 >   checkNotExists fn gam
->   gam' <- gInsert fn (G Undefined ty) gam
+>   gam' <- gInsert fn (G Undefined ty defplicit) gam
 >   clauses' <- validClauses gam' fn ty clauses'
 >   pmdef <- matchClauses gam' fn pats tyin cover clauses'
 >   when wellfounded $ checkWellFounded gam fn [0..arity-1] pmdef
@@ -173,11 +173,23 @@ names bound in patterns) then type check the right hand side.
 >   where mkRaw (RSch pats r) = mkapp (Var fn) pats
 >         getRet (RSch pats r) = r
 >         mytypecheck gam (clause, ret) = 
->             do (tm, pty, env) <- typecheckAndBind gam clause
->                (rtm, rty, env) <- checkAndBind gam env ret (Just pty)
+>             do (tm@(Ind tmtt), pty,
+>                 rtm@(Ind rtmtt), rty, env) <-
+>                   checkAndBindPair gam clause ret
 >                checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible "
->                -- FIXME: *all* names on the right must be bound on the left
+>                let namesret = filter notGlobal $ getNames (Sc rtmtt)
+>                let namesbound = getNames (Sc tmtt)
+>                checkAllBound namesret namesbound rtm
 >                return (tm, rtm)
+>         notGlobal n = case lookupval n gam of
+>                         Nothing -> True
+>                         _ -> False
+>         checkAllBound r b rhs = do
+>              let unbound = filter (\y -> not (elem y b)) r
+>              if (length unbound == 0) 
+>                 then return ()
+>                 else fail $ "Unbound names in clause:\n" ++ show rhs ++ "\n" 
+>                             ++ show unbound
 
 > mkScheme :: Gamma Name -> (Indexed Name, Indexed Name) -> PMDef Name
 > mkScheme gam (Ind pat, ret) = Sch (map mkpat (getPatArgs pat)) ret

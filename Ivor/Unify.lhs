@@ -35,7 +35,7 @@ Make the local environment something that Nobby knows about. Very hacky...
 
 > envToGamHACK [] = emptyGam
 > envToGamHACK ((n,B (Let v) ty):xs)
->     = insertGam n (G (Fun [] (Ind v)) (Ind ty)) (envToGamHACK xs)
+>     = insertGam n (G (Fun [] (Ind v)) (Ind ty) defplicit) (envToGamHACK xs)
 > envToGamHACK (_:xs) = envToGamHACK xs
 
 > unifynf :: Monad m => 

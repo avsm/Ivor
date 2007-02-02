@@ -70,21 +70,35 @@ type.
 > check :: Monad m => Gamma Name -> Env Name -> Raw -> Maybe (Indexed Name) -> 
 >          m (Indexed Name, Indexed Name)
 > check gam env tm mty = do
->   (tm', _) <- lvlcheck 0 False gam env tm mty
+>   (tm', _) <- lvlcheck 0 False 0 gam env tm mty
 >   return tm'
 
 > checkAndBind :: Monad m => Gamma Name -> Env Name -> Raw -> 
 >                 Maybe (Indexed Name) -> 
 >                 m (Indexed Name, Indexed Name, Env Name)
 > checkAndBind gam env tm mty = do
->    ((v,t), (_,_,e,_)) <- lvlcheck 0 True gam env tm mty
+>    ((v,t), (_,_,e,_)) <- lvlcheck 0 True 0 gam env tm mty
 >    return (v,t,e)
 
-> lvlcheck :: Monad m => Level -> Bool -> Gamma Name -> Env Name -> Raw -> 
+
+Check two things together, with the same environment and variable inference,
+and with the same expected type.
+We need this for checking pattern clauses...
+
+> checkAndBindPair :: Monad m => Gamma Name -> Raw -> Raw -> 
+>                     m (Indexed Name, Indexed Name, 
+>                        Indexed Name, Indexed Name, Env Name)
+> checkAndBindPair gam tm1 tm2 = do
+>    ((v1,t1), (next, inf, e, bs)) <- lvlcheck 0 True 0 gam [] tm1 Nothing
+>    ((v2,t2), (_, _, e, _)) <- lvlcheck 0 inf next gam e tm2 (Just t1)
+>    return (v1,t1,v2,t2,e)
+
+> lvlcheck :: Monad m => Level -> Bool -> Int -> 
+>             Gamma Name -> Env Name -> Raw -> 
 >             Maybe (Indexed Name) -> 
 >             m ((Indexed Name, Indexed Name), CheckState)
-> lvlcheck lvl infer gamma env tm exp 
->     = do runStateT (tcfixupTop env lvl tm exp) (0, infer, [], []) 
+> lvlcheck lvl infer next gamma env tm exp 
+>     = do runStateT (tcfixupTop env lvl tm exp) (next, infer, [], []) 
 >  where
 
 Do the typechecking, then unify all the inferred terms.
@@ -340,7 +354,7 @@ Insert inferred values into the term
 >     (Ind patv,Ind patt) <- tcfixup (bindings++env) lvl pat Nothing
 >     (next, _ ,bindings, err) <- get
 >     put (next, infer, bindings, err)
->     let ttnf = trace (show bindings) $ normaliseEnv env gamma (Ind tt)
+>     let ttnf = normaliseEnv env gamma (Ind tt)
 >     --checkConvEnv env gamma (Ind patt) (Ind tv) $ 
 >     --   show patt ++ " and " ++ show tv ++ " are not convertible"
 >     case ttnf of

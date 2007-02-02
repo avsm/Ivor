@@ -82,7 +82,7 @@ This creation of elim rule interfaces only works for completely simple types!
 > compileCons [x] = compileCon x
 > compileCons (x:xs) = compileCon x ++ "| " ++ compileCons xs
 
-> compileCon (n,G (DCon _ _) (Ind t)) =
+> compileCon (n,G (DCon _ _) (Ind t) _) =
 >     foralls numargs ++ "TT_" ++ show n ++ " " ++ showargs numargs
 >   where numargs = length (getExpected t)
 >         foralls n | n == 0 = ""
@@ -97,7 +97,7 @@ This creation of elim rule interfaces only works for completely simple types!
 >        if (length (words xp)>0) then xp ++ "\n" ++ projInstance xs
 >           else projInstance xs
 
-> projAll (n,G (DCon _ _) (Ind t)) =
+> projAll (n,G (DCon _ _) (Ind t) _) =
 >     project numargs
 >   where numargs = length (getExpected t)
 >         project 0 = "\n"
@@ -110,7 +110,7 @@ This creation of elim rule interfaces only works for completely simple types!
 > compileGamma :: Gamma Name -> IState -> Handle -> IO ()
 > compileGamma gam@(Gam g) st h = cg g where
 >   cg [] = return ()
->   cg ((n,G (Fun _ ind) indty):xs) = 
+>   cg ((n,G (Fun _ ind) indty _):xs) = 
 >       do -- putStrLn $ "Compiling " ++ show n
 >          let nind = normalise (Gam []) ind
 >          let rtt = mkRTFun gam (levelise nind)
@@ -164,7 +164,7 @@ Given a type name, get all the constructors and their arities
 > getCons ds n = case lookup n ds of
 >                  Nothing -> []
 >                  Just dt -> map (\ (x,y) -> (x, arity y)) (datacons dt)
->     where arity (G _ (Ind ty)) = length (getExpected ty)
+>     where arity (G _ (Ind ty) _) = length (getExpected ty)
 
 > header mod = "{-# OPTIONS_GHC -fglasgow-exts #-} \n\
 >               \\n\

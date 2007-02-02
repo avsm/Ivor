@@ -63,3 +63,5 @@ Match vadd : (n:Nat)(xs,ys:Vect Nat n)->(Vect Nat n) =
 Match vtail : (A:*)(n:Nat)(xs:Vect A (S n))(Vect A n) =
     vtail _ _ (vcons _ _ _ xs) = xs;
 
+
+Eval vlookup _ _ (fs _ (fz _)) testvec;

@@ -47,11 +47,16 @@ to do with it, when the time comes.
 >     show Unreducible = "Unreducible"
 >     show Undefined = "Undefined"
 
-> data Gval n = G (Global n) (Indexed n)
+> type Plicity = Int
+
+> defplicit = 0
+
+> data Gval n = G (Global n) (Indexed n) Plicity
 >    deriving Show
 
-> getglob (G v t) = v
-> gettype (G v t) = t
+> getglob (G v t p) = v
+> gettype (G v t p) = t
+> getplicity (G v t p) = p
 
 > newtype Gamma n = Gam [(n,Gval n)]
 >     deriving Show
@@ -103,8 +108,8 @@ occurs anywhere in its arguments).
 > setFrozen :: Eq n => n -> Bool -> Gamma n -> Gamma n
 > setFrozen n freeze (Gam xs) = Gam $ sf xs where
 >    sf [] = []
->    sf ((p,G (Fun opts v) ty):xs) 
->        | n == p = (p,G (Fun (doFreeze freeze opts) v) ty):xs
+>    sf ((p,G (Fun opts v) ty plicit):xs) 
+>        | n == p = (p,G (Fun (doFreeze freeze opts) v) ty plicit):xs
 >    sf (x:xs) = x:(sf xs)
 >    doFreeze True opts = nub (Frozen:opts)
 >    doFreeze False opts = opts \\ [Frozen]
@@ -112,8 +117,8 @@ occurs anywhere in its arguments).
 > setRec :: Eq n => n -> Bool -> Gamma n -> Gamma n
 > setRec n frec (Gam xs) = Gam $ sf xs where
 >    sf [] = []
->    sf ((p,G (Fun opts v) ty):xs) 
->        | n == p = (p,G (Fun (doFrec frec opts) v) ty):xs
+>    sf ((p,G (Fun opts v) ty plicit):xs) 
+>        | n == p = (p,G (Fun (doFrec frec opts) v) ty plicit):xs
 >    sf (x:xs) = x:(sf xs)
 >    doFrec True opts = nub (Recursive:opts)
 >    doFrec False opts = opts \\ [Recursive]
@@ -143,7 +148,7 @@ the name is replaced.
 >                              return $ Gam xs'
 >   where ins n val [] acc = return $ (n,val):(reverse acc)
 >         -- FIXME: Check ty against val
->         ins n val (d@(p,G Undefined ty):xs) acc
+>         ins n val (d@(p,G Undefined ty _):xs) acc
 >             | n == p = return $ (n,val):(reverse acc) ++ xs
 >         ins n val (d@(p,_):xs) acc 
 >             | n == p = fail $ "Name " ++ show p ++ " is already defined"
@@ -601,7 +606,7 @@ WARNING: quotation to eta long normal form doesn't work yet.
 >     = normalise (addenv env g) t
 >   where addenv [] g = g
 >         addenv ((n,B (Let v) ty):xs) (Gam g) 
->             = addenv xs (Gam ((n,G (Fun [] (Ind v)) (Ind ty)):g))
+>             = addenv xs (Gam ((n,G (Fun [] (Ind v)) (Ind ty) defplicit):g))
 >         addenv (_:xs) g = addenv xs g
 
 > convNormaliseEnv :: Env Name -> Gamma Name -> Indexed Name -> Indexed Name
@@ -609,7 +614,7 @@ WARNING: quotation to eta long normal form doesn't work yet.
 >     = convNormalise (addenv env g) t
 >   where addenv [] g = g
 >         addenv ((n,B (Let v) ty):xs) (Gam g) 
->             = addenv xs (Gam ((n,G (Fun [] (Ind v)) (Ind ty)):g))
+>             = addenv xs (Gam ((n,G (Fun [] (Ind v)) (Ind ty) defplicit):g))
 >         addenv (_:xs) g = addenv xs g
 
      = Ind (forget (quote (nf g (VG (valenv env [])) t)::Normal))
@@ -648,7 +653,7 @@ WARNING: quotation to eta long normal form doesn't work yet.
 >     fmap f (Gam xs) = Gam (fmap (\ (x,y) -> (f x,fmap f y)) xs)
 
 > instance Functor Gval where
->     fmap f (G g i) = G (fmap f g) (fmap f i)
+>     fmap f (G g i p) = G (fmap f g) (fmap f i) p
 
 > instance Functor Global where
 >     fmap f (Fun opts n) = Fun opts $ fmap f n

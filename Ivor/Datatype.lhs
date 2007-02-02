@@ -55,20 +55,20 @@ the context and an executable elimination rule.
 > checkType gamma (RData (ty,kind) cons numps (er,erty) (cr,crty) eschemes cschemes) = 
 >     do (kv, _) <- typecheck gamma kind
 >        let erdata = Elims er cr (map fst cons)
->	 let gamma' = extend gamma (ty,G (TCon (arity gamma kv) erdata) kv)
+>	 let gamma' = extend gamma (ty,G (TCon (arity gamma kv) erdata) kv defplicit)
 >	 (consv,gamma'') <- checkCons gamma' 0 cons
 >	 (ev, _) <- typecheck gamma'' erty
 >	 (cv, _) <- typecheck gamma'' crty
->	 let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev)
+>	 let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev defplicit)
 >	 esch <- mapM (checkScheme gamma''' er) eschemes
 >	 csch <- mapM (checkScheme gamma''' er) cschemes
->	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv) consv numps
+>	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv defplicit) consv numps
 >                    (er,ev) (cr,cv) esch csch eschemes cschemes)
 
 >    where checkCons gamma t [] = return ([], gamma)
 >          checkCons gamma t ((cn,cty):cs) = 
 >              do (cv,_) <- typecheck gamma cty
->		  let ccon = G (DCon t (arity gamma cv)) cv
+>		  let ccon = G (DCon t (arity gamma cv)) cv defplicit
 >		  let gamma' = extend gamma (cn,ccon)
 >		  (rest,gamma'') <- checkCons gamma' (t+1) cs
 >	          return (((cn,ccon):rest), gamma'')

@@ -107,7 +107,7 @@ Take a data type definition and add constructors and elim rule to the context.
 >            let cases = compileSchemes schemes
 >            let arity = getArity schemes
 >            let rule = mkElim (fst erule) (snd erule) arity cases
->            newdefs <- gInsert (fst erule) (G (ElimRule rule) (snd erule))
+>            newdefs <- gInsert (fst erule) (G (ElimRule rule) (snd erule) defplicit)
 >                                   ctxt
 >	--     putStrLn $ show cases
 >            let sc = elimSC (fst erule) (levelise (snd erule)) cases
@@ -134,7 +134,7 @@ Take a data type definition and add constructors and elim rule to the context.
 >            (Ind nty,_) <- check gam env nrawty Nothing
 >            checkIndices gam xs (env++[(n,B Pi nty)]) rawty
 >        -- also need to strip parameters
->        forgetcon numps (n, (G _ (Ind t))) = (n, (stripps numps (forget t)))
+>        forgetcon numps (n, (G _ (Ind t) _)) = (n, (stripps numps (forget t)))
 >        stripps 0 t = t
 >        stripps n (RBind _ _ sc) = stripps (n-1) sc
 
@@ -150,7 +150,7 @@ Take a data type definition and add constructors and elim rule to the context.
 >                        _ -> fail "No proof in progress"
 
 > suspendFrom gam (Ind (Bind x (B (Guess v) ty) (Sc (P n)))) q | n == x =
->               return $ (x, G (Partial (Ind v) q) (finalise (Ind ty)))
+>               return $ (x, G (Partial (Ind v) q) (finalise (Ind ty)) defplicit)
 > suspendFrom _ _ _ = fail "Not a suspendable proof"
 
 > resumeProof :: Monad m => IState -> Name -> m IState

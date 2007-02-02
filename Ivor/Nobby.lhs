@@ -234,6 +234,10 @@ Do the actual evaluation
 >           Nothing -> evalP (lookupval n gamma)
 >    where evalP (Just Unreducible) = (MB (BP n,pty n) Empty)
 >          evalP (Just Undefined) = (MB (BP n, pty n) Empty)
+>          evalP (Just (PatternDef p@(PMFun 0 pats))) = 
+>              case patmatch gamma pats [] of
+>                 Nothing ->  (MB (BPatDef p n, pty n) Empty)
+>                 Just v -> v
 >          evalP (Just (PatternDef p)) = (MB (BPatDef p n, pty n) Empty)
 >          evalP (Just (Partial (Ind v) _)) = (MB (BP n, pty n) Empty)
 >          evalP (Just (PrimOp f)) = (MB (BPrimOp f n, pty n) Empty)

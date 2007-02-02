@@ -13,7 +13,7 @@ Match vlookup : (A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A =
 
 Match envlookup : (n:Nat)(i:Fin n)(G:Env n)(Gv:ValEnv n G)(vlookup _ _ i G) =
     envlookup _ (fz _) _ (extend _ t _ _ r) = t
-  | envlookup _ (fs _ i) _ (extend _ t _ _ r) = envlookup _ i _ r;
+  | envlookup _ (fs _ j) _ (extend _ t _ _ r) = envlookup _ j _ r;
 
 Data Bool : * = true:Bool | false:Bool;
 

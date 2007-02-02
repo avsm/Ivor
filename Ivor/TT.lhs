@@ -234,8 +234,8 @@
 >         let Gam ctxt = defs st
 >         let runtts = runtt st
 >         term <- raw tm
->         case (typecheck (Gam tmp) term) of
->              (Success (v,t)) -> do
+>         case (checkAndBind (Gam tmp) [] term (Just inty)) of
+>              (Success (v,t,_)) -> do
 >                 if (convert (defs st) inty t)
 >                     then (do
 >                       newdefs <- gInsert n (G (Fun [Recursive] v) t) (Gam ctxt)

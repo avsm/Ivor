@@ -84,21 +84,28 @@ type.
 >             Maybe (Indexed Name) -> 
 >             m ((Indexed Name, Indexed Name), CheckState)
 > lvlcheck lvl infer gamma env tm exp 
->     = runStateT (tcfixup env lvl tm exp) (0, infer, [], []) 
+>     = do runStateT (tcfixupTop env lvl tm exp) (0, infer, [], []) 
 >  where
 
 Do the typechecking, then unify all the inferred terms.
 
+>  tcfixupTop env lvl t exp = do
+>     tm@(_,tmty) <- tc env lvl t exp
+>     (next, infer, bindings, errs) <- get
+>     if infer then (case exp of
+>              Nothing -> return ()
+>              Just expty -> checkConvSt env gamma expty tmty 
+>                               $ "Expected type and inferred type do not match: " 
+>                               ++ show expty ++ " and " ++ show tmty)
+>       else return ()
+>     (next, infer, bindings, errs) <- get
+>     tm' <- fixup errs tm
+>     bindings <- fixupB errs bindings
+>     put (next, infer, bindings, [])
+>     return tm'
+
 >  tcfixup env lvl t exp = do
 >     tm@(_,tmty) <- tc env lvl t exp
->     case exp of
->              Nothing -> return ()
->              Just expty -> return ()
-
-  checkConvSt env gamma expty tmty 
-     $ "Expected type and inferred type do not match: " 
-     ++ show expty ++ " and " ++ show tmty
-
 >     (next, infer, bindings, errs) <- get
 >     tm' <- fixup errs tm
 >     bindings <- fixupB errs bindings
@@ -254,7 +261,7 @@ Insert inferred values into the term
 >  fixup [] tm = return tm
 >  fixup ((env,x,y):xs) (Ind tm, Ind ty) = do 
 >      uns <- case unifyenv gamma env y x of
->                 Success x -> return x
+>                 Success x' -> return x'
 >                 Failure err -> fail $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
 >      let tm' = fixupNames uns tm
 >      let ty' = fixupNames uns ty

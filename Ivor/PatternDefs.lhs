@@ -174,8 +174,9 @@ names bound in patterns) then type check the right hand side.
 >         getRet (RSch pats r) = r
 >         mytypecheck gam (clause, ret) = 
 >             do (tm, pty, env) <- typecheckAndBind gam clause
->                (rtm, rty) <- check gam env ret (Just pty) -- Nothing 
->                checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible"
+>                (rtm, rty, env) <- checkAndBind gam env ret (Just pty)
+>                checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible "
+>                -- FIXME: *all* names on the right must be bound on the left
 >                return (tm, rtm)
 
 > mkScheme :: Gamma Name -> (Indexed Name, Indexed Name) -> PMDef Name

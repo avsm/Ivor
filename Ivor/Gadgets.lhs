@@ -5,6 +5,14 @@
 > class Forget a b | a->b where
 >     forget :: a -> b
 
+> traceIndex :: [a] -> Int -> String -> a
+> traceIndex xs i str | length xs <= i = error $ " !! index too large: " ++ str
+>                     | otherwise = xs!!i
+
+> safeIndex :: [a] -> Int -> a -> a
+> safeIndex xs i def | length xs <= i = def
+>                    | otherwise = xs!!i
+
 =================== Result Monad ========================
 
 > data Result r 

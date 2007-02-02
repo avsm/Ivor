@@ -62,7 +62,8 @@ type.
 >     (Level, -- Level number
 >      Bool, -- Inferring types of names (if true)
 >      Env Name, -- Extra bindings, if above is true
->      [(Indexed Name, Indexed Name)])
+>      -- conversion errors; remember the environment at the time we tried
+>      [(Env Name, Indexed Name, Indexed Name)])
 
 > type Level = Int
 
@@ -89,7 +90,15 @@ type.
 Do the typechecking, then unify all the inferred terms.
 
 >  tcfixup env lvl t exp = do
->     tm <- tc env lvl t exp
+>     tm@(_,tmty) <- tc env lvl t exp
+>     case exp of
+>              Nothing -> return ()
+>              Just expty -> return ()
+
+  checkConvSt env gamma expty tmty 
+     $ "Expected type and inferred type do not match: " 
+     ++ show expty ++ " and " ++ show tmty
+
 >     (next, infer, bindings, errs) <- get
 >     tm' <- fixup errs tm
 >     bindings <- fixupB errs bindings
@@ -139,7 +148,8 @@ typechecker...
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
 >          checkConvSt env gamma (Ind at) (Ind s) $ "Type error: " ++ show a ++ " : " ++ show at ++ ", expected type "++show s -- ++" "++show env
 >          let tt = (Bind (MN ("x",0)) (B (Let av) at) (Sc t))
->          return (Ind (App fv av), (normaliseEnv env (Gam []) (Ind tt)))
+>          let tmty = (normaliseEnv env (Gam []) (Ind tt))
+>          return (Ind (App fv av), tmty)
 >       (_, (Ind (Bind _ (B Pi s) (Sc t)))) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
 >          checkConvSt env gamma (Ind at) (Ind s) $ "Type error: " ++ show a ++ " : " ++ show at ++ ", expected type "++show s -- ++" "++show env
@@ -167,6 +177,7 @@ and we don't convert names to de Bruijn indices
 >          Nothing -> Nothing
 >          (Just (Ind (Bind sn sb (Sc st)))) -> Just $
 >             normaliseEnv ((sn,sb):env) gamma (Ind st)
+>          _ -> fail (show exp)
 >     (Ind scv, Ind sct) <- tcfixup ((n,gb):env) lvl sc scexp
 >     --discharge gamma n gb (Sc scv) (Sc sct)
 >     discharge gamma n gb (pToV n scv) (pToV n sct)
@@ -235,14 +246,14 @@ and we don't convert names to de Bruijn indices
 
 >  checkConvSt env g x y err = if convertEnv env g x y then return ()
 >                              else do (next, infer, bindings, err) <- get
->                                      put (next, infer, bindings, (x,y):err)
+>                                      put (next, infer, bindings, (env,x,y):err)
 >                                      return ()
 
 Insert inferred values into the term
 
 >  fixup [] tm = return tm
->  fixup ((x,y):xs) (Ind tm, Ind ty) = do 
->      uns <- case unify gamma y x of
+>  fixup ((env,x,y):xs) (Ind tm, Ind ty) = do 
+>      uns <- case unifyenv gamma env y x of
 >                 Success x -> return x
 >                 Failure err -> fail $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
 >      let tm' = fixupNames uns tm

@@ -154,7 +154,7 @@
 > vt :: Indexed Name -> ViewTerm
 > vt (Ind tm) = vtaux [] tm where
 >     vtaux ctxt (P n) = Name Free n
->     vtaux ctxt (V i) = Name Bound (ctxt!!i)
+>     vtaux ctxt (V i) = Name Bound (traceIndex ctxt i "ViewTerm vt")
 >     vtaux ctxt (Con _ n _) = Name DataCon n
 >     vtaux ctxt (TyCon n _) = Name TypeCon n
 >     vtaux ctxt (Elim n) = Name ElimOp n

@@ -175,6 +175,7 @@ Model represents normal forms, including Ready (reducible) and Blocked
 >     | RdReturn (Model s)
 >     | RdCode (Model s)
 >     | RdQuote (Model s) -- (TT Name)
+>     | RdInfer
 
 > data Blocked s
 >     = BCon Int Name Int
@@ -214,8 +215,7 @@ to normal form, but we need a normal form to compare.
 >    -> PatVals
 >    -> Bool -- ^ For conversion
 >    -> TT Name -> Value
-> nf g c patvals conv t = {-trace (show t) $-} eval 0 g c t where
->
+> nf g c patvals conv t = eval 0 g c t where
 
 Get the type of a given name in the context
 
@@ -226,7 +226,7 @@ Get the type of a given name in the context
 Do the actual evaluation
 
 >  eval stage gamma (VG g) (V n) 
->      | (length g) <= n = error "Reference out of context!" -- MB (BV n) Empty
+>      | (length g) <= n = MB (BV n, MR RdInfer) Empty -- error $ "Reference out of context! " ++ show n ++ ", " ++ show (length g) -- 
 >      | otherwise = g!!n
 >  eval stage gamma g (P n) 
 >      = case lookup n patvals of
@@ -270,7 +270,7 @@ Do the actual evaluation
 >      (MR (RdBind n (B (Guess (eval stage gamma (VG g) v)) (eval stage gamma (VG g) ty))
 >         (Kr (\w x -> eval stage gamma (VG (x:(weaken w g))) sc,Wk 0))))
 >  eval stage gamma g (Proj _ x t) = case (eval stage gamma g t) of
->			 MR (RCon _ _ sp) -> (listify sp)!!x
+>			 MR (RCon _ _ sp) -> traceIndex (listify sp) x "Nobby.lhs, Proj"
 >			 _ -> error "Foo" -- MB (BProj x (eval stage gamma g t))
 >  eval stage gamma g (App f a) = apply gamma g (eval stage gamma g f) (eval stage gamma g a)
 >  eval stage gamma g (Call c t) = docall g (evalcomp stage gamma g c) (eval stage gamma g t)

@@ -174,7 +174,7 @@ names bound in patterns) then type check the right hand side.
 >         getRet (RSch pats r) = r
 >         mytypecheck gam (clause, ret) = 
 >             do (tm, pty, env) <- typecheckAndBind gam clause
->                (rtm, rty) <- check gam env ret Nothing 
+>                (rtm, rty) <- check gam env ret (Just pty) -- Nothing 
 >                checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible"
 >                return (tm, rtm)
 

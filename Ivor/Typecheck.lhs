@@ -90,8 +90,17 @@ We need this for checking pattern clauses...
 >                        Indexed Name, Indexed Name, Env Name)
 > checkAndBindPair gam tm1 tm2 = do
 >    ((v1,t1), (next, inf, e, bs)) <- lvlcheck 0 True 0 gam [] tm1 Nothing
->    ((v2,t2), (_, _, e, _)) <- lvlcheck 0 inf next gam e tm2 (Just t1)
->    return (v1,t1,v2,t2,e)
+>    -- rename all the 'inferred' things to another generated name,
+>    -- so that they actually get properly checked on the rhs
+>    let realNames = mkNames next
+>    e' <- fixupB gam realNames e
+>    (v1', t1') <- fixupGam gam realNames (v1, t1)
+>    ((v2,t2), (_, _, e'', _)) <- lvlcheck 0 inf next gam e' tm2 (Just t1')
+>    return (v1',t1',v2,t2,e'')
+>  where mkNames 0 = []
+>        mkNames n
+>           = ([],Ind (P (MN ("INFER",n-1))), 
+>                 Ind (P (MN ("T",n-1)))):(mkNames (n-1))
 
 > lvlcheck :: Monad m => Level -> Bool -> Int -> 
 >             Gamma Name -> Env Name -> Raw -> 
@@ -114,7 +123,7 @@ Do the typechecking, then unify all the inferred terms.
 >       else return ()
 >     (next, infer, bindings, errs) <- get
 >     tm' <- fixup errs tm
->     bindings <- fixupB errs bindings
+>     bindings <- fixupB gamma errs bindings
 >     put (next, infer, bindings, [])
 >     return tm'
 
@@ -122,7 +131,7 @@ Do the typechecking, then unify all the inferred terms.
 >     tm@(_,tmty) <- tc env lvl t exp
 >     (next, infer, bindings, errs) <- get
 >     tm' <- fixup errs tm
->     bindings <- fixupB errs bindings
+>     bindings <- fixupB gamma errs bindings
 >     put (next, infer, bindings, [])
 >     return tm'
 
@@ -272,23 +281,7 @@ and we don't convert names to de Bruijn indices
 
 Insert inferred values into the term
 
->  fixup [] tm = return tm
->  fixup ((env,x,y):xs) (Ind tm, Ind ty) = do 
->      uns <- case unifyenv gamma env y x of
->                 Success x' -> return x'
->                 Failure err -> fail $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
->      let tm' = fixupNames uns tm
->      let ty' = fixupNames uns ty
->      fixup xs (Ind tm', Ind ty')
-
->  fixupNames [] tm = tm
->  fixupNames ((x,ty):xs) tm = fixupNames xs $ substName x ty (Sc tm)
-
->  fixupB xs [] = return []
->  fixupB xs ((n, (B b t)):bs) = do
->    bs' <- fixupB xs bs
->    (Ind t', _) <- fixup xs (Ind t, Ind Star)
->    return ((n,(B b t')):bs')
+>  fixup e tm = fixupGam gamma e tm
 
 >  tcConst :: (Monad m, Constant c) => c -> m (Indexed Name, Indexed Name)
 >  tcConst c = return (Ind (Const c), Ind (constType c))
@@ -398,6 +391,24 @@ extended environment.
 
 -- > checkPatt gam env acc RInfer ty = return (combinepats acc PTerm, env)
 -- > checkPatt gam env _ _ _ = fail "Invalid pattern"
+
+> fixupGam gamma [] tm = return tm
+> fixupGam gamma ((env,x,y):xs) (Ind tm, Ind ty) = do 
+>      uns <- case unifyenv gamma env y x of
+>                 Success x' -> return x'
+>                 Failure err -> fail $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
+>      let tm' = fixupNames gamma uns tm
+>      let ty' = fixupNames gamma uns ty
+>      fixupGam gamma xs (Ind tm', Ind ty')
+
+> fixupNames gam [] tm = tm
+> fixupNames gam ((x,ty):xs) tm = fixupNames gam xs $ substName x ty (Sc tm)
+
+> fixupB gam xs [] = return []
+> fixupB gam xs ((n, (B b t)):bs) = do
+>    bs' <- fixupB gam xs bs
+>    (Ind t', _) <- fixupGam gam xs (Ind t, Ind Star)
+>    return ((n,(B b t')):bs')
 
 > combinepats Nothing x = x
 > combinepats (Just (PVar n)) x = error "can't apply things to a variable"

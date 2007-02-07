@@ -115,12 +115,17 @@ Do the typechecking, then unify all the inferred terms.
 >  tcfixupTop env lvl t exp = do
 >     tm@(_,tmty) <- tc env lvl t exp
 >     (next, infer, bindings, errs) <- get
+>     -- First, insert inferred values into the term
+>     tm'@(_,tmty) <- fixup errs tm
+>     -- Then check the resulting type matches the expected type.
 >     if infer then (case exp of
 >              Nothing -> return ()
 >              Just expty -> checkConvSt env gamma expty tmty 
 >                               $ "Expected type and inferred type do not match: " 
 >                               ++ show expty ++ " and " ++ show tmty)
 >       else return ()
+>     -- Then fill in any remained inferred values we got by knowing the
+>     -- expected type
 >     (next, infer, bindings, errs) <- get
 >     tm' <- fixup errs tm
 >     bindings <- fixupB gamma errs bindings

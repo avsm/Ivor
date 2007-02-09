@@ -41,6 +41,7 @@
 >              | Data Inductive
 >              | Axiom String ViewTerm
 >              | Declare String ViewTerm
+>              | DeclareData String ViewTerm
 >              | Theorem String ViewTerm
 >              | Interactive String ViewTerm
 >              | Forget String
@@ -151,6 +152,13 @@ which runs it.
 > pdata ext = do reserved "Data"
 >                datadef <- pInductive ext ; semi
 >                return $ Data datadef
+
+> plata :: Maybe (Parser ViewTerm) -> Parser Command
+> plata ext = do reserved "Data"
+>                name <- identifier
+>                lchar ':'
+>                term <- pTerm ext ; semi
+>                return $ DeclareData name term
 
 > axiom :: Maybe (Parser ViewTerm) -> Parser Command
 > axiom ext 
@@ -300,7 +308,8 @@ which runs it.
 > tryall (x:xs) = try x <|> tryall xs
 
 > command :: Maybe (Parser ViewTerm) -> Parser Command
-> command ext = tryall [def ext, typeddef ext, pdata ext, axiom ext, 
+> command ext = tryall [def ext, typeddef ext, pdata ext, plata ext, 
+>                       axiom ext, 
 >                       ptheorem ext, pdeclare ext, pinter ext, pforget, 
 >                       eval ext, check ext, ppatternDef ext,
 >                       pdrop, repldata, pqed, pprint, pfreeze, pthaw, pprf, 

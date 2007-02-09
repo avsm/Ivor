@@ -19,7 +19,7 @@
 >               -- * Exported view of terms
 >               module VTerm, IsTerm, IsData,
 >               -- * Definitions and Theorems
->               addDef,addTypedDef,addData,addAxiom,declare,
+>               addDef,addTypedDef,addData,addAxiom,declare,declareData,
 >               theorem,interactive,
 >               addPrimitive,addBinOp,addPrimFn,addExternalFn,
 >               addEquality,forgetDef,addGenRec,
@@ -186,6 +186,7 @@
 
 > checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
+>                                 Just (TCon _ NoConstructorsYet) -> return ()
 >                                 Just _ -> fail $ show n ++ " already defined"
 >                                 Nothing -> return ()
 
@@ -347,6 +348,13 @@
 > -- | Declare a name which is to be defined later
 > declare :: (IsTerm a, Monad m) => Context -> Name -> a -> m Context
 > declare ctxt n tm = addUn Undefined ctxt n tm
+
+> -- | Declare a type constructor which is to be defined later
+> declareData :: (IsTerm a, Monad m) => Context -> Name -> a -> m Context
+> declareData ctxt@(Ctxt st) n tm = do
+>   let gamma = defs st
+>   Term (ty, _) <- Ivor.TT.check ctxt tm
+>   addUn (TCon (arity gamma ty) NoConstructorsYet) ctxt n tm
 
 > -- | Add a new axiom to the global state.
 > addAxiom :: (IsTerm a, Monad m) => Context -> Name -> a -> m Context
@@ -560,7 +568,9 @@ Give a parseable but ugly representation of a term.
 
 > -- |Normalise a term and its type
 > eval :: Context -> Term -> Term
-> eval (Ctxt st) (Term (tm,ty)) = Term (normalise (defs st) tm,
+> eval (Ctxt st) (Term (tm,ty)) = let (Ind tmnf) = normalise (defs st) tm in
+>                                 trace (debugTT tmnf) $ 
+>                                 Term (normalise (defs st) tm,
 >                                       normalise (defs st) ty)
 
 > -- |Check a term in the context of the given goal

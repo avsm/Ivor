@@ -49,7 +49,8 @@ A clause is well-founded if there are no recursive calls, or it has a
 well-founded argument in common with all other recursive calls. We keep a list
 of which arguments are well-founded
 
-Nested recursive calls are not allowed.
+[REMOVED: Nested recursive calls are not allowed]
+[They are allowed as long as they are also well-founded]
 
 2) Alternatively, a definition is well founded if in every recursive call 
 there are no increasing arguments and at least one decreasing argument.
@@ -105,7 +106,9 @@ increasing arguments (iterature through arguments in a call)
 >                | otherwise = fail $ show c ++ " bigger than " ++ show p
 
 >         findRec args (App f a) = findRec (a:args) f
->         findRec args (P n) | n == fn = [args]
+>         findRec args (P n) | n == fn = [args] ++ 
+>                                        -- find nested calls too
+>                                        (concat $ map (findRec []) args)
 >         findRec args (Label t _) = findRec [] t
 >                                    ++ (concat (map (findRec []) args))
 >         findRec args (Bind _ (B (Let v) _) (Sc sc)) = findRec [] v ++
@@ -119,11 +122,12 @@ increasing arguments (iterature through arguments in a call)
 >                                             ++ show last
 >         wfRec args pats [] _ = return args
 >         wfRec args pats (a:as) _ =
->             case concat (map (findRec []) a) of
+>             {- case concat (map (findRec []) a) of
 >                (_:_) -> fail $ "Nested recursive calls not allowed "
 >                                ++ show (mkRec a)
->                _ -> do args <- wfRec1 args 0 pats a
->                        wfRec args pats as (Just (mkRec a))
+>                _ -> -}
+>               do args <- wfRec1 args 0 pats a
+>                  wfRec args pats as (Just (mkRec a))
 
 >         mkRec as = appArgs (P fn) as
 
@@ -131,6 +135,7 @@ increasing arguments (iterature through arguments in a call)
 >         wfRec1 args i (p:ps) (a:as)
 >             | structurallySmaller a p = wfRec1 args (i+1) ps as
 >             | otherwise = wfRec1 (args \\ [i]) (i+1) ps as
+>         wfRec1 args i _ _ = return args -- variadic function, just stop looking
 
 A non-recursive constructor application is structurally smaller than 
 anything.
@@ -269,6 +274,9 @@ Return true if the given pattern clause is the most specific in a list
 >       | moreSpec x y = moreSpecClause' xs ys
 >       | x == y = moreSpecClause' xs ys
 >       | otherwise = False
+> -- Differing numbers of arguments; ignore it, it'll be caught as a type
+> -- error elsewhere
+> moreSpecClause' _ _ = False
 
 
 > showClauses [] = ""

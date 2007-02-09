@@ -448,6 +448,8 @@ otherwise.
 >         (Just (TCon _ (Elims erule crule cons))) -> do
 >             by (mkapp (Var (if rec then erule else crule))
 >                                (map forget args)) gam env tm
+>         (Just (TCon _ NoConstructorsYet)) -> 
+>              fail $ (show n) ++ " is declared but not defined"
 >         _ -> fail $ (show n) ++ " is not a type constructor"
 
 > runCaseTac _ x indices gam env tm = 

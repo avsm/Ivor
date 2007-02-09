@@ -109,6 +109,9 @@
 >                                  return st { context = ctxt }
 > runCommand (Declare nm tm) st = do ctxt <- declare (context st) (name nm) tm
 >                                    return st { context = ctxt }
+> runCommand (DeclareData nm tm) st 
+>                = do ctxt <- declareData (context st) (name nm) tm
+>                     return st { context = ctxt }
 > runCommand (Theorem nm ty) st = do ctxt <- theorem (save (context st)) 
 >                                                    (name nm) ty
 >                                    let st' = respond st $

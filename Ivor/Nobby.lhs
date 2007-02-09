@@ -34,6 +34,7 @@ to do with it, when the time comes.
 > data Elims n = Elims { elimRuleName :: n,
 >                        caseRuleName :: n,
 >                        constructors :: [n] }
+>              | NoConstructorsYet
 
 > data FunOptions = Frozen | Recursive
 >   deriving Eq
@@ -149,6 +150,8 @@ the name is replaced.
 >   where ins n val [] acc = return $ (n,val):(reverse acc)
 >         -- FIXME: Check ty against val
 >         ins n val (d@(p,G Undefined ty _):xs) acc
+>             | n == p = return $ (n,val):(reverse acc) ++ xs
+>         ins n val (d@(p,G (TCon _ NoConstructorsYet) ty _):xs) acc
 >             | n == p = return $ (n,val):(reverse acc) ++ xs
 >         ins n val (d@(p,_):xs) acc 
 >             | n == p = fail $ "Name " ++ show p ++ " is already defined"

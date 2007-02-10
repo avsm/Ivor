@@ -1,0 +1,63 @@
+\documentclass{article}
+%\documentclass[orivec,dvips,10pt]{llncs}
+
+\usepackage{epsfig}
+\usepackage{path}
+\usepackage{url}
+\usepackage{amsmath,amssymb} 
+
+\newenvironment{template}{\sffamily}
+
+\usepackage{graphics,epsfig}
+\usepackage{stmaryrd}
+
+\input{macros.ltx}
+\input{library.ltx}
+
+\NatPackage
+
+\newcommand{\Ivor}{\textsc{Ivor}}
+\newcommand{\Funl}{\textsc{Funl}}
+\newcommand{\Agda}{\textsc{Agda}}
+
+\newcommand{\mysubsubsection}[1]{
+\noindent
+\textbf{#1}
+}
+\newcommand{\hdecl}[1]{\texttt{#1}}
+
+\begin{document}
+
+\title{\Ivor{}, a Tutorial}
+\author{Edwin Brady}
+
+%\institute{School of Computer Science, \\
+% University of St Andrews, St Andrews, Scotland. \\ \texttt{Email: eb@cs.st-andrews.ac.uk}.\\
+%\texttt{Tel: +44-1334-463253}, \texttt{Fax: +44-1334-463278} \vspace{0.1in}
+%}
+ 
+\maketitle
+
+\input{introduction}
+
+% Structure:
+
+% Programming in TT
+\input{programming}
+
+% Theorem proving in TT
+\input{theoremproving}
+
+% Haskell library
+\input{hslibrary}
+
+\bibliographystyle{abbrv}
+\begin{small}
+\bibliography{../bib/literature.bib}
+
+%\appendix
+
+%\input{code}
+
+\end{small}
+\end{document}

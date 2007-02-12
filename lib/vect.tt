@@ -8,29 +8,9 @@ Data Fin : (n:Nat)*
     = fz : (k:Nat)(Fin (S k))
     | fs : (k:Nat)(i:Fin k)(Fin (S k));
 
-lookup:(A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A;
-local lookupAux:(A:*)(n:Nat)(i:Fin n)(n':Nat)(xs:Vect A n')(p:Eq _ _ n n')A;
-intro A n i;
-induction i;
-intro k n' xs;
-induction xs;
-intros;
-fill (discriminate_Nat _ _ (sym _ _ _ p));
-intros;
-fill x; {- fz (x::xs) -}
-intro k i i_IH n' xs;
-induction xs;
-intros;
-fill (discriminate_Nat _ _ (sym _ _ _ p0));
-intros;
-refine (i_IH k0);
-fill xs0;
-refine s_injective;
-trivial;
-intros;
-refine (lookupAux _ _ i _ xs);
-refine refl;
-Qed;
+Match lookup : (A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A =
+    lookup _ _ (fz _) (vcons _ _ x xs) = x
+  | lookup _ _ (fs n i) (vcons _ n x xs) = lookup _ _ i xs;
 
 testvect = vcons _ _ O (vcons _ _ (S O) (vcons _ _ (S (S O)) (vnil Nat)));
 testfin = fs _ (fz (S O));

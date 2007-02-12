@@ -3,23 +3,13 @@ Load "logic.tt";
 
 Data Nat:* = O:Nat | S:(k:Nat)Nat;
 
-plus : (m:Nat)(n:Nat)Nat;
-intro m;
-induction m;
-intros;
-fill n;
-intros;
-fill S (k_IH n0);
-Qed;
+Match plus : Nat->Nat->Nat =
+   plus O y = y
+ | plus (S k) y = S (plus k y);
 
-mult : (m:Nat)(n:Nat)Nat;
-intro m;
-induction m;
-intros;
-fill O;
-intros;
-fill (plus n0 (k_IH n0));
-Qed;
+Match mult : Nat->Nat->Nat =
+   mult O y = O
+ | mult (S k) y = plus y (mult k y);
 
 simplifyO:(n:Nat)(Eq _ _ (plus O n) n);
 intros;

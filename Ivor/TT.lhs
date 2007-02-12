@@ -568,9 +568,7 @@ Give a parseable but ugly representation of a term.
 
 > -- |Normalise a term and its type
 > eval :: Context -> Term -> Term
-> eval (Ctxt st) (Term (tm,ty)) = let (Ind tmnf) = normalise (defs st) tm in
->                                 trace (debugTT tmnf) $ 
->                                 Term (normalise (defs st) tm,
+> eval (Ctxt st) (Term (tm,ty)) = Term (normalise (defs st) tm,
 >                                       normalise (defs st) ty)
 
 > -- |Check a term in the context of the given goal

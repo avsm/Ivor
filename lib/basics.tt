@@ -1,0 +1,15 @@
+-- Some generally useful definitions
+-- Heterogeneous equality, nats, maybe, bools, lists.
+
+Load "eq.tt";
+Load "nat.tt";
+
+Data Maybe (A:*) : * 
+  = nothing : Maybe A
+  | just : (a:A)(Maybe A);
+
+Data Bool : * = true : Bool | false : Bool;
+
+Data List (A:*) : * 
+  = nil : List A
+  | cons : (x:A)->(xs:List A)->(List A);

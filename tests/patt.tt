@@ -1,3 +1,4 @@
+Load "basics.tt";
 Load "vect.tt";
 
 Env = Vect *;
@@ -15,8 +16,6 @@ Match envlookup : (n:Nat)(i:Fin n)(G:Env n)(Gv:ValEnv n G)(vlookup _ _ i G) =
     envlookup _ (fz _) _ (extend _ t _ _ r) = t
   | envlookup _ (fs _ j) _ (extend _ t _ _ r) = envlookup _ j _ r;
 
-Data Bool : * = true:Bool | false:Bool;
-
 testEnv = vcons _ _ Nat (vcons _ _ Bool (vcons _ _ Nat (vnil *)));
 
 testValEnv : ValEnv _ testEnv;
@@ -29,11 +28,7 @@ fill (S (S O));
 refine empty;
 Qed;
 
-Data Le : (n:Nat)(m:Nat)* =
-   leO : (n:Nat)(Le O n)
- | leS : (n,m:Nat)(Le n m)->(Le (S n) (S m)); 
-
-Match minus : (m,n:Nat)(Le n m)->Nat =
+Match minus : (m,n:Nat)(le n m)->Nat =
     minus m O (leO m) = m
   | minus (S m) (S n) (leS n m p) = minus m n p;
 

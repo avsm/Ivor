@@ -1,73 +1,43 @@
+Load "basics.tt";
+
 Data le : (m,n:Nat)* =
     leO : (n:Nat)(le O n)
   | leS : (m,n:Nat)(p:le m n)(le (S m) (S n));
 
-leSuc : (m,n:Nat)(p:le m n)(le m (S n));
-intros;
-induction p;
-intros;
-refine leO;
-intros;
-refine leS;
-refine p_IH;
-Qed;
+Match leSuc : (m,n:Nat)(p:le m n)(le m (S n)) =
+    leSuc _ _ (leO _) = leO _
+  | leSuc _ _ (leS _ _ p) = leS _ _ (leSuc _ _ p);
 
-leSym : (m:Nat)(le m m);
-intros;
-induction m;
-refine leO;
-intros;
-refine leS;
-refine k_IH;
-Qed;
+Match leSym : (m:Nat)(le m m) =
+    leSym O = leO _
+  | leSym (S k) = leS _ _ (leSym k);
 
-lePlus : (m,n:Nat)(le m (plus m n));
-intros;
-induction m;
-refine leO;
-intros;
-refine leS;
-fill k_IH;
-Qed;
+Match lePlus : (m,n:Nat)(le m (plus m n)) =
+    lePlus O n = leO _
+  | lePlus (S k) n = leS _ _ (lePlus k n);
 
 Data Compare : (m,n:Nat)* =
     cmpLT : (k,m:Nat)(Compare m (plus m (S k)))
   | cmpEQ : (n:Nat)(Compare n n)
   | cmpGT : (k,n:Nat)(Compare (plus n (S k)) n);
 
-compare : (m,n:Nat)(Compare m n);
-intro;
-induction m;
-intro;
-induction n;
-refine cmpEQ;
-intros;
-fill cmpLT k O;
-intros;
-induction n0;
-fill cmpGT k O;
-intros;
-induction (k_IH k0);
-intros;
-fill cmpLT k1 (S m1);
-intros;
-refine cmpEQ;
-intros;
-fill cmpGT k2 (S n2);
-Qed;
+Match compareAux : (m,n:Nat)(Compare m n)->(Compare (S m) (S n)) =
+    compareAux _ _ (cmpLT _ m) = cmpLT _ (S m)
+  | compareAux _ _ (cmpEQ n) = cmpEQ _
+  | compareAux _ _ (cmpGT _ n) = cmpGT _ (S n);
 
-mkLT : (m,n:Nat)(Maybe (le m n));
-intros;
-induction (compare m n);
-intros;
-refine just;
-refine lePlus;
-intros;
-refine just;
-refine leSym;
-intros;
-refine nothing;
-Qed;
+Match compare : (m,n:Nat)(Compare m n) =
+    compare O (S k) = cmpLT _ O
+  | compare O O = cmpEQ _
+  | compare (S k) O = cmpGT _ O
+  | compare (S x) (S y) = compareAux _ _ (compare x y);
+
+Match mkLTaux : (m,n:Nat)(Compare m n)->(Maybe (le m n)) =
+    mkLTaux _ _ (cmpLT k m) = just _ (lePlus m (S k))
+  | mkLTaux _ _ (cmpEQ m) = just _ (leSym m)
+  | mkLTaux _ _ (cmpGT k m) = nothing _;
+
+mkLT = [m,n:Nat](mkLTaux _ _ (compare m n));
 
 isBounded : (n,min,max:Nat)(Maybe (And (le min n) (le n max)));
 intros;

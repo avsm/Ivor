@@ -20,8 +20,8 @@ program development to a Haskell application programmer, via a stable,
 well-documented and lightweight (as far as possible) API. The goal is
 to allow: i) easy embedding of theorem proving tools in a Haskell
 application; and ii) easy extension of the theorem prover with
-\remph{domain specific} tactics, via an embedded domain specific
-language (EDSL) for tactic construction.
+\remph{domain specific} tactics, via a domain specific embedded
+language (DSEL) for tactic construction.
 
 %% \Coq{}
 %% provides an extraction mechanism~\cite{extraction-coq} which generates
@@ -48,7 +48,8 @@ Many situations can benefit from a dependently typed proof and
 programming framework accessible as a library from a Haskell program.
 For each of these, by using an implementation of a well understood
 type theory, we can be confident that the underlying framework is
-sound.
+sound. 
+
 %% --- provided of course that the implementation itself is correct. 
 %% Implementing
 %% eliminates the need to prove that a language and proof system are consistent with
@@ -102,15 +103,20 @@ will give details of an implementation of propositional logic.
 
 In general, the library can be used wherever formally certified code
 is needed --- evaluation of dependently typed \Ivor{} programs is
-possible from Haskell programs and the results can be inspected easily.
-Whatever the situation, domain specific tactics are often
-required. For example, 
-an implementation of a programming language with subtyping may require
-a tactic for inserting coercions, or
-a computer arithmetic system may require an
-implementation of Pugh's Omega decision procedure~\cite{pugh-omega}.
-\Ivor{}'s API is designed to make implementation of such tactics as
-easy as possible.
+possible from Haskell programs and the results can be inspected
+easily.  Domain specific tactics are often required; e.g. an
+implementation of a programming language with subtyping may require a
+tactic for inserting coercions, or a computer arithmetic system may
+require an implementation of Pugh's Omega decision
+procedure~\cite{pugh-omega}.  \Ivor{}'s API is designed to make
+implementation of such tactics as easy as possible.
+
+In \Ivor{}'s dependent type system, types may be predicated on
+arbitrary values. This means that programs and properties can be
+expressed within the same self-contained system --- properties can be
+proved by construction, at the same time as the program is
+written. The tactic language can thus be used not only for
+constructing proofs but also for interactive program development.
 
 %\subsection{Why Do We Need Another Theorem Prover?}
 

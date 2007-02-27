@@ -90,10 +90,14 @@ proof state would be:
 \FN{plus}\:=\:\hole{\VV{plus}}{\Nat\to\Nat\to\Nat}
 }
 
-Proving a theorem proceeds by applying tactics to each unsolved hole
-in the proof state. The system keeps track of which subgoals are still
-to be solved, and a default subgoal, which is the next subgoal to be
-solved. I will write proof states in the following form:
+This theorem is, in fact, a specification of a program for adding two
+unary natural numbers, exploiting the Curry-Howard
+isomorphism~\cite{curry-feys,howard} between proofs and programs.
+Proving a theorem (i.e. also writing a program interactively) proceeds by
+applying tactics to each unsolved hole in the proof state. The system
+keeps track of which subgoals are still to be solved, and a default
+subgoal, which is the next subgoal to be solved. I will write proof
+states in the following form:
 
 \DM{
 \Rule{
@@ -186,7 +190,8 @@ A basic operation on terms is to introduce $\lambda$ bindings into the
 context. The \texttt{intro} and \texttt{introName} tactics operate on
 a goal of the form $\fbind{\vx}{\vS}{\vT}$, introducing
 $\lam{\vx}{\vS}$ into the context and updating the goal to
-$\vT$. \texttt{introName} allows a user specified name choice,
+$\vT$. That is, a goal of this form is solved by a $\lambda$-binding.
+\texttt{introName} allows a user specified name choice,
 otherwise \Ivor{} chooses the name.
 
 \begin{verbatim}
@@ -194,8 +199,7 @@ intro :: Tactic
 introName :: Name -> Tactic
 \end{verbatim}
 
-For example, to define a unary addition function, we might begin
-with
+For example, to define our addition function, we might begin with
 
 \DM{
 \Axiom{
@@ -219,7 +223,7 @@ local context:
 \subsubsection{Refinement}
 The \texttt{refine} tactic solves a goal by an application of a
 function to arguments. Refining attempts to solve a goal of type
-$\vT$, when given a term $\vt\Hab\fbind{\tx}{\tS}{\vT}$. The tactic
+$\vT$, when given a term of the form $\vt\Hab\fbind{\tx}{\tS}{\vT}$. The tactic
 creates a subgoal for each argument $\vx_i$, attempting to solve it by
 unification.
 
@@ -303,7 +307,9 @@ argument. We have the proof state
 }
 
 Applying \texttt{induction} to $\vx$ leaves two subgoals, one for the
-case where $\vx$ is zero, and one for the inductive case:
+case where $\vx$ is zero, and one for the inductive
+case\footnote{c.f. the Haskell function \texttt{natElim
+    :: Nat -> a -> (Nat -> a -> a) -> a)}}:
 
 \DM{
 \Rule{
@@ -350,8 +356,12 @@ side. To do this, it requires four arguments:
 The \Ivor{} distribution contains a library of $\source$ code with the
 appropriate definitions and lemmas. Requiring the lemmas to be
 supplied as arguments makes the library more flexible --- for example,
-heterogeneous equality~\cite{mcbride-thesis} may be preferred.  The
-type of the \texttt{replace} tactic is:
+heterogeneous equality~\cite{mcbride-thesis} may be preferred. The
+tactic will fail if terms of inappropriate types are given; recall
+from sec. \ref{sec:devcalc} that the development calculus requires
+that incomplete terms are also well-typed, so that all tactic
+applications can be typechecked. The type of the \texttt{replace}
+tactic is:
 
 \begin{verbatim}
 replace :: (IsTerm a, IsTerm b, IsTerm c, IsTerm d) =>

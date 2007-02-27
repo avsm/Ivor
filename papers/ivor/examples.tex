@@ -216,7 +216,9 @@ Building a \Funl{} function consists of creating a \hdecl{theorem}
 with a goal representing the function's type, then using the
 \hdecl{buildTerm} tactic to traverse the
 structure of the raw term, constructing a proof of the
-theorem:
+theorem --- note especially that \texttt{rec} translates into an
+application of the appropriate elimination rule via the
+\texttt{induction} tactic:
 
 \begin{verbatim}
 buildTerm :: Raw -> Tactic

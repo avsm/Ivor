@@ -8,12 +8,22 @@ other systems, we have not treated the theorem prover as an end in
 itself, but intend to expose the technology to any Haskell application
 which may need it.  The implementation of \Ivor{} is based on the
 presentation of \Oleg{} in Conor McBride's
-thesis~\cite{mcbride-thesis}; this technology also forms the basis for
-the implementation of \Epigram{}~\cite{view-left}. The core language
-of \Epigram{}~\cite{epireloaded} is similar to $\source$, with
-extensions for observational equality. We use implementation
+thesis~\cite{mcbride-thesis}. We use implementation
 techniques from \cite{not-a-number} for dealing with variables and
 renaming.
+
+The core language of \Epigram{}~\cite{view-left,epireloaded} is
+similar to $\source$, with extensions for observational
+equality. \Epigram{} is a dependently typed functional programming
+language, where types can be predicated on arbitrary values so that
+types can be read as precise specifications.
+Another recent language which shares the aim of begin theorem proving
+technology closer to programers is Sheard's
+$\Omega$mega~\cite{sheard-langfuture}. While \Ivor{} emphasises
+interactive theorem proving, $\Omega$mega emphasises programming but
+nevertheless allows more precise types to be given to programs through
+Generalised Algebraic Data Types~\cite{gadts} and extensible
+kinds. 
 
 Other theorem provers such as \Coq{}~\cite{coq-manual},
 \Agda{}~\cite{agda} and Isabelle~\cite{isabelle} have varying degrees
@@ -23,11 +33,13 @@ combining tactics and creating new tactics, along the lines of the
 tactic combinators presented in section \ref{combinators}. This
 language is ideal for many purposes, such as our \hdecl{contradiction}
 tactic, but more complex examples such as \hdecl{buildTerm} would
-require extending \Coq{} itself. One advantage of using an embedded
-DSL~\cite{hudak-edsl} as provided by \Ivor{} is that it gives complete
+require extending \Coq{} itself. One advantage of using a
+DSEL~\cite{hudak-edsl} as provided by \Ivor{} is that it gives complete
 flexibility in the construction of tactics, and allows a close
 relationship between the tactics and the Haskell-implemented
-structures on which they operate (e.g. \hdecl{Raw}).
+structures on which they operate (e.g. \hdecl{Raw}). In future, it may
+be worth exploring automatic translation between \Ivor{} and other
+theorem provers.
 
 Isabelle~\cite{isabelle} is a
 generic theorem prover, in that it includes a large body of object
@@ -64,7 +76,9 @@ programming language with built in equational reasoning support in
 section \ref{example2}.
 
 The library includes several features we have not been able to discuss
-here. There is experimental support for multi-stage programming with
+here. Dependently typed pattern matching 
+
+There is experimental support for multi-stage programming with
 dependent types, exploited in~\cite{dtpmsp-gpce}.  The term language
 can be extended with primitive types and operations, e.g. integers and
 strings with associated arithmetic and string manipulation

@@ -11,23 +11,28 @@ The core type theory of \Ivor{} is a strongly normalising dependently
 typed $\lambda$-calculus with inductive families~\cite{dybjer94},
 similar to Luo's UTT~\cite{luo94}, the Calculus of Inductive
 Constructions in \Coq{}~\cite{coq-manual}, or \Epigram{}'s
-ETT~\cite{epireloaded}.  This language, which I call $\source$, is an
-enriched lambda calculus, with the usual reduction rules, and
-properties of subject reduction, Church Rosser, and uniqueness of
-types up to conversion. The strong normalisation property (i.e. that
-evaluation always terminates) is guaranteed by allowing only primitive
-recursion over strictly positive inductive datatypes. The syntax of
-terms in this language is as follows:
+ETT~\cite{epireloaded}.  This language, which I call
+$\source$~\cite{brady-thesis}, is an enriched lambda calculus, with
+the usual reduction rules, and properties of subject reduction, Church
+Rosser, and uniqueness of types up to conversion. The strong
+normalisation property (i.e. that evaluation always terminates) is
+guaranteed by allowing only primitive recursion over strictly positive
+inductive datatypes. The syntax of terms ($\vt$) and binders ($\vb$)
+in this language is as follows:
 
 \DM{
-\begin{array}{rllrll}
+\begin{array}{rll@{\hg}|rll}
 \vt ::= & \Type_i & (\mbox{type universes}) &
- \mid  & \vx & (\mbox{variable}) \\
- \mid   & \vb\SC\:\vt & (\mbox{binding}) &
- \mid   & \vt\:\vt & (\mbox{application}) \\
-\vb ::= & \lam{\vx}{\vt} & (\mbox{abstraction}) &
+\hg\vb ::= & \lam{\vx}{\vt} & (\mbox{abstraction}) \\
+
+ \mid  & \vx & (\mbox{variable}) &
  \mid & \LET\:\vx\defq\vt\Hab\vt & (\mbox{let binding}) \\
- \mid & \all{\vx}{\vt} & (\mbox{function space})
+
+ \mid   & \vb\SC\:\vt & (\mbox{binding}) &
+ \mid & \all{\vx}{\vt} & (\mbox{function space}) \\
+
+ \mid   & \vt\:\vt & (\mbox{application})
+
 \end{array}
 }
 
@@ -37,22 +42,25 @@ abbreviate it to \mbox{$\vS\to\vT$} if $\vx$ is not free in
 $\vT$. This is both for readability and a notation more consistent
 with traditional functional programming languages.
 
-Universe levels on types ($\Type_i$) may be left implicit and inferred
+Universe levels on types (e.g. $\Type_0$ for values, $\Type_1$ for
+types, etc.) may be left implicit and inferred
 by the machine as in~\cite{implicit-pollack}.
-Contexts ($\Gamma$) are defined inductively; the empty context
-is valid, as is a context extended with a $\lambda$, $\forall$ or
-$\LET$ binding:
+Contexts ($\Gamma$) are collections of binders.
 
-\DM{
-\Axiom{\proves\RW{valid}}
-\hg
-\Rule{\Gamma\proves\RW{valid}}
-{\Gamma;\vb\proves\RW{valid}}
-}
+%% defined inductively; the empty context
+%% is valid, as is a context extended with a $\lambda$, $\forall$ or
+%% $\LET$ binding:
+
+%% \DM{
+%% \Axiom{\proves\RW{valid}}
+%% \hg
+%% \Rule{\Gamma\proves\RW{valid}}
+%% {\Gamma;\vb\proves\RW{valid}}
+%% }
 
 The typing rules are given below. These depend on a conversion
 relation \mbox{$\Gamma\proves\vx\conv\vy$}, which holds if and only if
-$\vx$ and $\vy$ have a common redex. This requires the typechecker to
+$\vx$ and $\vy$ have a common reduct. This requires the typechecker to
 perform some evaluation --- in order to find a common redex, types are
 reduced to normal form --- so it is
 important for decidability of typechecking that the language is
@@ -88,7 +96,7 @@ strongly normalising.
       \Gamma\proves\vS\Hab\Type_n\hg
       \Gamma;\LET\:\vx\defq\ve_1\Hab\vS\proves\vT\Hab\Type_n\end{array}
       }
-{\Gamma\vdash\LET\:\vx\Hab\vS\defq\ve_1\SC\:\ve_2\Hab
+{\Gamma\vdash\LET\:\vx\defq\ve_1\Hab\vS\SC\:\ve_2\Hab
    \vT[\ve_1/\vx]}   
 %\Let\:\vx\Hab\vS\defq\ve_1\:\IN\:\vT}
 \hspace*{0.1in}\mathsf{Let}
@@ -174,7 +182,7 @@ like $\List$, but \remph{indexed} over its length.
 
 When we declare an inductive family $\dD$, we give the constructors
 which explain how to build objects in that family. Along with this,
-the machine generates an \demph{elimination operator} $\delim$ (the
+\Ivor{} generates an \demph{elimination operator} $\delim$ (the
 type of which we call the \demph{elimination rule}) and corresponding
 reductions. The operator implements the reduction and recursion
 behaviour of terms in the family --- it is effectively a fold
@@ -210,11 +218,16 @@ following operator:
 }
 }
 
-The arguments to the elimination operator are the \demph{indices} ($\vA$
-and $\vn$ here), the \demph{target} (the object being eliminated;
-$\vv$ here), the \demph{motive} (a function which computes the return
-type of the elimination; $\vP$ here) and the \demph{methods}
-(which describe how to achieve the motive for each constructor form).
+The arguments to the elimination operator are the \demph{parameters}
+and \demph{indices} ($\vA$ and $\vn$ here), the \demph{target} (the
+object being eliminated; $\vv$ here), the \demph{motive} (a function
+which computes the return type of the elimination; $\vP$ here) and the
+\demph{methods} (which describe how to achieve the motive for each
+constructor form).  Note the distinction between parameters and
+indices --- the parameter $\vA$ is invariant across the structure so
+is not passed to the methods as an argument, but $\vn$ does vary, so
+is passed. A more detailed explanation of this distinction can be
+found in~\cite{luo94,brady-thesis}.
 
 A case analysis operator $\dcase$, is obtained similarly, but without
 the induction hypotheses. These operators are the only means to
@@ -223,6 +236,8 @@ recursive calls. This, along with the restriction that data types must
 be strictly positive, ensures that evaluation always terminates.
 
 \subsection{The Development Calculus}
+
+\label{sec:devcalc}
 
 For developing terms interactively, the type theory needs to support
 \remph{incomplete} terms, and a method for term construction. We

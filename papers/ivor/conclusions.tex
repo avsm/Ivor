@@ -3,10 +3,12 @@
 The ability to extend a theorem prover with user defined tactics has
 its roots in Robin Milner's LCF~\cite{lcf-milner}. This introduced the
 programming language ML to allow users to write tactics; we follow the
-LCF approach in exposing the tactic engine as an API. However, unlike
-other systems, we have not treated the theorem prover as an end in
-itself, but intend to expose the technology to any Haskell application
-which may need it.  The implementation of \Ivor{} is based on the
+LCF approach in exposing the tactic engine as an API. 
+%However, unlike
+%other systems, we have not treated the theorem prover as an end in
+%itself, but intend to expose the technology to any Haskell application
+%which may need it.  
+The implementation of \Ivor{} is based on the
 presentation of \Oleg{} in Conor McBride's
 thesis~\cite{mcbride-thesis}. We use implementation
 techniques from \cite{not-a-number} for dealing with variables and
@@ -27,19 +29,22 @@ kinds.
 
 Other theorem provers such as \Coq{}~\cite{coq-manual},
 \Agda{}~\cite{agda} and Isabelle~\cite{isabelle} have varying degrees
-of extensibility. The interface design largely follows that of
-\Coq{}. \Coq{} includes a high level domain specific language for
+of extensibility. 
+%The interface design largely follows that of
+%\Coq{}. 
+\Coq{} includes a high level domain specific language for
 combining tactics and creating new tactics, along the lines of the
 tactic combinators presented in section \ref{combinators}. This
 language is ideal for many purposes, such as our \hdecl{contradiction}
 tactic, but more complex examples such as \hdecl{buildTerm} would
-require extending \Coq{} itself. One advantage of using a
-DSEL~\cite{hudak-edsl} as provided by \Ivor{} is that it gives complete
+require extending \Coq{} itself. Using a
+DSEL~\cite{hudak-edsl} as provided by \Ivor{} gives complete
 flexibility in the construction of tactics, and allows a close
-relationship between the tactics and the Haskell-implemented
-structures on which they operate (e.g. \hdecl{Raw}). In future, it may
-be worth exploring automatic translation between \Ivor{} and other
-theorem provers.
+relationship between the tactics and the structures on which they
+operate (e.g. \hdecl{Raw}). 
+%In future, it may
+%be worth exploring automatic translation between \Ivor{} and other
+%theorem provers.
 
 Isabelle~\cite{isabelle} is a
 generic theorem prover, in that it includes a large body of object
@@ -62,9 +67,8 @@ with $\perp$ as a possible value), but the general method remains the same.
 
 \section{Conclusions and Further Work}
 
-We have seen an overview of the \Ivor{} library, including basic
-tactics for building proofs similar to the tactics available in other
-proof assistants such as \Coq{}. By exposing the tactic API and
+We have seen an overview of the \Ivor{} library, including the term
+and tactic language. By exposing the tactic API and
 providing an interface for term construction and evaluation, we are
 able to embed theorem proving technology in a Haskell
 application. This in itself is not a new idea, having first been seen
@@ -76,8 +80,8 @@ programming language with built in equational reasoning support in
 section \ref{example2}.
 
 The library includes several features we have not been able to discuss
-here. Dependently typed pattern matching 
-
+here, e.g. dependently typed pattern matching~\cite{coquand-pm}, which
+gives a better notation for \remph{programming} as well as proof.
 There is experimental support for multi-stage programming with
 dependent types, exploited in~\cite{dtpmsp-gpce}.  The term language
 can be extended with primitive types and operations, e.g. integers and
@@ -102,10 +106,11 @@ Development of the library has been driven by the requirements of
 our research into Hume~\cite{Hume-GPCE}, a resource aware functional
 language. We are investigating the use of dependent types in
 representing and verifying resource bounded functional
-programs~\cite{dt-framework}. For this, automatic generation of
+programs~\cite{dt-framework}. 
+For this, automatic generation of
 injectivity and disjointness lemmas for constructors will be
-essential~\cite{concon}, as well as an elimination with a
-motive~\cite{elim-motive} tactic. Future versions will include
+essential~\cite{concon}.
+Future versions will include
 optimisations from \cite{brady-thesis} and some support for compiling
 $\source$ terms; this would not only improve the efficiency of the
 library (and in particular its use for evaluating certified code)

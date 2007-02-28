@@ -17,4 +17,11 @@ ivor.dvi: $(SOURCES)
 	-latex ivor
 	-latex ivor
 
+package: ifl06.tar
+
+ifl06.tar: ivor.dvi ivor.ps ivor.pdf .PHONY
+	mkdir -p ifl06
+	cp ../bib/*.bib *.tex *.ltx *.bib *.ps *.pdf *.dvi *.cls ifl06
+	tar cvf ivor06.tar ifl06
+
 .PHONY:

@@ -86,7 +86,7 @@ To implement negation, we declare the empty type:
 }
 
 Then $\interp{\neg\ve}\:=\:\interp{\ve}\to\False$. The automatically
-derived elimination rule has the following type, showing that a value
+derived elimination shows that a value
 of \remph{any} type can be created from a proof of the empty type:
 
 \DM{
@@ -153,13 +153,14 @@ is implemented on top of \Ivor{} as a framework for both language
 representation and correctness proofs in that language. By using the
 same framework for both, it is a small step from implementing the
 language to implementing a theorem prover for showing properties of
-programs in the language, making use of the theorem prover developed
+programs, making use of the theorem prover developed
 in sec. \ref{example1}.
 An implementation is available from
 \url{http://www.cs.st-andrews.ac.uk/~eb/Funl/}; in this section I will
 sketch some of the important details of this implementation. Like the
 propositional logic theorem prover, much of the detail is in the
-parsing and pretty printing of terms and propositions.
+parsing and pretty printing of terms and propositions, relying on
+\Ivor{} for typechecking and evaluation.
 
 \subsubsection{Programs and Properties}
 

@@ -8,7 +8,7 @@
 Type theory based theorem provers such as \Coq{}~\cite{coq-manual} and
 \Agda{}~\cite{agda} have been used as tools for verification of programs
 (e.g.~\cite{leroy-compiler,why-tool,mckinna-expr}), extraction of
-correct programs from proofs (e.g.~\cite{extraction-coq,large-extraction})
+correct programs from proofs (e.g.~\cite{extraction-coq})
 and formal proofs of mathematical properties
 (e.g.~\cite{fta,four-colour}).  However, these tools are designed with a
 human operator in mind; the interface is textual which makes it
@@ -57,17 +57,17 @@ sound.
 
 \begin{description}
 \item[Programming Languages] 
-Dependent type theory can be used as the internal representation for a
+Dependent type theory is a possible internal representation for a
 functional programming language. 
 %The core language of the Glasgow
 %Haskell Compiler is \SystemF{}~\cite{core} --- dependent type theory
 %generalises this by allowing types to be parametrised over values.
-One advantage of a pure functional language is that correctness
-properties of programs in the language can be proven by equational
-reasoning.  Some tools exist to assist with this,
-e.g. Sparkle~\cite{sparkle} for the Clean language~\cite{clean}, or
+Correctness
+properties of programs in purely functional languages can be proven by
+equational reasoning, 
+e.g. with Sparkle~\cite{sparkle} for the Clean language~\cite{clean}, or
 Cover~\cite{cover} for translating Haskell into
-\Agda{}~\cite{agda}. However a problem with such tools is that they
+\Agda{}~\cite{agda}. However these tools 
 separate the language implementation from the theorem prover --- every
 language feature must be translated into the theorem prover's
 representation, and any time the language implementation is changed,
@@ -77,21 +77,22 @@ In section
 language with a built-in theorem prover, with a common representation
 for both.
 
-\item[Verified DSL Implementation]
-We have previously used \Ivor{} to demonstrate the implementation of
-a verified domain specific language~\cite{dtpmsp-gpce}. The idea is to
-represent the abstract syntax tree of a DSL program as a dependent
-type, and write an interpreter which guarantees that invariant
-properties of the program are maintained. Using staging
-annotations~\cite{multi-taha}, such an interpreter can be specialised
-to a translator. We are continuing to explore these techniques in the
-context of resource aware programming~\cite{dt-framework}.
+\item[Verified DSL Implementation] 
+
+We have previously implementated a verified domain specific
+language~\cite{dtpmsp-gpce} with \Ivor{}.  The abstract syntax tree of
+a program is a dependent data structure, and the type system
+guarantees that invariant properties of the program are maintained
+during evaluation.  Using staging annotations~\cite{multi-taha}, such
+an interpreter can be specialised to a translator. We are continuing
+to explore these techniques in the context of resource aware
+programming~\cite{dt-framework}.
 
 \item[Formal Systems] 
 
 A formal system can be modelled in dependent type theory, and
-properties of the system and derivations within the system can be
-proved. A simple example is propositional logic --- the connectives
+derivations within the system can be constructed and checked. 
+A simple example is propositional logic --- the connectives
 $\land$, $\lor$ and $\to$ are represented as types, and a theorem
 prover is used to prove logical formulae.  Having an implementation of
 type theory and an interactive theorem prover accessible as an API
@@ -112,8 +113,8 @@ procedure~\cite{pugh-omega}.  \Ivor{}'s API is designed to make
 implementation of such tactics as easy as possible.
 
 In \Ivor{}'s dependent type system, types may be predicated on
-arbitrary values. This means that programs and properties can be
-expressed within the same self-contained system --- properties can be
+arbitrary values. Programs and properties can be
+expressed within the same self-contained system --- properties are
 proved by construction, at the same time as the program is
 written. The tactic language can thus be used not only for
 constructing proofs but also for interactive program development.

@@ -12,8 +12,8 @@
 > -- Shell interface to theorem prover
 
 > module Ivor.Shell(ShellState,
->                     runShell, importFile, addModulePath, prefix,
->                     getContext, newShell, 
+>                     runShell, importFile, addModulePath, addStdlibPath,
+>                     prefix, getContext, newShell, 
 >                     sendCommand, sendCommandIO, addTactic,
 >                     extendParser, configureEq,
 >                     shellParseTerm, showProofState) where
@@ -375,6 +375,11 @@ If the given file is already loaded, do nothing.
 > -- | Add a directory to the module search path
 > addModulePath :: ShellState -> FilePath -> ShellState
 > addModulePath shell fp = shell { modulePath = fp:(modulePath shell) }
+
+> -- | Add the standard library path to the module search path
+> addStdlibPath :: ShellState -> ShellState
+> addStdlibPath shell
+>     = shell { modulePath = (prefix++"/lib/ivor"):(modulePath shell) }
 
 > environment :: String -> IO (Maybe String)
 > environment x = catch (do e <- getEnv x

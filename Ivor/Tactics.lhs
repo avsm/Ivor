@@ -354,7 +354,8 @@ Normalise the goal
 > evalGoal gam env (Ind (Bind x (B Hole ty) sc)) =
 >    do let (Ind nty) = normaliseEnv (ptovenv env) gam (finalise (Ind ty))
 >       tacret $ Ind (Bind x (B Hole nty) sc)
-> evalGoal _ _ _ = fail "Not a hole"
+> evalGoal _ _ (Ind (Bind x _ _)) = fail $ "evalGoal: " ++ show x ++ " Not a hole"
+> evalGoal _ _ _ = fail "evalGoal: Can't happen"
 
 Do beta reductions (i.e., normalise the goal without expanding global names)
 
@@ -362,7 +363,8 @@ Do beta reductions (i.e., normalise the goal without expanding global names)
 > betaReduce gam env (Ind (Bind x (B Hole ty) sc)) =
 >    do let (Ind nty) = normaliseEnv (ptovenv env) (Gam []) (finalise (Ind ty))
 >       tacret $ Ind (Bind x (B Hole nty) sc)
-> betaReduce _ _ _ = fail "Not a hole"
+> betaReduce _ _ (Ind (Bind x _ _)) = fail $ "betaReduce: " ++ show x ++ " Not a hole"
+> betaReduce _ _ _ = fail "betaReduce: Not a binder, can't happen"
 
 Normalise the goal, only expanding the given global name.
 
@@ -375,7 +377,8 @@ Normalise the goal, only expanding the given global name.
 >                                           (Gam [(fn,G v t defplicit)]) 
 >                                           (finalise (Ind ty))
 >              tacret $ Ind (Bind x (B Hole nty) sc)
-> reduceWith _ _ _ _ = fail "Not a hole"
+> reduceWith _ _ _ (Ind (Bind x _ _)) = fail $ "reduceWith: " ++ show x ++ " Not a hole"
+> reduceWith _ _ _ _ = fail "reduceWith: Not a binder, can't happen"
 
 Do case analysis by the given elimination operator
 
@@ -481,7 +484,8 @@ Rename a binder
 >   where doRename n (Bind x b sc)
 >             = return (Bind n b (Sc (substName x (P n) sc)))
 >         doRename _ _ = fail "Nothing to rename"
-> rename _ _ _ _ = fail "Not a hole"
+> rename _ _ _ (Ind (Bind x _ _)) = fail $ "rename: " ++ show x ++ " Not a hole"
+> rename _ _ _ _ = fail "rename: Not a binder, can't happen"
 
 Introduce a lambda or let
 
@@ -524,7 +528,8 @@ Replace a goal with an equivalent (convertible) goal.
 >        checkConvEnv env gam (Ind goalv) (finalise (Ind ty))
 >                         "Not equivalent to the Goal"
 >        tacret $ Ind (Bind x (B Hole goalvin) sc)
-> equiv _ _ _ _ = fail "Not a hole"
+> equiv _ _ _ (Ind (Bind x _ _)) = fail $ "equiv: " ++ show x ++ " Not a hole"
+> equiv _ _ _ _ = fail "equiv: Not a binder, can't happen"
 
 > generalise :: Raw -> Tactic
 > generalise expr gam env (Ind (Bind x (B Hole tyin) sc)) =
@@ -541,7 +546,8 @@ Replace a goal with an equivalent (convertible) goal.
 >        let newty = Bind newname (B Pi exprtin) (Sc newtysc)
 >        let newsc = substName x (App (P x) exprvin) sc
 >        tacret $ Ind (Bind x (B Hole newty) (Sc newsc))
-> generalise _ _ _ _ = fail "Not a hole"
+> generalise _ _ _ (Ind (Bind x b sc)) = fail $ "generalise: " ++ show x ++ " Not a hole"
+> generalise _ _ _ _ = fail "generalise: Can't happen"
 
 Replace a term in the goal according to the given equality rule, and the
 given equality type and replacement/symmetry lemmas.
@@ -576,7 +582,8 @@ Boolean flag (flip) is True if symmetry should be applied first.
 >          getTypes (App (App (App eq x) a) b) = return (x,a,b)
 >          getTypes _ = fail "Rule is not of equality type"
 >          mkns (UN a) (UN b) = UN (a++"_"++b)
-> replace _ _ _ _ _ _ _ _ = fail "Not a hole"
+> replace _ _ _ _ _ _ _ (Ind (Bind x b sc)) = fail $ "replace: " ++ show x ++ " Not a hole"
+> replace _ _ _ _ _ _ _ _ = fail "replace: Not a binder, can't happen"
 
 Create an axiom for the current goal (quantifying over all bound variables
 in the goal, and [FIXME!] all variables they depend on) and use it to 
@@ -595,7 +602,8 @@ solve the goal.
 >        getUsedBoundVars ((n,b@(B _ ty)):bs) ns
 >            | n `elem` ns = (n,ty):(getUsedBoundVars bs ns)
 >            | otherwise = getUsedBoundVars bs ns
-> axiomatise _ _ _ _ _ = fail "Not a hole"
+> axiomatise _ _ _ _ (Ind (Bind x b sc)) = fail $ "axiomatise: " ++ show x ++ " Not a hole"
+> axiomatise _ _ _ _ _ = fail "axiomatise: Not a binder, can't happen"
 
 Prepare to return a quoted value
 
@@ -613,7 +621,8 @@ Prepare to return a quoted value
 >   where checkQuoted (Stage (Code t)) = return t
 >         checkQuoted _ = fail "Not a code type"
 >         mkns (UN a) (UN b) = UN (a++"_"++b)
-> quote _ _ _ = fail "Not a hole"
+> quote _ _ (Ind (Bind x b sc)) = fail $ "quote: " ++ show x ++ " Not a hole"
+> quote _ _ _ = fail "quote: Not a binder, can't happen"
 
 > ptovenv [] = []
 > ptovenv ((x,b):xs) = (x,fmap finind b):(ptovenv xs)

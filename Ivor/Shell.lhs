@@ -16,7 +16,7 @@
 >                     prefix, getContext, newShell, 
 >                     sendCommand, sendCommandIO, addTactic,
 >                     extendParser, configureEq,
->                     shellParseTerm, showProofState) where
+>                     shellParseTerm, showProofState, response) where
 
 > import Ivor.ShellParser
 > import Ivor.TermParser
@@ -43,6 +43,7 @@
 >                          prompt :: String,
 >                          finished :: Bool,
 >                          context :: !Context,
+>                          -- | Get reply from last shell command
 >                          response :: String,
 >                          usertactics :: forall m.Monad m => [(String, String -> Goal -> Context -> m Context)],
 >                          imported :: [String],

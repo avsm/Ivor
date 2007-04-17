@@ -151,13 +151,20 @@
 	       (insert contents)
 	       (comint-send-input))))
 
+(defvar ivor-shell-exec "jones")
+
+(defun set-ivor-shell (executable)
+  "Set the Ivor shell executable"
+  (interactive "sShell executable: ")
+  (setq ivor-shell-exec executable))
+
 (defun ivor-start ()
   "Start a shell with Ivor in it"
   (interactive)
   (when (not (bufferp (get-buffer "*Ivor*")))
     (progn (shell "*Ivor*")
 	   (set-buffer (get-buffer "*Ivor*"))
-	   (insert "jones")
+	   (insert ivor-shell-exec)
 	   (comint-send-input))))
 
 (defun ivor-restart ()
@@ -168,7 +175,7 @@
       (progn (set-buffer (get-buffer "*Ivor*"))
 	     (insert "Drop;")
 	     (comint-send-input)
-	     (insert (concat "cd " dir "; jones"))
+	     (insert (concat "cd " dir "; " ivor-shell-exec))
 	     (comint-send-input))))
   (beginning-of-buffer))
 

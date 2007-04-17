@@ -341,10 +341,10 @@ Do the actual evaluation
 >           Nothing -> (MB pat (Snoc sp v))
 >           Just v -> v
 >      | otherwise = MB pat (Snoc sp v)
->  app g (MB (BPrimOp e n, ty) sp) v =
->      case e (Snoc sp v) of
->         Nothing -> (MB (BPrimOp e n, ty) (Snoc sp v))
->         (Just v) -> v
+>  app g (MB (BPrimOp e n, ty) sp) v 
+>    = case e (Snoc sp v) of
+>        Nothing -> (MB (BPrimOp e n, ty) (Snoc sp v))
+>        (Just v) -> v
 >  app g (MB (BCon tag n i, ty) sp) v
 >      | size (Snoc sp v) == i = (MR (RCon tag n (Snoc sp v)))
 >      | otherwise = (MB (BCon tag n i, ty) (Snoc sp v))

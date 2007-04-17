@@ -33,9 +33,17 @@ jones: .PHONY package install
 jones_install: jones
 	install Jones/jones $(PREFIX)/bin
 
+iovor: .PHONY package install
+	cd IOvor; ghc --make $(GHCOPTS) Main.lhs -o iovor -package ivor
+
+iovor_install: iovor
+	install IOvor/iovor $(PREFIX)/bin
+	install IOvor/iobasics.tt $(PREFIX)/lib/ivor
+
 clean:
 	runhaskell Setup.lhs clean
-	rm -f Jones/jones Main.o Main.hi
+	rm -f Jones/jones *.o *.hi
+	rm -f IOvor/iovor *.o *.hi
 	make -C tests clean
 
 decruft:

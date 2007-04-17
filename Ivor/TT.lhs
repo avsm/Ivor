@@ -21,7 +21,7 @@
 >               -- * Definitions and Theorems
 >               addDef,addTypedDef,addData,addAxiom,declare,declareData,
 >               theorem,interactive,
->               addPrimitive,addBinOp,addPrimFn,addExternalFn,
+>               addPrimitive,addBinOp,addBinFn,addPrimFn,addExternalFn,
 >               addEquality,forgetDef,addGenRec,
 >               -- * Pattern matching definitions
 >               PClause(..), Patterns(..),PattOpt(..),addPatternDef,
@@ -402,6 +402,29 @@
 >              = case cast x of
 >                   Just x' -> case cast y of
 >                      Just y' -> Just $ MR (RdConst $ f x' y')
+>                      Nothing -> Nothing
+>                   Nothing -> Nothing
+>          mkfun _ = Nothing
+
+> -- | Add a new binary function on constants. Warning: The type you give
+> -- is not checked!
+> addBinFn :: (ViewConst a, ViewConst b, IsTerm ty, Monad m) =>
+>             Context -> Name -> (a->b->ViewTerm) -> ty -> m Context
+> addBinFn (Ctxt st) n f tyin = do
+>        checkNotExists n (defs st)
+>        Term (ty, _) <- Ivor.TT.check (Ctxt st) tyin
+>        let fndef = PrimOp mkfun
+>        let Gam ctxt = defs st
+>        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
+>        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
+>        return $ Ctxt st { defs = newdefs }
+>    where mkfun :: Spine Value -> Maybe Value
+>          mkfun (Snoc (Snoc Empty (MR (RdConst x))) (MR (RdConst y)))
+>              = case cast x of
+>                   Just x' -> case cast y of
+>                      Just y' -> case Ivor.TT.check (Ctxt st) $ f x' y' of
+>                          Just (Term (Ind v,_)) ->
+>                              Just $ nf (Gam []) (VG []) [] False v
 >                      Nothing -> Nothing
 >                   Nothing -> Nothing
 >          mkfun _ = Nothing

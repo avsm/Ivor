@@ -4,6 +4,7 @@
      (define-key map "\C-n" 'ivor-send-to-shell)
      (define-key map "\C-c\C-n" 'ivor-send-all-to-shell)
      (define-key map "\C-c\C-s" 'ivor-start)
+     (define-key map "\C-c\C-d" 'ivor-stop)
      (define-key map "\C-c\C-r" 'ivor-restart)
      (define-key map "\C-c\C-u" 'ivor-undo)
      map)
@@ -152,11 +153,17 @@
 	       (comint-send-input))))
 
 (defvar ivor-shell-exec "jones")
+(defvar ivor-shell-sep ";")
 
 (defun set-ivor-shell (executable)
   "Set the Ivor shell executable"
   (interactive "sShell executable: ")
   (setq ivor-shell-exec executable))
+
+(defun set-ivor-sep (sep)
+  "Set the Ivor shell command separator"
+  (interactive "sShell separator: ")
+  (setq ivor-shell-sep sep))
 
 (defun ivor-start ()
   "Start a shell with Ivor in it"
@@ -167,13 +174,23 @@
 	   (insert ivor-shell-exec)
 	   (comint-send-input))))
 
+(defun ivor-stop ()
+  "Stop the Ivor process"
+  (interactive)
+  (let ((dir (file-name-directory buffer-file-name)))
+    (save-current-buffer
+      (progn (set-buffer (get-buffer "*Ivor*"))
+	     (insert (concat "Drop" ivor-shell-sep))
+	     (comint-send-input))))
+  (beginning-of-buffer))
+
 (defun ivor-restart ()
   "Restart the Ivor process"
   (interactive)
   (let ((dir (file-name-directory buffer-file-name)))
     (save-current-buffer
       (progn (set-buffer (get-buffer "*Ivor*"))
-	     (insert "Drop;")
+	     (insert (concat "Drop" ivor-shell-sep))
 	     (comint-send-input)
 	     (insert (concat "cd " dir "; " ivor-shell-exec))
 	     (comint-send-input))))

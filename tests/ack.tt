@@ -1,4 +1,4 @@
-Load "nat.tt";
+Load "basics.tt";
 
 Primitives;
 

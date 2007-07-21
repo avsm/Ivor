@@ -11,7 +11,7 @@
 > stdlibShell = addModulePath (newShell emptyContext)
 >                  (prefix ++ "/lib/ivor")
 
-> natShell = importFile "nat.tt" stdlibShell
+> basicShell = importFile "basics.tt" stdlibShell
 > ackShell = importFile "ack.tt" stdlibShell
 > partialShell = importFile "partial.tt" stdlibShell
 > vectShell = importFile "vect.tt" stdlibShell
@@ -41,7 +41,7 @@
 
 > tests :: IO Test
 > tests = do
->    nat <- natShell
+>    nat <- basicShell
 >    ack <- ackShell
 >    partial <- partialShell
 >    vect <- vectShell

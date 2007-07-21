@@ -25,6 +25,7 @@
 > import Text.ParserCombinators.Parsec
 > import Text.ParserCombinators.Parsec.Language
 > import qualified Text.ParserCombinators.Parsec.Token as PTok
+> import Data.Typeable
 
 > type TokenParser a = PTok.TokenParser a
 
@@ -90,6 +91,9 @@
 >                      c <- addPrimFn c (name "intToString") 
 >                               intToString
 >                               "(x:Int)String"
+>                      c <- addExternalFn c (name "stringEq") 2
+>                               stringEq
+>                               "(x,y:String)Bool"
 >                      return c
 
 > intToNat :: Int -> ViewTerm
@@ -98,6 +102,16 @@
 
 > intToString :: Int -> ViewTerm
 > intToString n = Constant (show n)
+
+> stringEq :: [ViewTerm] -> Maybe ViewTerm
+> stringEq [Constant x, Constant y] 
+>     = case cast x of
+>          Just x' -> if (x' == y) 
+>                       then Just $ Name DataCon (name "true")
+>                       else Just $ Name DataCon (name "false")
+>          _ -> Just $ Name DataCon (name "false")
+> stringEq [_, _] = Nothing
+
 
 > -- | Parse a primitive constant
 

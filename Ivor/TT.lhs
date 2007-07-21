@@ -456,7 +456,7 @@
 > -- Warning: The type you give is not checked!
 > addExternalFn :: (IsTerm ty, Monad m) =>
 >                  Context -> Name -> Int -- ^ arity
->                  -> ([ViewTerm] -> ViewTerm) -- ^ The function, which must
+>                  -> ([ViewTerm] -> Maybe ViewTerm) -- ^ The function, which must
 >                     -- accept a list of the right length given by arity.
 >                  -> ty -> m Context
 > addExternalFn (Ctxt st) n arity f tyin = do
@@ -470,10 +470,13 @@
 >    where mkfun :: Spine Value -> Maybe Value
 >          mkfun sx | xs <- listify sx
 >            = if (length xs) /= arity then Nothing
->               else case (Ivor.TT.check (Ctxt st) (runf xs)) of
->                  Nothing -> Nothing
->                  Just (Term (Ind tm, _)) -> 
->                      Just $ nf (Gam []) (VG []) [] False tm
+>               else case runf xs of
+>                      Just res ->
+>                          case (Ivor.TT.check (Ctxt st) res) of
+>                             Nothing -> Nothing
+>                             Just (Term (Ind tm, _)) -> 
+>                                 Just $ nf (Gam []) (VG []) [] False tm
+>                      Nothing -> Nothing
 
 Using 'Star' here is a bit of a hack; I don't want to export vt from
 ViewTerm, and I don't want to cut&paste code, and it's thrown away anyway...

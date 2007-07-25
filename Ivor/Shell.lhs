@@ -13,7 +13,7 @@
 
 > module Ivor.Shell(ShellState,
 >                     runShell, importFile, addModulePath, addStdlibPath,
->                     prefix, getContext, newShell, 
+>                     prefix, getContext, newShell, updateShell,
 >                     sendCommand, sendCommandIO, addTactic,
 >                     extendParser, configureEq,
 >                     shellParseTerm, showProofState, response) where
@@ -62,6 +62,14 @@
 > newShell :: Context -- ^ Initial system state
 >          -> ShellState
 > newShell ctxt = Shell Nothing "> " False ctxt "" [] [] Nothing []
+
+> -- | Update the context in a shell
+> updateShell :: Monad m => 
+>                (Context -> m Context) -- ^ Function to update context
+>                -> ShellState -> m ShellState
+> updateShell fctxt (Shell r p f c resp tacs imp ext path)
+>     = do ctxt <- fctxt c
+>          return (Shell r p f ctxt resp tacs imp ext path)
 
 > -- | Add a user defined tactic to the shell.
 > addTactic :: String -- ^ Tactic name.

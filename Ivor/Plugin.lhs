@@ -25,7 +25,10 @@
 
 > load :: FilePath -> Context -> IO (Context, Maybe (Parser ViewTerm))
 > load fn ctxt = do 
->          mv <- Plugins.load fn [] ["/home/eb/.ghc/i386-linux-6.4.1/package.conf"] "initialise"
+>          putStrLn "Loading"
+>          mv <- Plugins.load_ fn [] "initialise"
+>          -- mv <- Plugins.load fn [] ["/home/eb/.ghc/i386-linux-6.4.1/package.conf"] "initialise"
+>          putStrLn "Loaded"
 >          initialise <- case mv of
 >                  LoadFailure msg -> fail $ "Plugin loading failed: " ++ (show msg)
 >                  LoadSuccess _ v -> return v

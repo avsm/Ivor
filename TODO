@@ -1,15 +1,12 @@
 Short term things to do:
 
+* Ability to add commands as well as tactics would be useful.
 * Need an easier way of updating a context with an input file
    (currently have to create a shell, then load, then create a new
    shell if you want to modify the context further)
 * Improve error messages!
 * Recursive functions shouldn't reduce at type level.
 * Either better than Monad m? Define an Error type.
-* Pattern matching compiler with totality checker would be very
-  useful, as a stop gap in place of elimination with a motive. This
-  probably involves adding a 'TotallyImpossible' construct to TT, and
-  an axiom (A:*)->(Eq _ _ x TotallyImpossible)->A.
 * Fix naming bug --- terms of form t1 -> t2 automatically give t1 the
   name X, which can clash. Particularly a problem in data type declarations.
 * Current naive proof state representation is far too slow. Come up

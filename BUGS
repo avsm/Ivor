@@ -1,3 +1,7 @@
+* Pattern matching RHS doesn't deal with bindings properly (if there
+  are names bound on the RHS, anything could happen...)
+* Higher order recursive datatypes do not have induction hypothesis
+  generated for the higher order arguments.
 * Non-termination if trying to parse an expression with no closing bracket.
 * Tactics should know what level they operate at; currently we need to
   allow escapes at the top level in the typechecker as a hack, and
@@ -15,8 +19,6 @@
   some of the arguments explicitly.
 * No check for strict positivity.
   Workaround: Don't use non positive types :).
-* Higher order recursive datatypes do not have induction hypothesis
-  generated for the higher order arguments.
 
 Recently fixed:
 

@@ -1,5 +1,8 @@
-DB = --user
-PREFIX = $(HOME)
+DB = 
+PREFIX = /usr/local
+# DB = --user
+# PREFIX = $(HOME)
+
 # Set this to -p for profiling libraries too
 PROFILE =
 
@@ -7,7 +10,7 @@ GHCOPTS =
 
 package:
 	echo "module Ivor.Prefix where prefix = \"$(PREFIX)\"" > Ivor/Prefix.hs
-	runhaskell Setup.lhs configure --user --ghc --prefix=$(PREFIX) $(PROFILE)
+	runhaskell Setup.lhs configure $(DB) --ghc --prefix=$(PREFIX) $(PROFILE)
 	runhaskell Setup.lhs build
 
 install: .PHONY

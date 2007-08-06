@@ -66,6 +66,7 @@
 >              | JMEq String String
 >              | Primitives
 >              | Drop
+>              | UserCommand String String
 
 > data RunTactic = Attack
 >                | AttackWith String
@@ -303,19 +304,27 @@ which runs it.
 >               whiteSpace ; semi
 >               return $ Compile rest
 
+> puser :: [String] -> Parser Command
+> puser coms = do com <- identifier ; 
+>                 if (com `elem` coms) 
+>                    then do tm <- readToEnd ; semi
+>                            return $ UserCommand com tm
+>                    else fail "No such command"
+
 > tryall :: [Parser a] -> Parser a
 > tryall [x] = x
 > tryall (x:xs) = try x <|> tryall xs
 
-> command :: Maybe (Parser ViewTerm) -> Parser Command
-> command ext = tryall [def ext, typeddef ext, pdata ext, plata ext, 
+> command :: Maybe (Parser ViewTerm) -> [String] -> Parser Command
+> command ext user 
+>             = tryall [def ext, typeddef ext, pdata ext, plata ext, 
 >                       axiom ext, 
 >                       ptheorem ext, pdeclare ext, pinter ext, pforget, 
 >                       eval ext, check ext, ppatternDef ext,
 >                       pdrop, repldata, pqed, pprint, pfreeze, pthaw, pprf, 
 >                       pundo, psuspend, presume, pgenrec, pjme,
 >                       pload, pcompile, pfocus, pdump, pprfstate, pprims,
->                       pplugin]
+>                       pplugin, puser user]
 
 > tactic :: Maybe (Parser ViewTerm) -> [String] -> Parser RunTactic
 > tactic ext usertacs
@@ -382,17 +391,18 @@ which runs it.
 > possible :: String -> Parser Bool
 > possible word = option False (do reserved word ; return True)
 
-> input :: Maybe (Parser ViewTerm) -> [String] -> Parser Input
-> input ext usertacs = try (do whiteSpace
->                              cmd <- command ext
->                              return $ Command cmd)
->                  <|> (do whiteSpace
->                          tac <- tactic ext usertacs
->                          return $ Tactic defaultGoal tac)
+> input :: Maybe (Parser ViewTerm) -> [String] -> [String] -> Parser Input
+> input ext usertacs usercoms 
+>           = try (do whiteSpace
+>                     cmd <- command ext usercoms
+>                     return $ Command cmd)
+>             <|> (do whiteSpace
+>                     tac <- tactic ext usertacs
+>                     return $ Tactic defaultGoal tac)
 
 > parseInput :: Monad m => Maybe (Parser ViewTerm) -> 
->                          [String] -> String -> m Input
-> parseInput ext usertacs str 
->     = case parse (input ext usertacs) "(input)" str of
+>                          [String] -> [String] -> String -> m Input
+> parseInput ext usertacs usercoms str 
+>     = case parse (input ext usertacs usercoms) "(input)" str of
 >                 Left err -> fail (show err)
 >                 Right inp -> return inp

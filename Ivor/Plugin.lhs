@@ -23,12 +23,17 @@
 > -- compiled if necessary.
 > -- Plugins must contain the symbol
 > -- @plugin_context :: Monad m => Context -> m Context
-> -- which updates the context, and optionally a symbol
+> -- which updates the context. It may optionally contain symbols
 > -- @plugin_parser :: Parser ViewTerm
-> -- which adds new parsing rules. Returns the new context and the
-> -- extra parsing rules, if any.
+> -- which adds new parsing rules,
+> -- @plugin_commands :: [(String, String -> COntext -> IO (String, Context))]
+> -- which adds new user defined commands.
+> -- Returns the new context and the extra parsing rules/commands, if any.
 
-> load :: FilePath -> Context -> IO (Context, Maybe (Parser ViewTerm))
+> load :: FilePath -> Context -> 
+>           IO (Context, 
+>               Maybe (Parser ViewTerm),
+>               Maybe [(String, String -> Context -> IO (String, Context))])
 > load fn ctxt = do 
 >          objIn <- compilePlugin fn
 >          obj <- case objIn of
@@ -44,17 +49,21 @@
 >          parserules <- case parserMod of
 >                  LoadFailure msg -> return Nothing
 >                  LoadSuccess _ v -> return $ Just v
+>          cmdMod <- Plugins.reload mod "plugin_commands"
+>          cmds <- case cmdMod of
+>                  LoadFailure msg -> return Nothing
+>                  LoadSuccess _ v -> return $ Just v
 >          ctxt' <- case contextFn ctxt of
 >                      Just x -> return x
 >                      Nothing -> fail "Error in running plugin_context"
->          return $ (ctxt', parserules)
+>          return $ (ctxt', parserules, cmds)
 
 Make a .o from a .hs, so that we can load Haskell source as well as object
 files
 
 > compilePlugin :: FilePath -> IO (Either String FilePath)
 > compilePlugin hs 
->     | isExt ".hs" hs =
+>     | isExt ".hs" hs || isExt ".lhs" hs =
 >         do status <- make hs []
 >            case status of
 >               MakeSuccess c out -> return $ Right out

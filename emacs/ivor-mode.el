@@ -135,9 +135,10 @@
   (interactive)
   (progn (save-excursion
 	   (beginning-of-line)
-	   (let ((this-line (thing-at-point 'line)))
+	   (let* ((this-line (thing-at-point 'line))
+	          (chomped (substring this-line 0 (- (length this-line) 1))))
 	     (progn (set-buffer (get-buffer "*Ivor*"))
-		    (insert this-line)
+		    (insert chomped)
 		    (comint-send-input))))
 	 (forward-line 1)
 	 (beginning-of-line)

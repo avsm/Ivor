@@ -46,6 +46,7 @@
 >                          -- | Get reply from last shell command
 >                          response :: String,
 >                          usertactics :: forall m.Monad m => [(String, String -> Goal -> Context -> m Context)],
+>                          usercommands :: [(String, String -> Context -> IO (String, Context))],
 >                          imported :: [String],
 >                          extensions :: Maybe (Parser ViewTerm),
 >                          -- search path for modules to load
@@ -61,22 +62,29 @@
 > -- | Create a new shell state.
 > newShell :: Context -- ^ Initial system state
 >          -> ShellState
-> newShell ctxt = Shell Nothing "> " False ctxt "" [] [] Nothing []
+> newShell ctxt = Shell Nothing "> " False ctxt "" [] [] [] Nothing []
 
 > -- | Update the context in a shell
 > updateShell :: Monad m => 
 >                (Context -> m Context) -- ^ Function to update context
 >                -> ShellState -> m ShellState
-> updateShell fctxt (Shell r p f c resp tacs imp ext path)
+> updateShell fctxt (Shell r p f c resp tacs coms imp ext path)
 >     = do ctxt <- fctxt c
->          return (Shell r p f ctxt resp tacs imp ext path)
+>          return (Shell r p f ctxt resp tacs coms imp ext path)
 
 > -- | Add a user defined tactic to the shell.
 > addTactic :: String -- ^ Tactic name.
->           -> (String -> Tactic) -- ^ Tactic function. The argument is whatever was input on the shell; the function is resposible for parsing this.
+>           -> (String -> Tactic) -- ^ Tactic function. The argument is whatever was input on the shell; the function is responsible for parsing this.
 >           -> ShellState -- ^ Shell to which to add the tactic.
 >           -> ShellState
 > addTactic nm tac st = st { usertactics = (nm,tac):(usertactics st) }
+
+> -- | Add a user defined command to the shell.
+> addCommand :: String -- ^ Command name.
+>            -> (String -> Context -> IO (String, Context)) -- ^ Command function. The argument is whatever was input on the shell; the function is responsible for parsing this. The command returns a string (the response) and a possibly updated context.
+>            -> ShellState -- ^ Shell to which to add the command.
+>            -> ShellState
+> addCommand nm com st = st { usercommands = (nm, com):(usercommands st) }
 
 > -- | Add another parsing rule for parsing terms.
 > extendParser :: ShellState -> Parser ViewTerm -> ShellState
@@ -202,6 +210,7 @@
 > runCommand (Load f) st = fail "Can only load in a shell -- use importFile instead"
 > runCommand (Plugin f) st = fail "Can only load plugin in a shell -- use Plugin.load instead"
 > runCommand (Compile f) st = fail "Can only Compile in a shell -- use 'compile' function instead"
+> runCommand (UserCommand _ _) st = fail "Can only run user commands in a shell"
 
 > runTactic _ _ Attack = attack
 > runTactic _ _ (AttackWith n) = attackWith (name n)
@@ -262,15 +271,23 @@ function which doesn't need to be in the IO Monad.
 > process (Failure err) st = return $ respondLn st err
 > process (Success (Command (Load f))) st = do importFile f st
 > process (Success (Command (Plugin f))) st = do 
->     (ctxt, exts) <- load f (context st)
+>     (ctxt, exts, cmds) <- load f (context st)
 >     let st' = st { context = ctxt }
 >     let st'' = case exts of
 >                    Nothing -> st' 
 >                    Just p -> extendParser st' p
->     return st''
+>     let st''' = case cmds of
+>                    Nothing -> st''
+>                    Just c -> st'' { usercommands = usercommands st'' ++ c }
+>     return st'''
 > process (Success (Command (Compile f))) st = do compile (context st) f
 >                                                 putStrLn $ "Output " ++ f ++ ".hs"
 >                                                 return st
+> process (Success (Command (UserCommand c arg))) st = do
+>     let Just fn = lookup c (usercommands st) -- can't fail if parser succeeds
+>     (resp, ctxt) <- fn arg (context st)
+>     let st' = st { context = ctxt, response = resp }
+>     return st'
 > process x st = processInput x st
 
 > processInput :: Monad m => Result Input -> ShellState -> m ShellState
@@ -313,7 +330,9 @@ function which doesn't need to be in the IO Monad.
 > loop st = do putStr (prompt st)
 >              hFlush stdout
 >              inp <- readToSemi
->              st' <- catch (process (parseInput (extensions st) (gettacs (usertactics st)) inp) st)
+>              st' <- catch (process (parseInput (extensions st) 
+>                                     (gettacs (usertactics st)) 
+>                                     (map fst (usercommands st)) inp) st)
 >                      (\e -> do return $ respondLn st (show e))
 >              putStr $ (response st')
 >              if (finished st') 
@@ -339,7 +358,9 @@ function which doesn't need to be in the IO Monad.
 > -- | Send a command directly to a shell
 > sendCommand :: Monad m => String -> ShellState -> m ShellState
 > sendCommand str st = processInput 
->                        (parseInput (extensions st) (gettacs (usertactics st)) str) $
+>                        (parseInput (extensions st) 
+>                                    (gettacs (usertactics st))
+>                                    (map fst (usercommands st)) str) $
 >                          clearResponse st
 
 Special case for importFile. Grr.
@@ -348,7 +369,9 @@ Special case for importFile. Grr.
 > -- do IO actions.
 > sendCommandIO :: String -> ShellState -> IO ShellState
 > sendCommandIO str st = process
->                        (parseInput (extensions st) (gettacs (usertactics st)) str) $
+>                        (parseInput (extensions st) 
+>                                    (gettacs (usertactics st))
+>                                    (map fst (usercommands st)) str) $
 >                          clearResponse st
 
 > gettacs :: [(String, String -> Goal -> Context -> IO Context)] -> [String]

@@ -14,20 +14,53 @@
 > module Ivor.Plugin(Ivor.Plugin.load) where
 
 > import Ivor.TT
+
 > import System.Plugins as Plugins
 > import Text.ParserCombinators.Parsec
 
-> -- | Load the given plugin file (which should be a full path to a .o file)
-> -- and update the Context.
+> -- | Load the given plugin file (which should be a full path to a .o or
+> -- .hs file) and update the Context. If it is a .hs file, it will be
+> -- compiled if necessary.
 > -- Plugins must contain the symbol
-> -- @initialise :: Context -> (Context, Maybe (Parser ViewTerm))@
-> -- which updates the context and returns any parser extensions.
+> -- @plugin_context :: Monad m => Context -> m Context
+> -- which updates the context, and optionally a symbol
+> -- @plugin_parser :: Parser ViewTerm
+> -- which adds new parsing rules. Returns the new context and the
+> -- extra parsing rules, if any.
 
 > load :: FilePath -> Context -> IO (Context, Maybe (Parser ViewTerm))
 > load fn ctxt = do 
->          mv <- Plugins.load_ fn [] "initialise"
+>          objIn <- compilePlugin fn
+>          obj <- case objIn of
+>                    Left errs -> fail errs
+>                    Right ok -> return ok
+>          contextMod <- Plugins.load_ obj [] "plugin_context"
 >          -- mv <- Plugins.load fn [] ["/Users/edwin/.ghc/i386-darwin-6.6.1/package.conf"] "initialise"
->          initialise <- case mv of
->                  LoadFailure msg -> fail $ "Plugin loading failed: " ++ (show msg)
->                  LoadSuccess _ v -> return v
->          return $ initialise ctxt
+>          (mod, contextFn) <- case contextMod of
+>                  LoadFailure msg -> fail $ "Plugin loading failed: " ++
+>                                              show msg
+>                  LoadSuccess mod v -> return (mod, v)
+>          parserMod <- Plugins.reload mod "plugin_parser"
+>          parserules <- case parserMod of
+>                  LoadFailure msg -> return Nothing
+>                  LoadSuccess _ v -> return $ Just v
+>          ctxt' <- case contextFn ctxt of
+>                      Just x -> return x
+>                      Nothing -> fail "Error in running plugin_context"
+>          return $ (ctxt', parserules)
+
+Make a .o from a .hs, so that we can load Haskell source as well as object
+files
+
+> compilePlugin :: FilePath -> IO (Either String FilePath)
+> compilePlugin hs 
+>     | isExt ".hs" hs =
+>         do status <- make hs []
+>            case status of
+>               MakeSuccess c out -> return $ Right out
+>               MakeFailure errs -> return $ Left (concat (map (++"\n") errs))
+>     | isExt ".o" hs = return $ Right hs
+>     | elem '.' hs = return (Left $ "unrecognised file type " ++ hs)
+>     | otherwise = compilePlugin (hs++".o")
+>   where isExt ext fn = case span (/='.') fn of
+>                           (file, e) -> ext == e

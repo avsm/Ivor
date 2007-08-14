@@ -11,7 +11,8 @@
 > -- 
 > -- Some generic tactics for solving goals by applying constructors
 
-> module Ivor.Construction(auto,split,left,right,useCon,exists) where
+> module Ivor.Construction(auto,split,left,right,useCon,exists,
+>                          isItJust) where
 
 > import Ivor.TT
 > import Debug.Trace
@@ -77,4 +78,23 @@ check that there is the right number (num).
 > exists t = useCon 1 0 >+> fill t
 
 
+> -- | Try to solve a goal @A@ by evaluating a term of type @Maybe A@. If the
+> -- answer is @just a@, fill in the goal with the proof term @a@.
+> isItJust :: IsTerm a => a -> Tactic
+> isItJust tm g ctxt = do 
+>     gd <- goalData ctxt False g 
+>     let gty = view $ goalType gd
+>     vtm <- evalCtxt ctxt g tm
+>     let (prf, ty) = (view vtm, viewType vtm)
+>     -- make sure type is 'Maybe'
+>     case ty of
+>        (App (Name _ m) a) | m == (name "Maybe") 
+>           -> do case prf of
+>                  (App (Name _ n) _) | n == (name "nothing")
+>                      -> fail "No solution found"
+>                  (App (App (Name _ j) _) p) | j == (name "just")
+>                      -> fill p g ctxt
+>                  tm -> fail $ "Evaluated to " ++ show tm
+>        _ -> fail $ "Type of decision procedure must be ++ " ++ 
+>                       show (App (Name Unknown (name "Maybe")) gty)
 

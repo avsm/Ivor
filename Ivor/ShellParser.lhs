@@ -97,6 +97,7 @@
 >                | By ViewTerm
 >                | Induction ViewTerm
 >                | Cases ViewTerm
+>                | Decide ViewTerm
 >                | UserTactic String String
 
 A user defined tactic is a pair of the tactic name, and the function
@@ -382,6 +383,8 @@ which runs it.
 >             return $ Induction tm
 >      <|> do reserved "case" ; tm <- pTerm ext ; semi ; 
 >             return $ Cases tm
+>      <|> do reserved "decide" ; tm <- pTerm ext ; semi ; 
+>             return $ Decide tm
 >      <|> do tac <- identifier ; 
 >             if (tac `elem` usertacs) 
 >                then do tm <- readToEnd ; semi

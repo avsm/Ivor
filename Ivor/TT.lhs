@@ -31,7 +31,7 @@
 >               proofterm, getGoals, getGoal, uniqueName, -- getActions
 >               allSolved,qed,
 >               -- * Examining the Context
->               eval, getDef, getAllDefs, getConstructors,
+>               eval, evalCtxt, getDef, getAllDefs, getConstructors,
 >               Reduction(..), Rule(..), getElimRule,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
 >               -- * Goals, tactic types
@@ -613,6 +613,25 @@ Give a parseable but ugly representation of a term.
 >          Nothing -> fail "No such goal"
 >  where holeenv :: Gamma Name -> Env Name -> Indexed Name -> Env Name
 >        holeenv gam hs _ = Tactics.ptovenv hs
+
+> -- |Evaluate a term in the context of the given goal
+> evalCtxt :: (IsTerm a, Monad m) => Context -> Goal -> a -> m Term
+> evalCtxt (Ctxt st) goal tm =
+>     do rawtm <- raw tm
+>        prf <- case proofstate st of
+>                 Nothing -> fail "No proof in progress"
+>                 Just x -> return x
+>        let h = case goal of
+>                (Goal x) -> x
+>                DefaultGoal -> head (holequeue st)
+>        case (Tactics.findhole (defs st) (Just h) prf holeenv) of
+>          (Just env) -> do (tm, ty) <- Ivor.Typecheck.check (defs st) env rawtm Nothing
+>                           let tnorm = normaliseEnv env (defs st) tm
+>                           return $ Term (tnorm, ty)
+>          Nothing -> fail "No such goal"
+>  where holeenv :: Gamma Name -> Env Name -> Indexed Name -> Env Name
+>        holeenv gam hs _ = Tactics.ptovenv hs
+
 
 > -- |Check whether the conversion relation holds between two terms, in the
 > -- context of the given goal

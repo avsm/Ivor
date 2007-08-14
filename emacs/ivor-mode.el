@@ -23,18 +23,19 @@
 
 ;;;(regexp-opt '("Data" "Rec" "Qed" "Freeze" "Thaw" "Eval" "Check" "Load"
 ;;;	      "Suspend" "Resume" "Compile" "Repl" "Equality" "Drop"
-;;;	      "Primitives" "Forget" "Let" "Axiom" "Focus" "Declare" "Where"))
+;;;	      "Primitives" "Forget" "Let" "Axiom" "Focus" "Declare" "Where"
+;;;           "Plugin"))
 
 ;;;(regexp-opt '("attack" "claim" "local" "refine" "solve" "fill" "return"
 ;;;	      "quote" "call" "abandon" "rename" "intro" "intros" "arg"
 ;;;	      "equiv" "generalise" "dependent" "replace" "axiomatise"
 ;;;	      "compute" "unfold" "trivial" "by" "induction" "case" 
-;;;           "auto" "left" "right" "split" "exists"))
+;;;           "auto" "left" "right" "split" "exists" "decide"))
 
 (defconst ivor-font-lock-keywords
-  (list '("\\<\\(Axiom\\|C\\(?:heck\\|ompile\\)\\|D\\(?:ata\\|eclare\\|rop\\)\\|E\\(?:quality\\|val\\)\\|F\\(?:o\\(?:cus\\|rget\\)\\|reeze\\)\\|L\\(?:et\\|oad\\)\\|Primitives\\|Qed\\|Re\\(?:c\\|pl\\|sume\\)\\|Suspend\\|Thaw\\|where\\)\\>"
+  (list '("\\<\\(Axiom\\|C\\(?:heck\\|ompile\\)\\|D\\(?:ata\\|eclare\\|rop\\)\\|E\\(?:quality\\|val\\)\\|F\\(?:o\\(?:cus\\|rget\\)\\|reeze\\)\\|L\\(?:et\\|oad\\)\\|Primitives\\|Qed\\|Re\\(?:c\\|pl\\|sume\\)\\|Suspend\\|Thaw\\|Plugin\\|Where\\)\\>"
  . font-lock-keyword-face)
-        '("a\\(?:bandon\\|rg\\|ttack\\|uto\\|xiomatise\\)\\|by\\|c\\(?:a\\(?:ll\\|se\\)\\|laim\\|ompute\\)\\|dependent\\|e\\(?:quiv\\|xists\\)\\|fill\\|generalise\\|in\\(?:duction\\|tros?\\)\\|l\\(?:eft\\|ocal\\)\\|quote\\|r\\(?:e\\(?:fine\\|name\\|place\\|turn\\)\\|ight\\)\\|s\\(?:olve\\|plit\\)\\|trivial\\|unfold" . font-lock-builtin-face)
+        '("a\\(?:bandon\\|rg\\|ttack\\|uto\\|xiomatise\\)\\|by\\|c\\(?:a\\(?:ll\\|se\\)\\|laim\\|ompute\\)\\|de\\(?:cide\\|pendent\\)\\|e\\(?:quiv\\|xists\\)\\|fill\\|generalise\\|in\\(?:duction\\|tros?\\)\\|l\\(?:eft\\|ocal\\)\\|quote\\|r\\(?:e\\(?:fine\\|name\\|place\\|turn\\)\\|ight\\)\\|s\\(?:olve\\|plit\\)\\|trivial\\|unfold" . font-lock-builtin-face)
 	'("<\\([^:]*\\):[^>]*>" . (1 font-lock-string-face keep t))
 	'("<\\([^>:]*\\)>" . (1 font-lock-string-face keep t))
 	'("^\\([a-zA-Z0-9\\'\\_]+\\)\\s-*:" . (1 font-lock-function-name-face keep t))

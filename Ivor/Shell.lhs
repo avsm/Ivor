@@ -144,9 +144,13 @@
 >     ctxt <- forgetDef (context st) (name n)
 >     return $ (respondLn st ("Forgotten back to " ++ n)) 
 >                { context = ctxt }
-> runCommand (EvalTerm exp) st = do 
->     tm <- check (context st) exp
->     return (respondLn st (show (eval (context st) tm)))
+> runCommand (EvalTerm exp) st 
+>        | proving (context st) = do
+>                       tm <- evalCtxt (context st) defaultGoal exp
+>                       return (respondLn st (show tm))
+>        | otherwise = do 
+>                       tm <- check (context st) exp
+>                       return (respondLn st (show (eval (context st) tm)))
 > runCommand (Print n) st = do 
 >     case (getDef (context st) (name n)) of
 >        Just tm -> return (respondLn st (show (view tm)))
@@ -249,6 +253,7 @@
 > runTactic _ _ (By tm) = by tm
 > runTactic _ _ (Induction tm) = induction tm
 > runTactic _ _ (Cases tm) = cases tm
+> runTactic _ _ (Decide me) = isItJust me
 > runTactic tacs _ (UserTactic tac tm)  = \g ctxt -> do
 >     case lookup tac tacs of
 >          (Just t) -> t tm g ctxt

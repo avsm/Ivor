@@ -26,14 +26,14 @@
 > -- which updates the context. It may optionally contain symbols
 > -- @plugin_parser :: Parser ViewTerm
 > -- which adds new parsing rules,
-> -- @plugin_commands :: [(String, String -> COntext -> IO (String, Context))]
-> -- which adds new user defined commands.
+> -- @plugin_commands :: IO [(String, String -> COntext -> IO (String, Context))]
+> -- which adds new user defined commands (which may need to do some setting up themselves, hence the IO)
 > -- Returns the new context and the extra parsing rules/commands, if any.
 
 > load :: FilePath -> Context -> 
 >           IO (Context, 
 >               Maybe (Parser ViewTerm),
->               Maybe [(String, String -> Context -> IO (String, Context))])
+>               Maybe (IO [(String, String -> Context -> IO (String, Context))]))
 > load fn ctxt = do 
 >          objIn <- compilePlugin fn
 >          obj <- case objIn of

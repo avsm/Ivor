@@ -281,9 +281,10 @@ function which doesn't need to be in the IO Monad.
 >     let st'' = case exts of
 >                    Nothing -> st' 
 >                    Just p -> extendParser st' p
->     let st''' = case cmds of
->                    Nothing -> st''
->                    Just c -> st'' { usercommands = usercommands st'' ++ c }
+>     st''' <- case cmds of
+>                    Nothing -> return st''
+>                    Just c -> do newcmds <- c
+>                                 return $ st'' { usercommands = usercommands st'' ++ newcmds }
 >     return st'''
 > process (Success (Command (Compile f))) st = do compile (context st) f
 >                                                 putStrLn $ "Output " ++ f ++ ".hs"

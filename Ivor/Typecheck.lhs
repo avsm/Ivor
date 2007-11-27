@@ -129,7 +129,7 @@ Do the typechecking, then unify all the inferred terms.
 >     (next, infer, bindings, errs) <- get
 >     tm' <- fixup errs tm
 >     bindings <- fixupB gamma errs bindings
->     put (next, infer, bindings, [])
+>     put (next, infer, bindings, errs)
 >     return tm'
 
 >  tcfixup env lvl t exp = do
@@ -137,7 +137,7 @@ Do the typechecking, then unify all the inferred terms.
 >     (next, infer, bindings, errs) <- get
 >     tm' <- fixup errs tm
 >     bindings <- fixupB gamma errs bindings
->     put (next, infer, bindings, [])
+>     put (next, infer, bindings, errs)
 >     return tm'
 
 tc has state threaded through -- state is a tuple of the next name to
@@ -279,10 +279,10 @@ and we don't convert names to de Bruijn indices
 >     tsc <- mapM (\ t -> tcfixup env lvl t Nothing) ts
 >     return (Comp n (map ( \ (Ind v, Ind t) -> v) tsc))
 
->  checkConvSt env g x y err = if convertEnv env g x y then return ()
->                              else do (next, infer, bindings, err) <- get
->                                      put (next, infer, bindings, (env,x,y):err)
->                                      return ()
+>  checkConvSt env g x y err = {- if convertEnv env g x y then return ()
+>                              else -} do (next, infer, bindings, err) <- get
+>                                         put (next, infer, bindings, (env,x,y):err)
+>                                         return ()
 
 Insert inferred values into the term
 
@@ -297,13 +297,13 @@ Insert inferred values into the term
 	          Name -> Binder Raw -> m (Binder (TT Name))
 
 >  checkbinder gamma env lvl n (B Lambda t) = do
->     (Ind tv,Ind tt) <- tcfixup env lvl t Nothing
+>     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
 >     let ttnf = normaliseEnv env gamma (Ind tt)
 >     case ttnf of
 >       (Ind Star) -> return (B Lambda tv)
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
 >  checkbinder gamma env lvl n (B Pi t) = do
->     (Ind tv,Ind tt) <- tcfixup env lvl t Nothing
+>     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
 >     let ttnf = normaliseEnv env gamma (Ind tt)
 >     case ttnf of
 >       (Ind Star) -> return (B Pi tv)
@@ -314,7 +314,7 @@ Insert inferred values into the term
 >     return (B (Let vv) vt)
 
 >  checkbinder gamma env lvl n (B (Let v) t) = do
->     (Ind tv,Ind tt) <- tcfixup env lvl t Nothing
+>     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
 >     (Ind vv,Ind vt) <- tcfixup env lvl v (Just (Ind tv))
 >     let ttnf = normaliseEnv env gamma (Ind tt)
 >     checkConvEnv env gamma (Ind vt) (Ind tv) $ 

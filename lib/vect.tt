@@ -7,7 +7,7 @@ Data Vect (A:*):(n:Nat)*
 
 Match lookup : (A:*)(n:Nat)(i:Fin n)(xs:Vect A n)A =
     lookup _ _ (fz _) (vcons _ _ x xs) = x
-  | lookup _ _ (fs n i) (vcons _ n x xs) = lookup _ _ i xs;
+  | lookup _ _ (fs _ i) (vcons _ _ x xs) = lookup _ _ i xs;
 
 testvect = vcons _ _ O (vcons _ _ (S O) (vcons _ _ (S (S O)) (vnil Nat)));
 testfin = fs _ (fz (S O));

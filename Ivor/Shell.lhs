@@ -153,17 +153,23 @@
 >                       return (respondLn st (show (eval (context st) tm)))
 > runCommand (Print n) st = do 
 >     case (getDef (context st) (name n)) of
->        Just tm -> return (respondLn st (show (view tm)))
->        _ -> do tm <- check (context st) n
->                case view tm of
->                  (Name TypeCon _) -> do
->                     -- erule <- getElimRule (context st) (name n) Elim
->                     -- return (respondLn st $ "Type constructor\n" ++ show erule)
->                     return (respondLn st "Type constructor")
->                  (Name ElimOp _) -> return (respondLn st "Elimination operator")
->                  (Name Free _) -> return (respondLn st "Undefined function")
->                  (Name DataCon _) -> return (respondLn st "Data constructor")
->                  _ -> fail "Unknown definition"
+>       Just tm -> return (respondLn st (show (view tm)))
+>       _ -> case (getPatternDef (context st) (name n)) of
+>             Just pats -> return (respondLn st (printPats pats))
+>             _ -> do tm <- check (context st) n
+>                     case view tm of
+>                         (Name TypeCon _) -> return (respondLn st "Type constructor")
+>                         (Name ElimOp _) -> return (respondLn st "Elimination operator")
+>                         (Name Free _) -> return (respondLn st "Undefined function")
+>                         (Name DataCon _) -> return (respondLn st "Data constructor")
+>                         _ -> fail "Unknown definition"
+>     where printPats (Patterns cs) = unlines (map printClause cs)
+>           printClause (PClause args ret) = n ++ " " ++ 
+>                                            unwords (map argshow args) ++ 
+>                                            " = " ++ show ret
+>           argshow x | ' ' `elem` show x = "(" ++ show x ++ ")"
+>                     | otherwise = show x
+
 > runCommand (Check exp) st = do 
 >     tm <- check (context st) exp
 >     return (respondLn st (show (viewType tm)))

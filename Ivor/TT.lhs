@@ -31,7 +31,8 @@
 >               proofterm, getGoals, getGoal, uniqueName, -- getActions
 >               allSolved,qed,
 >               -- * Examining the Context
->               eval, evalCtxt, getDef, getAllDefs, getConstructors,
+>               eval, evalCtxt, getDef, getPatternDef, 
+>               getAllDefs, getConstructors,
 >               Rule(..), getElimRule,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
 >               -- * Goals, tactic types
@@ -662,6 +663,21 @@ Give a parseable but ugly representation of a term.
 > getDef (Ctxt st) n = case glookup n (defs st) of
 >                         Just ((Fun _ tm),ty) -> return $ Term (tm,ty)
 >                         _ -> fail "Not a function name"
+
+> -- |Lookup a pattern matching definition in the context.
+> getPatternDef :: Monad m => Context -> Name -> m Patterns
+> getPatternDef (Ctxt st) n 
+>     = case glookup n (defs st) of
+>           Just ((PatternDef pmf),ty) -> 
+>               return $ Patterns (map mkPat (getPats pmf))
+>           Nothing -> fail "Not a pattern matching definition"
+>    where getPats (PMFun _ ps) = ps
+>          mkPat (Sch ps ret) = PClause (map viewPat ps) (view (Term (ret, (Ind TTCore.Star))))
+>
+>          viewPat (PVar n) = Name Bound (name (show n))
+>          viewPat (PCon t n ty ts) = VTerm.apply (Name Bound (name (show n))) (map viewPat ts)
+>          viewPat (PConst c) = Constant c
+>          viewPat _ = Placeholder
 
 > -- |Get all the names and types in the context
 > getAllDefs :: Context -> [(Name,Term)]

@@ -17,7 +17,7 @@
 >                        -- * Terms
 >                        Term(..), ViewTerm(..), apply,
 >                        view, viewType, ViewConst, typeof, 
->                        freeIn, occursIn, getApp,
+>                        freeIn, namesIn, occursIn, getApp,
 >                        -- * Inductive types
 >                        Inductive(..)) 
 >    where
@@ -28,6 +28,7 @@
 > import Ivor.Typecheck
 
 > import Data.Typeable
+> import Data.List
 
 > name :: String -> Name
 > name = UN
@@ -204,6 +205,24 @@
 >    fi n (Ivor.ViewTerm.Eval t) = fi n t
 >    fi n (Ivor.ViewTerm.Escape t) = fi n t
 >    fi n _ = False
+
+> -- | Return the names occurring free in a term
+> namesIn :: ViewTerm -> [Name]
+> namesIn t = nub $ fi [] t where
+>    fi ns (Ivor.ViewTerm.Name _ x) | x `elem` ns = []
+>                                   | otherwise = [x]
+>    fi ns (Ivor.ViewTerm.App f a) = fi ns f ++ fi ns a
+>    fi ns (Ivor.ViewTerm.Lambda x ty sc) = fi (x:ns) sc
+>    fi ns (Forall x ty sc) = fi (x:ns) sc
+>    fi ns (Ivor.ViewTerm.Let x v ty sc) = fi (x:ns) sc
+>    fi ns (Ivor.ViewTerm.Label _ _ t) = fi ns t
+>    fi ns (Ivor.ViewTerm.Call _ _ t) = fi ns t
+>    fi ns (Ivor.ViewTerm.Return t) = fi ns t
+>    fi ns (Ivor.ViewTerm.Quote t) = fi ns t
+>    fi ns (Ivor.ViewTerm.Code t) = fi ns t
+>    fi ns (Ivor.ViewTerm.Eval t) = fi ns t
+>    fi ns (Ivor.ViewTerm.Escape t) = fi ns t
+>    fi ns _ = []
 
 > -- | Return whether a subterm occurs in a (first order) term.
 > occursIn :: ViewTerm -> ViewTerm -> Bool

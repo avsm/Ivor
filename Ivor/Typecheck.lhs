@@ -279,11 +279,6 @@ and we don't convert names to de Bruijn indices
 >     tsc <- mapM (\ t -> tcfixup env lvl t Nothing) ts
 >     return (Comp n (map ( \ (Ind v, Ind t) -> v) tsc))
 
->  checkConvSt env g x y err = {- if convertEnv env g x y then return ()
->                              else -} do (next, infer, bindings, err) <- get
->                                         put (next, infer, bindings, (env,x,y):err)
->                                         return ()
-
 Insert inferred values into the term
 
 >  fixup e tm = fixupGam gamma e tm
@@ -397,6 +392,10 @@ extended environment.
 -- > checkPatt gam env acc RInfer ty = return (combinepats acc PTerm, env)
 -- > checkPatt gam env _ _ _ = fail "Invalid pattern"
 
+> checkConvSt env g x y err = do (next, infer, bindings, err) <- get
+>                                put (next, infer, bindings, (env,x,y):err)
+>                                return ()
+
 > fixupGam gamma [] tm = return tm
 > fixupGam gamma ((env,x,y):xs) (Ind tm, Ind ty) = do 
 >      uns <- case unifyenv gamma env y x of
@@ -419,16 +418,17 @@ extended environment.
 > combinepats (Just (PVar n)) x = error "can't apply things to a variable"
 > combinepats (Just (PCon tag n ty args)) x = PCon tag n ty (args++[x])
 
-> discharge :: Monad m =>
->              Gamma Name -> Name -> Binder (TT Name) -> 
->	       (Scope (TT Name)) -> (Scope (TT Name)) ->
->	       m (Indexed Name, Indexed Name)
+ discharge :: Monad m =>
+              Gamma Name -> Name -> Binder (TT Name) -> 
+	       (Scope (TT Name)) -> (Scope (TT Name)) ->
+	       m (Indexed Name, Indexed Name)
+
 > discharge gamma n (B Lambda t) scv sct = do
 >    let lt = Bind n (B Pi t) sct
 >    let lv = Bind n (B Lambda t) scv
 >    return (Ind lv,Ind lt)
 > discharge gamma n (B Pi t) scv (Sc sct) = do
->    checkConv gamma (Ind Star) (Ind sct) $ 
+>    checkConvSt [] gamma (Ind Star) (Ind sct) $ 
 >       "The scope of a Pi binding must be a type"
 >    let lt = Star
 >    let lv = Bind n (B Pi t) scv

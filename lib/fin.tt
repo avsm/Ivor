@@ -2,14 +2,14 @@ Load "basics.tt";
 Load "lt.tt";
 
 Data Fin : (n:Nat)*
-    = fz : (k:Nat)(Fin (S k))
-    | fs : (k:Nat)(i:Fin k)(Fin (S k));
+    = fz : (k:_)(Fin (S k))
+    | fs : (k:_)(i:Fin k)(Fin (S k));
 
-Match weaken : (n:Nat)(i:Fin n)->(Fin (S n)) =
+Match weaken : (n:_)(i:Fin n)->(Fin (S n)) =
     weaken _ (fz _) = fz _
   | weaken _ (fs _ i) = fs _ (weaken _ i);
 
-Match fin2Nat : (n:Nat)(i:Fin n)->Nat =
+Match fin2Nat : (n:_)(i:Fin n)->Nat =
     fin2Nat _ (fz _) = O
   | fin2Nat _ (fs _ i) = S (fin2Nat _ i);
 

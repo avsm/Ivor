@@ -11,23 +11,23 @@ Match mult : Nat->Nat->Nat =
    mult O y = O
  | mult (S k) y = plus y (mult k y);
 
-simplifyO:(n:Nat)(Eq _ _ (plus O n) n);
+simplifyO:(n:_)(Eq _ _ (plus O n) n);
 intros;
 refine refl;
 Qed;
 
-simplifyS:(m,n:Nat)(Eq _ _ (plus (S m) n) (S (plus m n)));
+simplifyS:(m,n:_)(Eq _ _ (plus (S m) n) (S (plus m n)));
 intros;
 refine refl;
 Qed;
 
-eq_resp_S:(n:Nat)(m:Nat)(q:Eq _ _ n m)(Eq _ _ (S n) (S m));
+eq_resp_S:(n,m:_)(q:Eq _ _ n m)(Eq _ _ (S n) (S m));
 intros;
 fill (eq_resp_f _ _ S n m q);
 Qed;
 Freeze eq_resp_S;
 
-s_injective:(n:Nat)(m:Nat)(q:Eq _ _ (S n) (S m))(Eq _ _ n m);
+s_injective:(n,m:_)(q:Eq _ _ (S n) (S m))(Eq _ _ n m);
 intros;
 local unS:(m:Nat)Nat;
 intros;
@@ -39,7 +39,7 @@ fill eq_resp_f _ _ unS _ _ q;
 Qed;
 Freeze s_injective;
 
-notO_S:(k:Nat)(not (Eq _ _ O (S k)));
+notO_S:(k:_)(not (Eq _ _ O (S k)));
 intros;
 compute;
 intro q;
@@ -53,7 +53,7 @@ fill EqElim _ _ _ q dmotive II;
 Qed;
 Freeze notO_S;
 
-notn_S:(n:Nat)(not (Eq _ _ n (S n)));
+notn_S:(n:_)(not (Eq _ _ n (S n)));
 intro;
 induction n;
 fill notO_S O;
@@ -67,7 +67,7 @@ fill a;
 Qed;
 Freeze notn_S;
 
-discriminate_Nat:(A:*)(k:Nat)(q:Eq _ _ O (S k))A;
+discriminate_Nat:(A,k:_)(q:Eq _ _ O (S k))A;
 intros;
 local false:False;
 fill notO_S k q;
@@ -75,7 +75,7 @@ induction false;
 Qed;
 Freeze discriminate_Nat;
 
-plusnO:(n:Nat)(Eq _ _ (plus n O) n);
+plusnO:(n:_)(Eq _ _ (plus n O) n);
 intro;
 induction n;
 refine refl;
@@ -86,7 +86,7 @@ fill k_IH;
 Qed;
 Freeze plusnO;
 
-plusnSm:(n:Nat)(m:Nat)(Eq _ _ (plus n (S m)) (S (plus n m)));
+plusnSm:(n,m:_)(Eq _ _ (plus n (S m)) (S (plus n m)));
 intros;
 induction n;
 refine refl;
@@ -96,7 +96,7 @@ fill k_IH;
 Qed;
 Freeze plusnSm;
 
-plus_comm:(n:Nat)(m:Nat)(Eq _ _ (plus n m) (plus m n));
+plus_comm:(n,m:_)(Eq _ _ (plus n m) (plus m n));
 intros;
 induction n;
 refine sym;
@@ -109,7 +109,7 @@ refine plusnSm;
 Qed;
 Freeze plus_comm;
 
-plus_assoc:(m,n,p:Nat)(Eq _ _ (plus m (plus n p)) (plus (plus m n) p));
+plus_assoc:(m,n,p:_)(Eq _ _ (plus m (plus n p)) (plus (plus m n) p));
 intros;
 induction m;
 refine refl;
@@ -120,7 +120,7 @@ refine refl;
 Qed;
 Freeze plus_assoc;
 
-plus_eq_fst : (m,n,p:Nat)(q:Eq _ _ (plus p m) (plus p n))(Eq _ _ m n);
+plus_eq_fst : (m,n,p:_)(q:Eq _ _ (plus p m) (plus p n))(Eq _ _ m n);
 intro m n p;
 induction p;
 intros;
@@ -132,7 +132,7 @@ refine q0;
 Qed;
 Freeze plus_eq_fst;
 
-plus_eq_fst_sym : (m,n,p:Nat)(q:Eq _ _ (plus m p) (plus n p))(Eq _ _ m n);
+plus_eq_fst_sym : (m,n,p:_)(q:Eq _ _ (plus m p) (plus n p))(Eq _ _ m n);
 intro m n p;
 replace plus_comm m p;
 replace plus_comm n p;
@@ -140,7 +140,7 @@ fill plus_eq_fst m n p;
 Qed;
 Freeze plus_eq_fst_sym;
 
-multnO:(n:Nat)(Eq _ _ (mult n O) O);
+multnO:(n:_)(Eq _ _ (mult n O) O);
 intro;
 induction n;
 refine refl;
@@ -151,7 +151,7 @@ refine refl;
 Qed;
 Freeze multnO;
 
-multnSm:(n:Nat)(m:Nat)(Eq _ _ (mult n (S m)) (plus n (mult n m)));
+multnSm:(n,m:_)(Eq _ _ (mult n (S m)) (plus n (mult n m)));
 intro;
 induction n;
 intros;

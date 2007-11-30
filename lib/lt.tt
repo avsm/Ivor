@@ -1,8 +1,8 @@
 Load "basics.tt";
 
 Data le : (m,n:Nat)* =
-    leO : (n:Nat)(le O n)
-  | leS : (m,n:Nat)(p:le m n)(le (S m) (S n));
+    leO : (n:_)(le O n)
+  | leS : (m,n:_)(p:le m n)(le (S m) (S n));
 
 Match leSuc : (m,n:Nat)(p:le m n)(le m (S n)) =
     leSuc _ _ (leO _) = leO _

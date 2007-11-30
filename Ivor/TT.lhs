@@ -22,7 +22,7 @@
 >               addDef,addTypedDef,addData,addAxiom,declare,declareData,
 >               theorem,interactive,
 >               addPrimitive,addBinOp,addBinFn,addPrimFn,addExternalFn,
->               addEquality,forgetDef,addGenRec,
+>               addEquality,forgetDef,addGenRec,addImplicit,
 >               -- * Pattern matching definitions
 >               PClause(..), Patterns(..),PattOpt(..),addPatternDef,
 >               -- * Manipulating Proof State
@@ -31,7 +31,7 @@
 >               proofterm, getGoals, getGoal, uniqueName, -- getActions
 >               allSolved,qed,
 >               -- * Examining the Context
->               eval, evalCtxt, getDef, getPatternDef, 
+>               eval, evalCtxt, getDef, defined, getPatternDef, 
 >               getAllDefs, getConstructors,
 >               Rule(..), getElimRule,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
@@ -488,6 +488,19 @@ Slightly annoying, but we'll cope.
 >                                 Ind TTCore.Star))
 
 
+> -- |Add implicit binders for names used in a type, but not declared.
+> -- |Returns the new type and the number of implicit names bound.
+
+Search for all unbound names and reverse the list so that we bind them
+in left to right order. (Not that this really matters but I find it more
+intuitive)
+
+> addImplicit :: Context -> ViewTerm -> (Int, ViewTerm)
+> addImplicit ctxt tm = bind 0 (reverse (namesIn tm)) tm
+>   where bind i [] tm = (i,tm)
+>         bind i (n:ns) tm | defined ctxt n = bind i ns tm
+>                          | otherwise = bind (i+1) ns 
+>                                           (Forall n Placeholder tm)
 
 > -- |Begin a new proof.
 > theorem :: (IsTerm a, Monad m) => Context -> Name -> a -> m Context
@@ -663,6 +676,12 @@ Give a parseable but ugly representation of a term.
 > getDef (Ctxt st) n = case glookup n (defs st) of
 >                         Just ((Fun _ tm),ty) -> return $ Term (tm,ty)
 >                         _ -> fail "Not a function name"
+
+> -- |Check whether a name is defined
+> defined :: Context -> Name -> Bool
+> defined (Ctxt st) n = case glookup n (defs st) of
+>                          Just _ -> True
+>                          _ -> False
 
 > -- |Lookup a pattern matching definition in the context.
 > getPatternDef :: Monad m => Context -> Name -> m Patterns

@@ -21,6 +21,7 @@ Raw terms are those read in directly from the user, and may be badly typed.
 >     | forall c.(Constant c) => RConst !c
 >     | RStar
 >     | RInfer -- Term to be inferred by the typechecker
+>     | RMeta Name -- a metavariable, to be implemented separately
 >     | RLabel Raw RComputation
 >     | RCall RComputation Raw
 >     | RReturn Raw
@@ -586,6 +587,7 @@ Apply a function to a list of arguments
 >     (==) (RReturn t) (RReturn t') = t == t'
 >     (==) (RStage t) (RStage t') = t == t'
 >     (==) RInfer RInfer = True
+>     (==) (RMeta x) (RMeta x') = x == x'
 >     (==) _ _ = False
 
 > instance Eq n => Eq (TT n) where
@@ -661,6 +663,7 @@ Apply a function to a list of arguments
 >       fPrec _ (RConst x) = show x
 >       fPrec _ (RStar) = "*"
 >       fPrec _ (RInfer) = "_"
+>       fPrec _ (RMeta n) = "?"++forget n
 >       fPrec _ (RAnnot t) = t
 >       bracket outer inner str | inner>outer = "("++str++")"
 >                               | otherwise = str

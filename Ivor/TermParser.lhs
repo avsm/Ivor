@@ -27,6 +27,8 @@
 > --
 > --  * @_@ -- Underscore is a placeholder.
 > --
+> --  * @?identifier@ -- metavariable, add a name to be defined later
+> --
 > -- Lambda\/forall bindings of multiple variables are also accepted,
 > -- in the form @[x,y:A;z:B]@
 > --
@@ -131,6 +133,8 @@
 >        <|> do nm <- identifier ; return (Name Unknown (UN nm))
 >        <|> do lchar '*' ; return Star
 >        <|> do lchar '_' ; return Placeholder
+>        <|> do lchar '?' ; var <- identifier ;
+>               return $ Metavar (UN var)
 >        <|> try (do symbol "{'" ; tm <- pTerm ext; lchar '}'
 >                    return $ Quote tm)
 >        <|> try (do symbol "{{" ; tm <- pTerm ext; symbol "}}"

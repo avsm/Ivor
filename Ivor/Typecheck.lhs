@@ -249,6 +249,14 @@ and we don't convert names to de Bruijn indices
 >                       return (Ind (P (MN ("INFER",next))), exp)
 >  tc env lvl RInfer Nothing = fail "Can't infer a term for placeholder"
 
+If we have a metavariable, we need to record the type of the expression which
+will solve it. It needs to take the environment as arguments, and return
+the expected type.
+
+>  tc env lvl (RMeta n) (Just exp) = do (next, infer, bindings, errs) <- get
+>                                       fail $ show (n, exp, bindings, env) ++ " -- Not implemented"
+>  tc env lvl (RMeta n) Nothing = fail $ "Don't know the expected type of " ++ show n
+
 >  tcStage env lvl (RQuote t) _ = do
 >     (Ind tv, Ind tt) <- tc env (lvl+1) t Nothing
 >     return (Ind (Stage (Quote tv)), Ind (Stage (Code tt)))

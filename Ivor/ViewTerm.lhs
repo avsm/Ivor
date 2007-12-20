@@ -62,6 +62,7 @@
 >     | Eval { evalterm :: ViewTerm } -- ^ Staging annotation
 >     | Escape { escapedterm :: ViewTerm } -- ^ Staging annotation
 >     | Placeholder
+>     | Metavar { var :: Name }
 
 > instance Eq ViewTerm where
 >     (==) (Name _ x) (Name _ y) = x == y
@@ -75,6 +76,7 @@
 >     (==) (Ivor.ViewTerm.Return t) (Ivor.ViewTerm.Return t') = t==t'
 >     (==) Ivor.ViewTerm.Star Ivor.ViewTerm.Star = True
 >     (==) Placeholder Placeholder = True
+>     (==) (Metavar x) (Metavar y) = x == y
 >     (==) (Constant x) (Constant y) = case cast x of
 >                                        Just x' -> x' == y
 >                                        Nothing -> False
@@ -119,6 +121,7 @@
 >     forget (Constant c) = RConst c
 >     forget (Ivor.ViewTerm.Star) = TTCore.RStar
 >     forget Placeholder = RInfer
+>     forget (Metavar x) = RMeta x
 >     forget (Ivor.ViewTerm.Quote t) = RStage (RQuote (forget t))
 >     forget (Ivor.ViewTerm.Code t) = RStage (RCode (forget t))
 >     forget (Ivor.ViewTerm.Eval t) = RStage (REval (forget t))

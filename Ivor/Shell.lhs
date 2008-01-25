@@ -14,10 +14,11 @@
 > module Ivor.Shell(ShellState,
 >                     runShell, importFile, addModulePath, addStdlibPath,
 >                     prefix, getContext, newShell, updateShell,
->                     sendCommand, sendCommandIO, addTactic,
+>                     sendCommand, sendCommandIO, addTactic, addCommand,
 >                     extendParser, configureEq,
 >                     shellParseTerm, showProofState, response) where
 
+> import Ivor.ShellState
 > import Ivor.ShellParser
 > import Ivor.TermParser
 > import Ivor.TT as TT
@@ -37,21 +38,6 @@
 > import Debug.Trace
 
 > import Text.ParserCombinators.Parsec
-
-> data ShellState = Shell {
->                          repldata :: Maybe (String, String, String),
->                          prompt :: String,
->                          finished :: Bool,
->                          context :: !Context,
->                          -- | Get reply from last shell command
->                          response :: String,
->                          usertactics :: forall m.Monad m => [(String, String -> Goal -> Context -> m Context)],
->                          usercommands :: [(String, String -> Context -> IO (String, Context))],
->                          imported :: [String],
->                          extensions :: Maybe (Parser ViewTerm),
->                          -- search path for modules to load
->                          modulePath :: [FilePath]
->                          }
 
 > respond, respondLn :: ShellState -> String -> ShellState
 > respond st str = st { response = (response st) ++ str }
@@ -282,7 +268,7 @@ function which doesn't need to be in the IO Monad.
 > process (Failure err) st = return $ respondLn st err
 > process (Success (Command (Load f))) st = do importFile f st
 > process (Success (Command (Plugin f))) st = do 
->     (ctxt, exts, cmds) <- load f (context st)
+>     (ctxt, exts, shell, cmds) <- load f (context st)
 >     let st' = st { context = ctxt }
 >     let st'' = case exts of
 >                    Nothing -> st' 
@@ -291,7 +277,9 @@ function which doesn't need to be in the IO Monad.
 >                    Nothing -> return st''
 >                    Just c -> do newcmds <- c
 >                                 return $ st'' { usercommands = usercommands st'' ++ newcmds }
->     return st'''
+>     case shell of
+>       Nothing -> return st'''
+>       Just shfn -> shfn st'''
 > process (Success (Command (Compile f))) st = do compile (context st) f
 >                                                 putStrLn $ "Output " ++ f ++ ".hs"
 >                                                 return st

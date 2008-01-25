@@ -14,6 +14,7 @@
 > module Ivor.Plugin(Ivor.Plugin.load) where
 
 > import Ivor.TT
+> import Ivor.ShellState
 
 > import System.Plugins as Plugins
 > import Text.ParserCombinators.Parsec
@@ -26,12 +27,15 @@
 > -- which updates the context. It may optionally contain symbols
 > -- @plugin_parser :: Parser ViewTerm@
 > -- which adds new parsing rules,
+> -- @plugin_shell :: ShellState -> IO ShellState@
+> -- which updates the shell
 > -- @plugin_commands :: IO [(String, String -> COntext -> IO (String, Context))]@
 > -- which adds new user defined commands (which may need to do some setting up themselves, hence the IO)
 > -- Returns the new context and the extra parsing rules and commands, if any.
 
 > load :: FilePath -> Context -> IO (Context, 
 >               Maybe (Parser ViewTerm),
+>               Maybe (ShellState -> IO ShellState),
 >               Maybe (IO [(String, String -> Context -> IO (String, Context))]))
 > load fn ctxt = do 
 >          objIn <- compilePlugin fn
@@ -52,10 +56,14 @@
 >          cmds <- case cmdMod of
 >                  LoadFailure msg -> return Nothing
 >                  LoadSuccess _ v -> return $ Just v
+>          shellMod <- Plugins.reload mod "plugin_shell"
+>          shellfn <- case shellMod of
+>                  LoadFailure msg -> return Nothing
+>                  LoadSuccess _ v -> return $ Just v
 >          ctxt' <- case contextFn ctxt of
 >                      Just x -> return x
 >                      Nothing -> fail "Error in running plugin_context"
->          return $ (ctxt', parserules, cmds)
+>          return $ (ctxt', parserules, shellfn, cmds)
 
 Make a .o from a .hs, so that we can load Haskell source as well as object
 files

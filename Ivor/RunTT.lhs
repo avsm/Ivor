@@ -101,4 +101,4 @@ Make an elimination rule in RunTT from a simple case expression
 >          mkvarnum (Ind t) = Lev $ vapp (\ (ctx,i) -> V (arity-i-1)) t
 
 >          abstract 0 t = (t, TI 0 False)
->          abstract (n+1) t = (RTBind (RTLam, TI 0 False) (abstract n t), TI 0 False)
+>          abstract n t = (RTBind (RTLam, TI 0 False) (abstract (n-1) t), TI 0 False)

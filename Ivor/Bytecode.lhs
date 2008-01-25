@@ -124,8 +124,8 @@ Add type declarations to the top of bytecode, for the benefit of C/C--.
 > adddecls arity bc = let (tmps,vars) = fd (-1,-1) bc in
 >                         ad (tmps+1) (vars+1) ++ bc
 >   where ad 0 n | n<=arity = []
->         ad 0 (n+1) = (DECLARE n):(ad 0 n)
->         ad (m+1) n = (TMP m):(ad m n)
+>         ad 0 n = (DECLARE (n-1)):(ad 0 (n-1))
+>         ad m n = (TMP (m-1)):(ad (m-1) n)
 
 >         fd (t,v) [] = (t,v)
 >         fd (t,v) (c:cs) = let (t',v') = fd' (t,v) c in

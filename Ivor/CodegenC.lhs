@@ -38,7 +38,7 @@ closure it is passed, and runs the appropriate function.
 >				     ++ showargs arity ++ "));\n"
 >     showargs 0 = ""
 >     showargs 1 = "FARG(0)"
->     showargs (n+1) = showargs n ++ "," ++ "FARG("++show n++")"
+>     showargs n = showargs (n-1) ++ "," ++ "FARG("++show (n-1)++")"
 
 Make the header, including definitions of all the function tags and
 function prototypes.
@@ -53,7 +53,7 @@ function prototypes.
 >	     "VAL "++ name ++ "(" ++ showargs arity ++");\n"
 >	  showargs 0 = ""
 >         showargs 1 = "VAL v0"
->         showargs (n+1) = showargs n ++ "," ++ "VAL v"++show n
+>         showargs n = showargs (n-1) ++ "," ++ "VAL v"++show (n-1)
 
 Output C code for each supercombinator.
 
@@ -65,10 +65,10 @@ Output C code for each supercombinator.
 >	      ++ "\n" ++ code ++ "}\n\n"
 
 >         declaretmps 0 = "VAL tmp0;"
->         declaretmps (n+1) = declaretmps n ++ "\nVAL tmp" ++ show (n+1) ++";"
+>         declaretmps n = declaretmps (n-1) ++ "\nVAL tmp" ++ show n ++";"
 >	  showargs 0 = ""
 >         showargs 1 = "VAL v0"
->         showargs (n+1) = showargs n ++ "," ++ "VAL v"++show n
+>         showargs n = showargs (n-1) ++ "," ++ "VAL v"++show (n-1)
 
 
 > writeCode :: ByteDef -> Bytecode -> String

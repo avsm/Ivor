@@ -126,7 +126,9 @@ FIXME: Why not use a state monad for the unified variables in rt?
 >           rt env b@(Bind x (B (Let v) ty) _)
 >               | x == n = do (Ind b',u) <- tactic gam env (Ind b)
 >                             return (b',u)
->               -- | otherwise = return (b, []) -- fail "No such hole"
+
+                | otherwise = return (b, []) -- fail "No such hole"
+
 >           rt env b@(Bind x (B Lambda ty) _)
 >               | x == n = do (Ind b',u) <- tactic gam env (Ind b)
 >                             return (b',u)

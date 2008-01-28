@@ -13,7 +13,7 @@
 > -- implicitly by "Ivor.TT".
 
 > module Ivor.ViewTerm(-- * Variable names
->                        Name,name,NameType(..),
+>                        Name,name,NameType(..),mkVar,
 >                        -- * Terms
 >                        Term(..), ViewTerm(..), apply,
 >                        view, viewType, ViewConst, typeof, 
@@ -44,6 +44,11 @@
 > -- is for. 
 > data NameType = Bound | Free | DataCon | TypeCon | ElimOp 
 >               | Unknown -- ^ Use for sending to typechecker.
+
+> -- | Construct a term representing a variable
+> mkVar :: String -- ^ Variable name
+>          -> ViewTerm
+> mkVar nm = Name Unknown (name nm)
 
 > data ViewTerm 
 >     = Name { nametype :: NameType, var :: Name }

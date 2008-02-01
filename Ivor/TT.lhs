@@ -195,8 +195,10 @@
 >                         arguments :: [ViewTerm],
 >                         returnval :: ViewTerm
 >                        }
+>    deriving Show
 
 > data Patterns = Patterns [PClause]
+>    deriving Show
 
 > mkRawClause :: PClause -> RawScheme
 > mkRawClause (PClause args ret) =

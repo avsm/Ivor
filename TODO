@@ -1,6 +1,6 @@
 Short term things to do:
 
-* Ability to add commands as well as tactics would be useful.
+* Allow holes in pattern matching definitions
 * Need an easier way of updating a context with an input file
    (currently have to create a shell, then load, then create a new
    shell if you want to modify the context further)

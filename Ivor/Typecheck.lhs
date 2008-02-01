@@ -299,6 +299,8 @@ Insert inferred values into the term
   checkbinder :: Monad m => Gamma Name -> Env Name -> Level ->
 	          Name -> Binder Raw -> m (Binder (TT Name))
 
+-- FIXME: Should convert here rather than assert it must be *
+
 >  checkbinder gamma env lvl n (B Lambda t) = do
 >     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
 >     let ttnf = normaliseEnv env gamma (Ind tt)

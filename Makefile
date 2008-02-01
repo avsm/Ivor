@@ -4,7 +4,7 @@ PREFIX = /usr/local
 # PREFIX = $(HOME)
 
 # Set this to -p for profiling libraries too
-PROFILE =
+PROFILE = 
 
 GHCOPTS = 
 

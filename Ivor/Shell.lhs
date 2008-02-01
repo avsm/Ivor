@@ -98,7 +98,8 @@
  outputLn st x = output st (x++"\n")
 
 > runCommand :: (Monad m) => Command -> ShellState -> m ShellState
-> runCommand (Def nm tm) st = do ctxt <- addDef (context st) (name nm) tm
+> runCommand (Def nm tm) st = do let (_, tm') = addImplicit (context st) tm
+>                                ctxt <- addDef (context st) (name nm) tm'
 >                                return st { context = ctxt }
 > runCommand (TypedDef nm tm ty) st = do
 >     ctxt <- addTypedDef (context st) (name nm) tm ty

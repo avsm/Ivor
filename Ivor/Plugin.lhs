@@ -71,7 +71,7 @@ files
 > compilePlugin :: FilePath -> IO (Either String FilePath)
 > compilePlugin hs 
 >     | isExt ".hs" hs || isExt ".lhs" hs =
->         do status <- make hs []
+>         do status <- makeAll hs []
 >            case status of
 >               MakeSuccess c out -> return $ Right out
 >               MakeFailure errs -> return $ Left (concat (map (++"\n") errs))

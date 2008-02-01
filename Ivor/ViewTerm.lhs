@@ -13,7 +13,7 @@
 > -- implicitly by "Ivor.TT".
 
 > module Ivor.ViewTerm(-- * Variable names
->                        Name,name,NameType(..),mkVar,
+>                        Name,name,displayName,NameType(..),mkVar,
 >                        -- * Terms
 >                        Term(..), ViewTerm(..), apply,
 >                        view, viewType, ViewConst, typeof, 
@@ -32,6 +32,10 @@
 
 > name :: String -> Name
 > name = UN
+
+> displayName :: Name -> String
+> displayName (UN x) = x
+> displayName (MN (x,i)) = "_" ++ x ++ "_" ++ show i
 
 > -- | Abstract type representing a TT term and its type.
 > newtype Term = Term (Indexed Name, Indexed Name)

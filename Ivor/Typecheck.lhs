@@ -306,12 +306,14 @@ Insert inferred values into the term
 >     let ttnf = normaliseEnv env gamma (Ind tt)
 >     case ttnf of
 >       (Ind Star) -> return (B Lambda tv)
+>       (Ind (P (MN ("INFER",_)))) -> return (B Lambda tv)
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
 >  checkbinder gamma env lvl n (B Pi t) = do
 >     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
 >     let ttnf = normaliseEnv env gamma (Ind tt)
 >     case ttnf of
 >       (Ind Star) -> return (B Pi tv)
+>       (Ind (P (MN ("INFER",_)))) -> return (B Pi tv)
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
 
 >  checkbinder gamma env lvl n (B (Let v) RInfer) = do

@@ -59,6 +59,7 @@
 > import Ivor.TTCore(Name(..))
 
 > import Text.ParserCombinators.Parsec
+> import Text.ParserCombinators.Parsec.Expr
 > import Text.ParserCombinators.Parsec.Language
 > import qualified Text.ParserCombinators.Parsec.Token as PTok
 
@@ -106,8 +107,8 @@
 > pNoApp ext = try (do chainr1 (pExp ext) arrow)
 >              <|> pExp ext
 
-> pExp :: Maybe (Parser ViewTerm) -> Parser ViewTerm
-> pExp ext = 
+> pNoInfix :: Maybe (Parser ViewTerm) -> Parser ViewTerm
+> pNoInfix ext = 
 >        do lchar '[' ; bs <- bindList ext ; lchar ']'
 >           sc <- pTerm ext ;
 >           return $ bindAll Lambda bs sc
@@ -147,17 +148,24 @@
 >                  Nothing -> fail "Parse error"
 >                  Just ext -> ext
 
-> -- | Parse an infix expression
-> pInfix :: Maybe (Parser ViewTerm) -> Parser ViewTerm
-> pInfix ext = do 
->                 lexp <- trace ("Trying = ") $ pNoApp ext
->                 lchar '='
->                 rexp <- trace (show lexp) $ pTerm ext
->                 return $ apply (Name Unknown (name "Eq"))
->                            [Placeholder,Placeholder,lexp,rexp]
+> -- | Parse an expression with infix expressions (doesn't work!)
+> pExp :: Maybe (Parser ViewTerm) -> Parser ViewTerm
+> pExp ext = pNoInfix ext -- buildExpressionParser opTable (pNoInfix ext)
 
-> pNoInfix ext = try (do chainl1 (pNoApp ext) app)
->                <|> pNoApp ext
+-- > pInfix ext = do 
+-- >                 lexp <- trace ("Trying = ") $ pNoApp ext
+-- >                 lchar '='
+-- >                 rexp <- trace (show lexp) $ pTerm ext
+-- >                 return $ apply (Name Unknown (name "Eq"))
+-- >                            [Placeholder,Placeholder,lexp,rexp]
+
+> opTable = [[op "$" (\ l r -> apply (Name Unknown (name "Eq"))
+>                                    [Placeholder,Placeholder,l,r])
+>                    AssocLeft]]
+>     where op s f assoc = Infix (do string s
+>                                    return f)
+>                                assoc
+
 
 > -- | Basic parsec combinator for parsing inductive data types
 > pInductive :: Maybe (Parser ViewTerm) -- ^ Extra parse rules (for example 

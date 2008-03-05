@@ -7,6 +7,7 @@
 > import Ivor.Datatype
 > import Ivor.Nobby
 > import Ivor.Typecheck
+> import Ivor.Unify
 
 > import Debug.Trace
 > import Data.List
@@ -181,20 +182,22 @@ names bound in patterns) then type check the right hand side.
 >             do (tm@(Ind tmtt), pty,
 >                 rtm@(Ind rtmtt), rty, env) <-
 >                   checkAndBindPair gam clause ret
->                checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible "
->                let namesret = filter notGlobal $ getNames (Sc rtmtt)
+>                unified <- unifyenv gam env pty rty
+>                let rtmtt' = substNames unified rtmtt
+>                -- checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible " ++ show unify
+>                let namesret = filter notGlobal $ getNames (Sc rtmtt')
 >                let namesbound = getNames (Sc tmtt)
->                checkAllBound namesret namesbound rtm
->                return (tm, rtm)
+>                checkAllBound namesret namesbound (Ind rtmtt') tmtt
+>                return (tm, Ind rtmtt')
 >         notGlobal n = case lookupval n gam of
 >                         Nothing -> True
 >                         _ -> False
->         checkAllBound r b rhs = do
+>         checkAllBound r b rhs clause = do
 >              let unbound = filter (\y -> not (elem y b)) r
 >              if (length unbound == 0) 
 >                 then return ()
->                 else fail $ "Unbound names in clause:\n" ++ show rhs ++ "\n" 
->                             ++ show unbound
+>                 else fail $ "Unbound names in clause for " ++ show clause ++ ":\n" ++ show rhs ++ "\n" 
+>                             ++ show unbound ++ "\n"
 
 > mkScheme :: Gamma Name -> (Indexed Name, Indexed Name) -> PMDef Name
 > mkScheme gam (Ind pat, ret) = Sch (map mkpat (getPatArgs pat)) ret

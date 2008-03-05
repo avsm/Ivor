@@ -470,51 +470,62 @@ Splice the escapes inside a term
 
 > class Quote x y where
 >     quote :: x -> y
+>     quote' :: [Name] -> x -> y
+>     quote = quote' []
 
 > instance Quote Value Normal where
->     quote (MR r) = MR (quote r)
->     quote (MB (b, ty) sp) = MB (quote b, quote ty) (fmap quote sp)
+>     quote' ns (MR r) = MR (quote' ns r)
+>     quote' ns (MB (b, ty) sp) = MB (quote' ns b, quote' ns ty) 
+>                                    (fmap (quote' ns) sp)
 
 > instance Quote (Ready Kripke) (Ready Scope) where
->     quote (RdConst x) = RdConst x
->     quote RdStar = RdStar
->     quote (RdBind n b@(B _ ty) sc) 
->         = RdBind n (quote b) (Sc (quote (krquote ty sc)))
->     quote (RCon t c sp) = RCon t c (fmap quote sp)
->     quote (RTyCon c sp) = RTyCon c (fmap quote sp)
->     quote (RdLabel t c) = RdLabel (quote t) (quote c)
->     quote (RdCall c t) = RdCall (quote c) (quote t)
->     quote (RdReturn t) = RdReturn (quote t)
->     quote (RdCode t) = RdCode (quote t)
->     quote (RdQuote t) = RdQuote (quote t)
+>     quote' ns (RdConst x) = RdConst x
+>     quote' ns RdStar = RdStar
+>     quote' ns (RdBind n b@(B _ ty) sc) 
+>             = let n' = mkUnique n ns in
+>                        RdBind n' (quote' ns b) 
+>                                   (Sc (quote' (n':ns) (krquote ty sc)))
+>        where mkUnique n ns | n `elem` ns = 
+>                                case n of
+>                                   (UN nm) -> (mkUnique (MN (nm, 0)) ns)
+>                                   (MN (nm,i)) -> (mkUnique (MN (nm, i+1)) ns)
+>                            | otherwise = n
+
+>     quote' ns (RCon t c sp) = RCon t c (fmap (quote' ns) sp)
+>     quote' ns (RTyCon c sp) = RTyCon c (fmap (quote' ns) sp)
+>     quote' ns (RdLabel t c) = RdLabel (quote' ns t) (quote' ns c)
+>     quote' ns (RdCall c t) = RdCall (quote' ns c) (quote' ns t)
+>     quote' ns (RdReturn t) = RdReturn (quote' ns t)
+>     quote' ns (RdCode t) = RdCode (quote' ns t)
+>     quote' ns (RdQuote t) = RdQuote (quote' ns t)
 
 > instance Quote (Blocked Kripke) (Blocked Scope) where
->     quote (BCon t n j) = BCon t n j
->     quote (BTyCon n j) = BTyCon n j
->     quote (BElim e n) = BElim e n
->     quote (BPatDef p n) = BPatDef p n
->     quote (BRec n v) = BRec n v
->     quote (BPrimOp e n) = BPrimOp e n
->     quote (BP n) = BP n
->     quote (BV j) = BV j
->     quote (BEval t ty) = BEval (quote t) (quote ty)
->     quote (BEscape t ty) = BEscape (quote t) (quote ty)
+>     quote' ns (BCon t n j) = BCon t n j
+>     quote' ns (BTyCon n j) = BTyCon n j
+>     quote' ns (BElim e n) = BElim e n
+>     quote' ns (BPatDef p n) = BPatDef p n
+>     quote' ns (BRec n v) = BRec n v
+>     quote' ns (BPrimOp e n) = BPrimOp e n
+>     quote' ns (BP n) = BP n
+>     quote' ns (BV j) = BV j
+>     quote' ns (BEval t ty) = BEval (quote' ns t) (quote' ns ty)
+>     quote' ns (BEscape t ty) = BEscape (quote' ns t) (quote' ns ty)
 
 > instance Quote (MComp Kripke) (MComp Scope) where
->     quote (MComp n ts) = MComp n (fmap quote ts)
+>     quote' ns (MComp n ts) = MComp n (fmap (quote' ns) ts)
 
 > krquote :: Value -> Kripke Value -> Value
 > krquote t (Kr (f,w)) = f (weaken w (Wk 1)) (MB (BV 0, t) Empty)
 
 > instance Quote n m => Quote (Binder n) (Binder m) where
->     quote (B b ty) = B (quote b) (quote ty)
+>     quote' ns (B b ty) = B (quote' ns b) (quote' ns ty)
 
 > instance Quote n m => Quote (Bind n) (Bind m) where
->     quote (Let v) = Let (quote v)
->     quote (Guess v) = Guess (quote v)
->     quote Lambda = Lambda
->     quote Pi = Pi
->     quote Hole = Hole
+>     quote' ns (Let v) = Let (quote' ns v)
+>     quote' ns (Guess v) = Guess (quote' ns v)
+>     quote' ns Lambda = Lambda
+>     quote' ns Pi = Pi
+>     quote' ns Hole = Hole
 
 Quotation to eta long normal form. DOESN'T WORK YET!
 

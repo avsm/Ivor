@@ -243,7 +243,7 @@ Do the actual evaluation
 >    where evalP (Just Unreducible) = (MB (BP n,pty n) Empty)
 >          evalP (Just Undefined) = (MB (BP n, pty n) Empty)
 >          evalP (Just (PatternDef p@(PMFun 0 pats))) = 
->              case patmatch gamma pats [] of
+>              case patmatch gamma g pats [] of
 >                 Nothing ->  (MB (BPatDef p n, pty n) Empty)
 >                 Just v -> v
 >          evalP (Just (PatternDef p)) = (MB (BPatDef p n, pty n) Empty)
@@ -331,13 +331,13 @@ Do the actual evaluation
 > apply :: Gamma Name -> Ctxt -> Value -> Value -> Value
 > apply gam = app where
 >  app g (MR (RdBind _ (B Lambda ty) k)) v = krApply k v
->  app g (MB (BElim e n, ty) sp) v =
->      case e (Snoc sp v) of
+>  app g (MB (BElim e n, ty) sp) v = error "Elimination rules are eliminated"
+>  {-    case e (Snoc sp v) of
 >         Nothing -> (MB (BElim e n, ty) (Snoc sp v))
->         (Just v) -> v
+>         (Just v) -> v -}
 >  app g (MB pat@(BPatDef (PMFun ar pats) n, ty) sp) v
 >      | size (Snoc sp v) == ar = 
->         case patmatch gam pats (listify (Snoc sp v)) of
+>         case patmatch gam g pats (listify (Snoc sp v)) of
 >           Nothing -> (MB pat (Snoc sp v))
 >           Just v -> v
 >      | otherwise = MB pat (Snoc sp v)
@@ -361,20 +361,20 @@ Do the actual evaluation
 > krApply :: Kripke Value -> Value -> Value
 > krApply (Kr (f,w)) x = f w x
 
-> patmatch :: Gamma Name -> [PMDef Name] -> [Value] -> Maybe Value
-> patmatch gam [] _ = Nothing
-> patmatch gam ((Sch pats ret):ps) vs = case pm gam pats vs ret [] of
->                         Nothing -> patmatch gam ps vs
+> patmatch :: Gamma Name -> Ctxt -> [PMDef Name] -> [Value] -> Maybe Value
+> patmatch gam g [] _ = Nothing
+> patmatch gam g ((Sch pats ret):ps) vs = case pm gam g pats vs ret [] of
+>                         Nothing -> patmatch gam g ps vs
 >                         Just v -> Just v
 
-> pm :: Gamma Name -> [Pattern Name] -> [Value] -> Indexed Name -> 
+> pm :: Gamma Name -> Ctxt -> [Pattern Name] -> [Value] -> Indexed Name -> 
 >       [(Name, Value)] -> -- matches so far
 >       Maybe Value
-> pm gam [] [] (Ind ret) vals = Just $ nf gam (VG []) vals False ret
-> pm gam (pat:ps) (val:vs) ret vals 
+> pm gam g [] [] (Ind ret) vals = Just $ nf gam g vals False ret
+> pm gam g (pat:ps) (val:vs) ret vals 
 >    = do newvals <- pmatch pat val vals
 >         newvals <- checkdups newvals
->         pm gam ps vs ret newvals
+>         pm gam g ps vs ret newvals
 
 > checkdups v = Just v
 

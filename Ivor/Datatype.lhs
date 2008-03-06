@@ -4,6 +4,7 @@
 > import Ivor.Gadgets
 > import Ivor.Typecheck
 > import Ivor.Nobby
+> import Ivor.PatternDefs
 
 > import Debug.Trace
 
@@ -33,8 +34,8 @@ Elaborated version with elimination rule and iota schemes.
 >                 num_params :: Int,
 >	          erule :: (n, Indexed n),
 >                 crule :: (n, Indexed n),
->	          e_ischemes :: [Scheme n],
->	          c_ischemes :: [Scheme n],
+>	          e_ischemes :: PMFun Name,
+>	          c_ischemes :: PMFun Name,
 >	          e_rawschemes :: [RawScheme],
 >	          c_rawschemes :: [RawScheme]
 >	        }
@@ -59,9 +60,9 @@ the context and an executable elimination rule.
 >	 (consv,gamma'') <- checkCons gamma' 0 cons
 >	 (ev, _) <- typecheck gamma'' erty
 >	 (cv, _) <- typecheck gamma'' crty
->	 let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev defplicit)
->	 esch <- mapM (checkScheme gamma''' er) eschemes
->	 csch <- mapM (checkScheme gamma''' er) cschemes
+>	 -- let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev defplicit)
+>        (esch, _) <- checkDef gamma'' er erty eschemes False False
+>        (csch, _) <- checkDef gamma'' cr crty cschemes False False
 >	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv defplicit) consv numps
 >                    (er,ev) (cr,cv) esch csch eschemes cschemes)
 

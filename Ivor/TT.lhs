@@ -341,7 +341,7 @@
 
 > eqElimSch refl = do aty <- raw "A"
 >                     a <- raw "a"
->                     b <- raw "b"
+>                     b <- raw "_"
 >                     phi <- raw "phi"
 >                     mrefl <- raw "meth_refl"
 >                     arg <- raw $ refl ++ " A a"

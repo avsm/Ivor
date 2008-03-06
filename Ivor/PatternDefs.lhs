@@ -4,7 +4,6 @@
 
 > import Ivor.Gadgets
 > import Ivor.TTCore
-> import Ivor.Datatype
 > import Ivor.Nobby
 > import Ivor.Typecheck
 > import Ivor.Unify

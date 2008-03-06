@@ -13,8 +13,10 @@
 > import Monad
 
 > compile :: IState -> String -> IO ()
-> compile st froot = 
->     do h <- openFile (froot++".hs") WriteMode
+> compile st froot = fail "Deprecated"
+
+
+>  {-   do h <- openFile (froot++".hs") WriteMode
 >        hPutStr h (header froot)
 >        compileData (defs st) (datadefs st) st h
 >        compileGamma (defs st) st h
@@ -186,3 +188,4 @@ Given a type name, get all the constructors and their arities
 >    where okch [] = []
 >          okch ('\'':xs) = "_AP_"++okch xs
 >          okch (x:xs) = x:(okch xs)
+> -}

@@ -33,7 +33,7 @@ compiled terms, etc.
 >            -- All elimination rules in their pattern matching form
 >            -- (with type)
 >            eliminators :: [(Name, (Indexed Name, 
->                                    ([RawScheme], [Scheme Name])))],
+>                                    ([RawScheme], PMFun Name)))],
 >            -- Supercombinators for each definition
 >            runtt :: SCs,
 >            -- Bytecode for each definitions
@@ -104,20 +104,10 @@ Take a data type definition and add constructors and elim rule to the context.
 >              ctxt <- addCons xs ctxt
 >              gInsert n gl ctxt
 >          addElim ctxt runtts bcdefs erule schemes = do
->            let cases = compileSchemes schemes
->            let arity = getArity schemes
->            let rule = mkElim (fst erule) (snd erule) arity cases
->            newdefs <- gInsert (fst erule) (G (ElimRule rule) (snd erule) defplicit)
->                                   ctxt
->	--     putStrLn $ show cases
->            let sc = elimSC (fst erule) (levelise (snd erule)) cases
->	--     putStrLn $ showSC sc
->            let newsc = (N (fst erule),(arity,sc))
->            let newruntts = (newsc:runtts)
->            let bc = compileAll newruntts [newsc]
->	--     putStrLn $ show bc
->            let newbc = bc++bcdefs
->            return (newdefs, newruntts, newbc)
+>            newdefs <- gInsert (fst erule) 
+>                               (G (PatternDef schemes) (snd erule) defplicit)
+>                               ctxt
+>            return (newdefs, runtts, bcdefs)
 
 > doMkData :: Monad m => IState -> Datadecl -> m IState
 > doMkData st (Datadecl n ps rawty cs) 

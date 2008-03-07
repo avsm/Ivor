@@ -42,7 +42,7 @@
 
 > instance Show Term where
 >     show (Term (Ind tm,Ind ty)) 
->         = show (makePs tm) ++ " : " ++ show (makePs ty)
+>         = show (makePs tm) ++ " : " ++ show (makePs ty) ++ "\n"
 
 > -- | Categories for names; typechecked terms will know what each variable
 > -- is for. 

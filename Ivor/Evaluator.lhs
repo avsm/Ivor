@@ -8,6 +8,7 @@
 > import Ivor.Nobby
 
 > import Debug.Trace
+> import Data.Typeable
 
  data Machine = Machine { term :: (TT Name),
                           mstack :: [TT Name],
@@ -45,11 +46,20 @@ Code			Stack	Env	Result
 >     eval (Bind n (B Lambda ty) (Sc sc)) xs env pats =
 >         let ty' = eval ty xs env pats in
 >             evalScope n ty' sc xs env pats
+>     eval (Bind n (B Pi ty) (Sc sc)) xs env pats =
+>         let ty' = eval ty xs env pats in
+>            (Bind n (B Pi ty') (Sc sc))
+>     eval (Bind n (B (Let val) ty) (Sc sc)) xs env pats =
+>         eval sc xs ((eval val [] env pats):env) pats
+>     eval (Bind n (B bt ty) (Sc sc)) xs env pats =
+>         let ty' = eval ty xs env pats in
+>            (Bind n (B bt ty') (Sc sc))
 >     eval x stk _ _ = unload x stk
 
 >     evalP n (Just v) xs env pats 
 >        = case v of
->             Fun opts (Ind v) -> trace (show (v, length env, length xs)) $ eval v xs env pats
+>             Fun opts (Ind v) -> eval v xs env pats
+>             PatternDef p -> pmatch n p xs env pats
 >             _ -> unload (P n) xs
 >     evalP n Nothing xs env pats = unload (P n) xs -- blocked, so unload stack
 
@@ -59,3 +69,44 @@ Code			Stack	Env	Result
 >               | otherwise = Bind n (B Lambda ty) (Sc sc) -- in Whnf
 >     unload x [] = x
 >     unload x (a:as) = unload (App x a) as
+
+>     pmatch n (PMFun i clauses) xs env pats =
+>         case matches clauses xs env pats of
+>           Nothing -> unload (P n) xs
+>           Just (rhs, pbinds) -> eval rhs (drop i xs) env pbinds
+
+>     matches [] xs env pats = Nothing
+>     matches (c:cs) xs env pats 
+>        = case (match c xs env pats) of
+>            Just v -> Just v
+>            Nothing -> matches cs xs env pats
+
+>     match :: Scheme Name -> [TT Name] -> SEnv -> [(Name, TT Name)] ->
+>              Maybe (TT Name, [(Name, TT Name)])
+>     match (Sch pats rhs) xs env patvars 
+>               = matchargs pats xs rhs env patvars
+>     matchargs [] [] (Ind rhs) env patvars = Just (rhs, patvars)
+>     matchargs (p:ps) (x:xs) rhs env patvars
+>               = case matchPat p x patvars of
+>                   Just patvars' -> matchargs ps xs rhs env patvars'
+>                   Nothing -> Nothing
+
+>     matchPat (PVar n) x patvars = Just ((n,x):patvars)
+>     matchPat (PConst t) (Const t') patvars
+>                  = do tc <- cast t
+>                       if (tc == t') then Just patvars
+>                                else Nothing
+>     matchPat pc@(PCon t _ _ args) app patvars
+>              | Just (tag, cargs) <- getConArgs app [] =
+>                     if (tag == t) then trace (show (pc, app)) $ matchPats args cargs patvars
+>                        else Nothing
+>         where matchPats [] [] patvars = Just patvars
+>               matchPats (a:as) (b:bs) patvars
+>                   = do vs' <- matchPat a b patvars
+>                        matchPats as bs vs'
+>               matchPats _ _ _ = Nothing
+>     matchPat _ _ _ = Nothing
+
+>     getConArgs (Con t _ _) args = Just (t, args)
+>     getConArgs (App f a) args = getConArgs f (a:args)
+>     getConArgs _ _ = Nothing

@@ -46,6 +46,7 @@
 >              | Interactive String ViewTerm
 >              | Forget String
 >              | EvalTerm ViewTerm
+>              | WHNF ViewTerm
 >              | Print String
 >              | Check ViewTerm
 >              | ReplData String String String
@@ -204,6 +205,12 @@ which runs it.
 >           term <- pTerm ext ; semi
 >           return $ EvalTerm term
 
+> pwhnf :: Maybe (Parser ViewTerm) -> Parser Command
+> pwhnf ext 
+>      = do reserved "Whnf"
+>           term <- pTerm ext ; semi
+>           return $ WHNF term
+
 > pprint :: Parser Command
 > pprint = do reserved "Print"
 >             term <- identifier ; semi
@@ -321,7 +328,7 @@ which runs it.
 >             = tryall [def ext, typeddef ext, pdata ext, plata ext, 
 >                       axiom ext, 
 >                       ptheorem ext, pdeclare ext, pinter ext, pforget, 
->                       eval ext, check ext, ppatternDef ext,
+>                       eval ext, pwhnf ext, check ext, ppatternDef ext,
 >                       pdrop, repldata, pqed, pprint, pfreeze, pthaw, pprf, 
 >                       pundo, psuspend, presume, pgenrec, pjme,
 >                       pload, pcompile, pfocus, pdump, pprfstate, pprims,

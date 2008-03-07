@@ -138,6 +138,14 @@
 >        | otherwise = do 
 >                       tm <- check (context st) exp
 >                       return (respondLn st (show (eval (context st) tm)))
+> runCommand (WHNF exp) st 
+> {-        | proving (context st) = do
+>                       tm <- newevalCtxt (context st) defaultGoal exp
+>                       return (respondLn st (show tm))
+>        | otherwise -} 
+>                    = do 
+>                       tm <- check (context st) exp
+>                       return (respondLn st (show (whnf (context st) tm)))
 > runCommand (Print n) st = do 
 >     case (getDef (context st) (name n)) of
 >       Just tm -> return (respondLn st (show (view tm)))

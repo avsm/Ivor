@@ -36,7 +36,7 @@ Exposed-modules:
 		Ivor.TermParser, Ivor.ViewTerm, Ivor.Equality,
 		Ivor.Plugin, Ivor.Construction
 Other-modules:	Ivor.Nobby, Ivor.TTCore, Ivor.State, 
-		Ivor.Tactics, Ivor.Typecheck,
+		Ivor.Tactics, Ivor.Typecheck, Ivor.Evaluator
 		Ivor.Gadgets, Ivor.SC, Ivor.Bytecode,
 		Ivor.CodegenC, Ivor.Datatype, Ivor.Display,
 		Ivor.ICompile, Ivor.MakeData, Ivor.Unify,

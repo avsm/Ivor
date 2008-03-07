@@ -31,7 +31,7 @@
 >               proofterm, getGoals, getGoal, uniqueName, -- getActions
 >               allSolved,qed,
 >               -- * Examining the Context
->               eval, evalCtxt, getDef, defined, getPatternDef, 
+>               eval, whnf, evalCtxt, getDef, defined, getPatternDef, 
 >               getAllDefs, getConstructors,
 >               Rule(..), getElimRule,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
@@ -94,6 +94,7 @@
 > import Ivor.Typecheck
 > import Ivor.Gadgets
 > import Ivor.Nobby
+> import Ivor.Evaluator
 > import Ivor.SC
 > import Ivor.Bytecode
 > import Ivor.Datatype
@@ -612,6 +613,11 @@ Give a parseable but ugly representation of a term.
 > eval :: Context -> Term -> Term
 > eval (Ctxt st) (Term (tm,ty)) = Term (normalise (defs st) tm,
 >                                       normalise (defs st) ty)
+
+> -- |Reduce a term and its type to Weak Head Normal Form
+> whnf :: Context -> Term -> Term
+> whnf (Ctxt st) (Term (tm,ty)) = Term (eval_whnf (defs st) tm,
+>                                          eval_whnf (defs st) ty)
 
 > -- |Check a term in the context of the given goal
 > checkCtxt :: (IsTerm a, Monad m) => Context -> Goal -> a -> m Term

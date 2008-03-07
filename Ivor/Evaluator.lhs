@@ -15,10 +15,13 @@
                           menv :: [(Name, Binder (TT Name))] }
 
 > eval_whnf :: Gamma Name -> Indexed Name -> Indexed Name
-> eval_whnf gam (Ind tm) = Ind (evaluate False gam tm)
+> eval_whnf gam (Ind tm) = let res = makePs (evaluate False gam tm)
+>                              in finalise (Ind res)
 
 > type Stack = [TT Name]
-> type SEnv = [TT Name]
+> type SEnv = [(Name, TT Name, TT Name)]
+
+> getEnv i env = (\ (_,_,val) -> val) (env!!i)
 
 Code			Stack	Env	Result
 
@@ -40,40 +43,47 @@ Code			Stack	Env	Result
 >              Nothing -> evalP x (lookupval x gam) xs env pats
 >              Just val -> eval val xs env pats
 >     eval (V i) xs env pats = if (length env>i) 
->                                then eval (env!!i) xs env pats
->                                else unload (V i) xs -- blocked, so unload
+>                                then eval (getEnv i env) xs env pats
+>                                else unload (V i) xs pats env -- blocked, so unload
 >     eval (App f a) xs env pats = eval f ((eval a [] env pats):xs) env pats
 >     eval (Bind n (B Lambda ty) (Sc sc)) xs env pats =
->         let ty' = eval ty xs env pats in
+>         let ty' = eval ty [] env pats in
 >             evalScope n ty' sc xs env pats
 >     eval (Bind n (B Pi ty) (Sc sc)) xs env pats =
->         let ty' = eval ty xs env pats in
->            (Bind n (B Pi ty') (Sc sc))
+>         let ty' = eval ty [] env pats in
+>            unload (Bind n (B Pi ty') (Sc sc)) [] pats env
 >     eval (Bind n (B (Let val) ty) (Sc sc)) xs env pats =
->         eval sc xs ((eval val [] env pats):env) pats
+>         eval sc xs ((n,ty,eval val [] env pats):env) pats
 >     eval (Bind n (B bt ty) (Sc sc)) xs env pats =
->         let ty' = eval ty xs env pats in
->            (Bind n (B bt ty') (Sc sc))
->     eval x stk _ _ = unload x stk
+>         let ty' = eval ty [] env pats in
+>            unload (Bind n (B bt ty') (Sc sc)) [] pats env
+>     eval x stk env pats = unload x stk pats env
 
 >     evalP n (Just v) xs env pats 
 >        = case v of
 >             Fun opts (Ind v) -> eval v xs env pats
 >             PatternDef p -> pmatch n p xs env pats
->             _ -> unload (P n) xs
->     evalP n Nothing xs env pats = unload (P n) xs -- blocked, so unload stack
+>             _ -> unload (P n) xs pats env
+>     evalP n Nothing xs env pats = unload (P n) xs pats env -- blocked, so unload stack
 
->     evalScope n ty sc (x:xs) env pats = eval sc xs (x:env) pats
+>     evalScope n ty sc (x:xs) env pats = eval sc xs ((n,ty,x):env) pats
 >     evalScope n ty sc [] env pats
 >               | open = error "Normalising not implemented"
->               | otherwise = Bind n (B Lambda ty) (Sc sc) -- in Whnf
->     unload x [] = x
->     unload x (a:as) = unload (App x a) as
+>               | otherwise 
+>                   = buildenv env $ unload (Bind n (B Lambda ty) (Sc sc)) [] pats env -- in Whnf
+>     unload x [] pats env 
+>                = foldl (\tm (n,val) -> substName n val (Sc tm)) x pats
+>     unload x (a:as) pats env = unload (App x a) as pats env
+
+>     buildenv [] t = t
+>     buildenv ((n,ty,tm):xs) t 
+>                 = buildenv xs (subst tm (Sc t))
+>     --            = buildenv xs (Bind n (B (Let tm) ty) (Sc t))
 
 >     pmatch n (PMFun i clauses) xs env pats =
 >         case matches clauses xs env pats of
->           Nothing -> unload (P n) xs
->           Just (rhs, pbinds) -> eval rhs (drop i xs) env pbinds
+>           Nothing -> unload (P n) xs pats env
+>           Just (rhs, pbinds, stk) -> eval rhs stk env pbinds
 
 >     matches [] xs env pats = Nothing
 >     matches (c:cs) xs env pats 
@@ -82,14 +92,15 @@ Code			Stack	Env	Result
 >            Nothing -> matches cs xs env pats
 
 >     match :: Scheme Name -> [TT Name] -> SEnv -> [(Name, TT Name)] ->
->              Maybe (TT Name, [(Name, TT Name)])
+>              Maybe (TT Name, [(Name, TT Name)], Stack)
 >     match (Sch pats rhs) xs env patvars 
 >               = matchargs pats xs rhs env patvars
->     matchargs [] [] (Ind rhs) env patvars = Just (rhs, patvars)
+>     matchargs [] xs (Ind rhs) env patvars = Just (rhs, patvars, xs)
 >     matchargs (p:ps) (x:xs) rhs env patvars
 >               = case matchPat p x patvars of
 >                   Just patvars' -> matchargs ps xs rhs env patvars'
 >                   Nothing -> Nothing
+>     matchargs _ _ _ _ _ = Nothing
 
 >     matchPat (PVar n) x patvars = Just ((n,x):patvars)
 >     matchPat (PConst t) (Const t') patvars
@@ -98,7 +109,7 @@ Code			Stack	Env	Result
 >                                else Nothing
 >     matchPat pc@(PCon t _ _ args) app patvars
 >              | Just (tag, cargs) <- getConArgs app [] =
->                     if (tag == t) then trace (show (pc, app)) $ matchPats args cargs patvars
+>                     if (tag == t) then matchPats args cargs patvars
 >                        else Nothing
 >         where matchPats [] [] patvars = Just patvars
 >               matchPats (a:as) (b:bs) patvars

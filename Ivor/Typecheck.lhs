@@ -156,7 +156,7 @@ typechecker...
 >          mkTT Nothing (Just (Unreducible,t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just (Undefined,t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just ((ElimRule _),t)) = return (Ind (Elim n), t)
->          mkTT Nothing (Just ((PrimOp _),t)) = return (Ind (P n), t)
+>          mkTT Nothing (Just ((PrimOp _ _),t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just ((DCon tag i),t)) = return (Ind (Con tag n i), t)
 >          mkTT Nothing (Just ((TCon i _),t)) = return (Ind (TyCon n i), t)
 >          mkTT Nothing Nothing = defaultResult

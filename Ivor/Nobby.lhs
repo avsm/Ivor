@@ -25,7 +25,7 @@ to do with it, when the time comes.
 >     | Partial (Indexed n) [n] -- Unfinished definition
 >     | PatternDef (PMFun n) -- Pattern matching definition
 >     | ElimRule ElimRule  -- Elimination Rule
->     | PrimOp PrimOp      -- Primitive function
+>     | PrimOp PrimOp EvPrim     -- Primitive function
 >     | DCon Int Int       -- Data Constructor, tag and arity
 >     | TCon Int (Elims n) -- Type Constructor and arity, elim rule name
 >     | Unreducible        -- Unreducible name
@@ -42,7 +42,7 @@ to do with it, when the time comes.
 > instance Show n => Show (Global n) where
 >     show (Fun opts t) = "Fun " ++ show t
 >     show (ElimRule _) = "<<elim rule>>"
->     show (PrimOp _) = "<<primitive operator>>"
+>     show (PrimOp _ _) = "<<primitive operator>>"
 >     show (DCon x t) = "DCon " ++ show x ++ "," ++show t
 >     show (TCon x (Elims e c cons)) = "TCon " ++ show x
 >     show Unreducible = "Unreducible"
@@ -165,6 +165,7 @@ a family.
 A PrimOp is an external operation
 
 > type PrimOp = Spine Value -> Maybe Value
+> type EvPrim = [TT Name] -> Maybe (TT Name) -- same, but with tt terms rather than values
 
 Model represents normal forms, including Ready (reducible) and Blocked
 (non-reducible) forms.
@@ -248,7 +249,7 @@ Do the actual evaluation
 >                 Just v -> v
 >          evalP (Just (PatternDef p)) = (MB (BPatDef p n, pty n) Empty)
 >          evalP (Just (Partial (Ind v) _)) = (MB (BP n, pty n) Empty)
->          evalP (Just (PrimOp f)) = (MB (BPrimOp f n, pty n) Empty)
+>          evalP (Just (PrimOp f _)) = (MB (BPrimOp f n, pty n) Empty)
 >          evalP (Just (Fun opts (Ind v))) 
 > --               | Frozen `elem` opts && not conv = MB (BP n) Empty
 >                -- recursive functions don't reduce in conversion check, to

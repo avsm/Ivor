@@ -396,7 +396,7 @@
 > addBinOp (Ctxt st) n f tyin = do
 >        checkNotExists n (defs st)
 >        Term (ty, _) <- Ivor.TT.check (Ctxt st) tyin
->        let fndef = PrimOp mkfun
+>        let fndef = PrimOp mkfun mktt
 >        let Gam ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
 >        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
@@ -409,6 +409,13 @@
 >                      Nothing -> Nothing
 >                   Nothing -> Nothing
 >          mkfun _ = Nothing
+>          mktt :: [TT Name] -> Maybe (TT Name)
+>          mktt [Const x, Const y]
+>               = case cast x of
+>                   Just x' -> case cast y of
+>                      Just y' -> Just $ Const (f x' y')
+>                      Nothing -> Nothing
+>          mktt _ = Nothing
 
 > -- | Add a new binary function on constants. Warning: The type you give
 > -- is not checked!
@@ -417,7 +424,7 @@
 > addBinFn (Ctxt st) n f tyin = do
 >        checkNotExists n (defs st)
 >        Term (ty, _) <- Ivor.TT.check (Ctxt st) tyin
->        let fndef = PrimOp mkfun
+>        let fndef = PrimOp mkfun mktt
 >        let Gam ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
 >        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
@@ -432,6 +439,17 @@
 >                      Nothing -> Nothing
 >                   Nothing -> Nothing
 >          mkfun _ = Nothing
+>          mktt :: [TT Name] -> Maybe (TT Name)
+>          mktt [Const x, Const y]
+>              = case cast x of
+>                   Just x' -> case cast y of
+>                      Just y' -> case Ivor.TT.check (Ctxt st) $ f x' y' of
+>                          Just (Term (Ind v,_)) ->
+>                              Just v
+>                      Nothing -> Nothing
+>                   Nothing -> Nothing
+>          mktt _ = Nothing
+
 
 > -- | Add a new primitive function on constants, usually used for converting
 > -- to some form which can be examined in the type theory itself.
@@ -441,7 +459,7 @@
 > addPrimFn (Ctxt st) n f tyin = do
 >        checkNotExists n (defs st)
 >        Term (ty, _) <- Ivor.TT.check (Ctxt st) tyin
->        let fndef = PrimOp mkfun
+>        let fndef = PrimOp mkfun mktt
 >        let Gam ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
 >        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
@@ -455,6 +473,15 @@
 >                                  Nothing -> Nothing
 >                   Nothing -> Nothing
 >          mkfun _ = Nothing
+>          mktt :: [TT Name] -> Maybe (TT Name)
+>          mktt [Const x]
+>               = case cast x of
+>                   Just x' -> case Ivor.TT.check (Ctxt st) $ f x' of
+>                                  Just (Term (Ind v,_)) ->
+>                                      Just v
+>                                  Nothing -> Nothing
+>                   Nothing -> Nothing
+>          mktt _ = Nothing
 
 > -- | Add a new externally defined function.
 > -- Warning: The type you give is not checked!
@@ -466,7 +493,7 @@
 > addExternalFn (Ctxt st) n arity f tyin = do
 >        checkNotExists n (defs st)
 >        Term (ty, _) <- Ivor.TT.check (Ctxt st) tyin
->        let fndef = PrimOp mkfun
+>        let fndef = PrimOp mkfun mktt
 >        let Gam ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
 >        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
@@ -481,6 +508,16 @@
 >                             Just (Term (Ind tm, _)) -> 
 >                                 Just $ nf (Gam []) (VG []) [] False tm
 >                      Nothing -> Nothing
+>          mktt :: [TT Name] -> Maybe (TT Name)
+>          mktt xs
+>            = if (length xs) /= arity then Nothing
+>               else case f (map viewtt xs) of
+>                      Just res ->
+>                          case (Ivor.TT.check (Ctxt st) res) of
+>                             Nothing -> Nothing
+>                             Just (Term (Ind tm, _)) -> 
+>                                 Just tm
+>                      Nothing -> Nothing
 
 Using 'Star' here is a bit of a hack; I don't want to export vt from
 ViewTerm, and I don't want to cut&paste code, and it's thrown away anyway...
@@ -489,6 +526,7 @@ Slightly annoying, but we'll cope.
 >          runf spine = f (map viewValue spine) 
 >          viewValue x = view (Term (Ind (forget ((quote x)::Normal)), 
 >                                 Ind TTCore.Star))
+>          viewtt x = view (Term (Ind x, Ind TTCore.Star))
 
 
 > -- |Add implicit binders for names used in a type, but not declared.

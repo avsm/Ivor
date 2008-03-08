@@ -83,7 +83,7 @@ Code			Stack	Env	Result
 >                 = buildenv xs (subst tm (Sc t))
 >     --            = buildenv xs (Bind n (B (Let tm) ty) (Sc t))
 
->     pmatch n (PMFun i clauses) xs env pats =
+>     pmatch n (PMFun i clauses) xs env pats = 
 >         case matches clauses xs env pats of
 >           Nothing -> unload (P n) xs pats env
 >           Just (rhs, pbinds, stk) -> eval rhs stk env pbinds
@@ -100,11 +100,12 @@ Code			Stack	Env	Result
 >               = matchargs pats xs rhs env patvars
 >     matchargs [] xs (Ind rhs) env patvars = Just (rhs, patvars, xs)
 >     matchargs (p:ps) (x:xs) rhs env patvars
->               = case matchPat p x patvars of
+>               = case matchPat p (eval x [] env patvars) patvars of
 >                   Just patvars' -> matchargs ps xs rhs env patvars'
 >                   Nothing -> Nothing
 >     matchargs _ _ _ _ _ = Nothing
 
+>     matchPat PTerm x patvars = Just patvars
 >     matchPat (PVar n) x patvars = Just ((n,x):patvars)
 >     matchPat (PConst t) (Const t') patvars
 >                  = do tc <- cast t

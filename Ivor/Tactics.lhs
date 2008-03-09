@@ -198,7 +198,7 @@ Add a new claim to the current state
 > claim :: Name -> Raw -> Tactic -- ?Name:Type. 
 > claim x s gam env (Ind t) = 
 >     do (Ind sv, st) <- check gam (ptovenv env) s Nothing
->        -- checkConv gam st (Ind Star) "Type of claim must be *"
+>        checkConv gam st (Ind Star) "Type of claim must be *"
 >        return $ (Ind (Bind x (B Hole (makePsEnv (map fst env) sv)) (Sc t)),
 >                      [NextGoal x])
 

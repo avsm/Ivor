@@ -21,10 +21,10 @@ Data Compare : (m,n:Nat)* =
   | cmpEQ : (n:Nat)(Compare n n)
   | cmpGT : (k,n:Nat)(Compare (plus n (S k)) n);
 
-Match compareAux : (m,n:Nat)(Compare m n)->(Compare (S m) (S n)) =
-    compareAux _ _ (cmpLT _ m) = cmpLT _ (S m)
+Match Partial compareAux : (m,n:Nat)(Compare m n)->(Compare (S m) (S n)) =
+    compareAux _ _ (cmpLT k _) = cmpLT k _
   | compareAux _ _ (cmpEQ n) = cmpEQ _
-  | compareAux _ _ (cmpGT _ n) = cmpGT _ (S n);
+  | compareAux _ _ (cmpGT k _) = cmpGT k _;
 
 Match compare : (m,n:Nat)(Compare m n) =
     compare O (S k) = cmpLT _ O

@@ -35,9 +35,12 @@ lfp = [A,B:*][f:(k:(a:A)Partial B)((a:A)Partial B)][a:A]
 
 Load "nat.tt";
 
+Check lfp;
+
 fact : (x:Nat)Partial Nat;
 intros;
-refine lfp Nat;
+refine lfp;
+fill Nat;
 intro factfn arg;
 case arg;
 refine returnD;

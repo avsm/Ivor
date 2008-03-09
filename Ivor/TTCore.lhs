@@ -267,6 +267,25 @@ Each V is processed with a function taking the context and the index.
 > levelise :: Indexed n -> Levelled n
 > levelise (Ind t) = Lev $ vapp (\ (ctx,i) -> V ((length ctx)-i-1)) t
 
+Same, but for Ps
+
+> papp :: (n -> (TT n)) -> TT n -> TT n
+> papp f t = v' t
+>   where
+>     v' (P n) = f n
+>     v' (V i) = V i
+>     v' (App f' a) = (App (v' f') (v' a))
+>     v' (Bind n b (Sc sc)) = (Bind n (fmap (v') b) 
+>			          (Sc (v' sc)))
+>     v' (Proj n i x) = Proj n i (v' x)
+>     v' (Label t (Comp n cs)) 
+>         = Label (v' t) (Comp n (fmap (v') cs))
+>     v' (Call (Comp n cs) t) 
+>         = Call (Comp n (fmap (v') cs)) (v' t)
+>     v' (Return t) = Return (v' t)
+>     v' (Stage t) = Stage (sLift (v') t)
+>     v' x = x
+
 FIXME: This needs to rename all duplicated binder names first, otherwise
 we get a duff term when we go back to the indexed version.
 

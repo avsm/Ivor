@@ -136,7 +136,8 @@ plus_eq_fst_sym : (m,n,p:_)(q:Eq _ _ (plus m p) (plus n p))(Eq _ _ m n);
 intro m n p;
 replace plus_comm m p;
 replace plus_comm n p;
-fill plus_eq_fst m n p;
+intros;
+fill plus_eq_fst m n p q;
 Qed;
 Freeze plus_eq_fst_sym;
 

@@ -198,7 +198,7 @@ Add a new claim to the current state
 > claim :: Name -> Raw -> Tactic -- ?Name:Type. 
 > claim x s gam env (Ind t) = 
 >     do (Ind sv, st) <- check gam (ptovenv env) s Nothing
->        checkConv gam st (Ind Star) "Type of claim must be *"
+>        -- checkConv gam st (Ind Star) "Type of claim must be *"
 >        return $ (Ind (Bind x (B Hole (makePsEnv (map fst env) sv)) (Sc t)),
 >                      [NextGoal x])
 
@@ -208,6 +208,10 @@ Add a new claim with guess to the current state
 > claimholey :: Name -> Indexed Name -> Indexed Name -> Tactic
 > claimholey x (Ind holey) (Ind ty) gam env (Ind term) =
 >     tacret $ Ind (Bind x (B (Guess holey) ty) (Sc term))
+
+> claimsolved :: Name -> Indexed Name -> Indexed Name -> Tactic
+> claimsolved x (Ind holey) (Ind ty) gam env (Ind term) =
+>     tacret $ Ind (Bind x (B (Let holey) ty) (Sc term))
 
 Begin solving a goal
 
@@ -223,8 +227,8 @@ Try filling the current goal with a term
 > fill :: Raw -> Tactic
 > fill guess gam env (Ind (Bind x (B Hole tyin') sc)) = 
 >     do let (Ind tyin) = finalise (Ind tyin')
->        (Ind gvin,Ind gtin) <- {-trace ("checking "++show guess++" in context " ++ show (ptovenv env)) $ -}
->                               check gam (ptovenv env) guess (Just (Ind tyin))
+>        (Ind gvin,Ind gtin, env) <- {-trace ("checking "++show guess++" in context " ++ show (ptovenv env)) $ -}
+>                               checkAndBind gam (ptovenv env) guess (Just (Ind tyin))
 >        let gv = makePsEnv (map fst env) gvin
 >        let gt = makePsEnv (map fst env) gtin
 >        let (Ind ty') = normaliseEnv (ptovenv env) (Gam []) (Ind tyin)
@@ -232,7 +236,7 @@ Try filling the current goal with a term
 >        let fgt = finalise (Ind gt)
 >        let fty' = finalise (Ind ty')
 >        let fty = finalise (Ind ty)
->        others <- {- trace ("unifying "++show gt++" and "++show ty') $ -}
+>        others <- -- trace ("unifying "++show gt++" and "++show ty') $
 >                  case unifyenv (Gam []) (ptovenv env) fgt fty' of
 >                     Nothing -> unifyenv gam (ptovenv env) fgt fty
 >                     (Just x) -> return x
@@ -261,24 +265,42 @@ solvable by unification). (FIXME: Not yet implemented.)
 >        let (Ind nty) = normaliseEnv (ptovenv env) gam (Ind ntyin)
 >        let bvin = makePsEnv (map fst env) bv
 >        -- let (Just (Ind nty)) = lookuptype n gam
->        let claims = uniqifyClaims x env (getClaims (makePsEnv (map fst env) nty))
->        (tm',_) <- doClaims x claims gam env tm
->        let guess = (mkGuess claims [] (forget bvin))
+>        let claimTypes = getClaims (makePsEnv (map fst env) nty)
+>        let rawapp = mkapp rtm (map (\_ -> RInfer) claimTypes)
+>        let (Ind tyin') = finalise (normaliseEnv (ptovenv env) gam (Ind ty))
+>        (Ind rtch, rtych, ev) <- checkAndBind gam (ptovenv env) rawapp (Just (Ind tyin'))
+>        let argguesses = getArgs rtch
+>        -- So we'll have an application, some of the arguments with inferred
+>        -- names. Let's record which ones...
+>        let claims = uniqifyClaims x env claimTypes
+>        let claimGuesses = zip claims (map appVar argguesses)
+>        (tm',_) <- {- trace (show claimGuesses) $ -} doClaims x claimGuesses gam env tm
+>        let guess = (mkGuess claimGuesses [] (forget bvin))
 >        (filled, unified) <- runtacticEnv gam env x tm' 
 >                  (fill guess)
->        (filled, solved) <- solveUnified [] unified filled
->        filled <- tryDefaults defaults claims filled
+>        -- (filled, solved) <- solveUnified [] unified filled
+>        -- filled <- tryDefaults defaults claims filled
 >        -- (tm', _) <- trace (show claims) $ tidy gam env filled
+>        let newgoals = mapMaybe isGoal claimGuesses
 >        return $ (filled, map HideGoal (map fst claims) ++ 
->                          map AddGoal (map fst (reverse claims)))
+>                          map AddGoal (reverse newgoals))
+>        --                  map AddGoal (map fst (reverse claims)))
 >        -- tacret filled --(Ind (Bind x (B Hole ty) (Sc sc')))
 >   where mkGuess [] defs n = n
->         mkGuess ((x,_):xs) (RInfer:ds) n 
+>         mkGuess (((x,_),guess):xs) (RInfer:ds) n 
 >             = (mkGuess xs ds (RApp n (Var x)))
->         mkGuess ((x,_):xs) [] n 
+>         mkGuess (((x,_),guess):xs) [] n 
 >             = (mkGuess xs [] (RApp n (Var x)))
->         mkGuess ((x,_):xs) (d:ds) n 
+>         -- FIXME: Fix this so default arguments use the 'guess'
+>         mkGuess (((x,_),_):xs) (d:ds) n 
 >             = (mkGuess xs ds (RApp n d))
+
+>         -- if we inferred a guess, use that, otherwise use the claim name
+>         appVar (P (MN ("INFER",_))) = Nothing
+>         appVar guess = Just guess
+>         isGoal ((n,ty),Nothing) = Just n
+>         isGoal ((n,ty),Just _) = Nothing
+
 >         todo uns (x,_) = not (isSolved x uns)
 >         solveUnified tohide [] tm = return (tm, tohide)
 >         solveUnified tohide ((Solved x guess):xs) tm 
@@ -296,6 +318,14 @@ solvable by unification). (FIXME: Not yet implemented.)
 >                  (filled, _) <- runtacticEnv gam env c filled solve
 >                  (filled, _) <- runtacticEnv gam env c filled cut
 >                  tryDefaults xs cs filled
+>         removeClaims claims tm@(Ind (Bind x b@(B _ ty) (Sc sc)))
+>             | x `elem` (map fst claims)
+>                  = {- trace (show (x,sc, forget sc)) $ -}
+>                    let (cl',Ind sc') = removeClaims claims (Ind sc) in
+>                      if (nameOccurs x (forget sc'))
+>                        then (cl', Ind (Bind x b (Sc sc')))
+>                        else ((x,ty):cl', Ind sc')
+>             | otherwise = ([], tm)
 
 > refine _ _ _ _ _ = fail "Not focused on a hole"
 
@@ -312,16 +342,20 @@ solvable by unification). (FIXME: Not yet implemented.)
 >         xs' = substClaim x (P newx) xs in
 >         (newx, ty):(uniqifyClaims nspace ((newx, B Hole ty):env) xs')
 >   where substClaim x newx [] = []
->         substClaim x newx ((n,ty):xs) = (n,substName x newx (Sc ty)):
->                                         (substClaim x newx xs)
+>         substClaim x newx ((n,ty):xs) 
+>                        = (n,substName x newx (Sc ty)):
+>                           (substClaim x newx xs)
 >         mkns (UN a) (UN b) = UN (a++"_"++b)
 >         mkns (MN (a,i)) (UN b) = MN (a++"_"++b, i)
 >         mkns (MN (a,i)) (MN (b,j)) = MN (a++"_"++b, i)
 
-> doClaims :: Name -> [(Name, TT Name)] -> Tactic
+> doClaims :: Name -> [((Name, TT Name), Maybe (TT Name))] -> Tactic
 > doClaims h [] gam env tm = tacret $ tm
-> doClaims h ((n,ty):xs) gam env tm = 
+> doClaims h (((n,ty),Nothing):xs) gam env tm =
 >     do (tm',_) <- runtacticEnv gam env h tm (claim n (forget ty))
+>        doClaims h xs gam env tm'
+> doClaims h (((n,ty),Just v):xs) gam env tm =
+>     do (tm',_) <- runtacticEnv gam env h tm (claimsolved n (Ind v) (Ind ty))
 >        doClaims h xs gam env tm'
 
 Give up the current try
@@ -401,7 +435,7 @@ Do case analysis by the given elimination operator
 >        let mbinding = (B (Let mtype) (snd motive))
 >        let claims = uniqifyClaims x env methods
 >        (Ind mbody, []) 
->            <- doClaims x claims gam (((fst motive),mbinding):env) tm
+>            <- doClaims x (zip claims (repeat Nothing)) gam (((fst motive),mbinding):env) tm
 >        let mbind = Bind (fst motive) mbinding (Sc mbody)
 >        let ruleapp = (forget (mkGuess claims (App bvin (P (fst motive)))))
 >        (filled, _) <- runtacticEnv gam env x (Ind mbind)
@@ -573,7 +607,7 @@ Boolean flag (flip) is True if symmetry should be applied first.
 >              (qty,a,b) <- getTypes rulet
 >              let tP = (Bind nm (B Lambda qty) (Sc (substTerm b (P nm) (Sc ty))))
 >              let p = substTerm b a (Sc ty)
->              (tm',_) <- doClaims x ([(claimname,p)]) gam env tm
+>              (tm',_) <- doClaims x ([((claimname,p),Nothing)]) gam env tm
 >              let repltm = mkapp repl (RInfer:RInfer:RInfer:userule:(forget tP):(Var claimname):[])
 >              (filled, _) <- runtacticEnv gam env x tm' (fill repltm)
 >              return (filled, [AddGoal claimname])

@@ -1,6 +1,10 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
-> module Ivor.Typecheck(module Ivor.Typecheck, Gamma) where
+> module Ivor.Typecheck(typecheck, tcClaim,
+>                       check, checkAndBind, checkAndBindPair,
+>                       convert,
+>                       checkConv, checkConvEnv, pToV, pToV2,
+>                       verify, Gamma) where
 
 > import Ivor.TTCore
 > import Ivor.Gadgets
@@ -38,6 +42,20 @@ syntactic.
 >                              else fail err
 
 
+*****
+SORT OUT TOP LEVEL TYPECHECKING FUNCTIONS
+DEFINE THE INTERFACE CLEARLY
+
+These are: check, checkAndBind, checkAndBindPair.
+
+All should work by generating constraints and solving them, differing only
+in when the constraints get solved.
+so....
+1. Generate constraints
+2. Unify, checking for conversion and creating a substitution
+3. Substitute into term and type
+*****
+
 Top level typechecking function - takes a context and a raw term,
 returning a pair of a term and its type
 
@@ -48,6 +66,9 @@ returning a pair of a term and its type
 > typecheckAndBind :: Monad m => Gamma Name -> Raw -> 
 >                     m (Indexed Name,Indexed Name, Env Name)
 > typecheckAndBind gamma term = checkAndBind gamma [] term Nothing
+
+Check a term, and return well typed terms with explicit names (i.e. no
+de Bruijn indices)
 
 > tcClaim :: Monad m => Gamma Name -> Raw -> m (Indexed Name,Indexed Name)
 > tcClaim gamma term = do (Ind t, Ind v) <- check gamma [] term Nothing
@@ -62,23 +83,64 @@ type.
 >     (Level, -- Level number
 >      Bool, -- Inferring types of names (if true)
 >      Env Name, -- Extra bindings, if above is true
->      -- conversion errors; remember the environment at the time we tried
+>      -- conversion constraints; remember the environment at the time we tried
 >      [(Env Name, Indexed Name, Indexed Name)])
 
 > type Level = Int
 
+Finishes up type checking by making a substitution from all the conversion
+constraints and applying it to the term and type.
+
+> doConversion :: Monad m =>
+>                 Raw -> Gamma Name ->
+>                 [(Env Name, Indexed Name, Indexed Name)] ->
+>                 Indexed Name -> Indexed Name -> 
+>                m (Indexed Name, Indexed Name)
+> doConversion raw gam constraints (Ind tm) (Ind ty) =
+>     -- trace ("Finishing checking " ++ show tm) $ -- ++ " with " ++ show constraints) $ 
+>           -- Unify twice; first time collect the substitutions, second
+>           -- time do them. Because we don't know what order we can solve
+>           -- constraints in and they might depend on each other...
+>       do (subst, nms) <- mkSubst $ (map (\x -> (False,x)) constraints) ++
+>                                    (map (\x -> (True,x)) constraints)
+>          let tm' = papp subst tm
+>          let ty' = papp subst ty
+>          return {- $ trace (show nms ++ "\n" ++ show (tm',ty')) -} (Ind tm',Ind ty')
+
+>    where mkSubst [] = return (P, [])
+>          mkSubst ((ok, (env,Ind x,Ind y)):xs) 
+>             = do (s',nms) <- mkSubst xs
+>                  let x' = papp s' x
+>                  let y' = papp s' y
+>                  uns <- case unifyenvErr ok gam env (Ind x') (Ind y') of
+>                         Success x' -> return x'
+>                         Failure err -> {- trace ("XXX: " ++ err ++ show (x',y')) $ return [] -} fail err -- $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
+>                  extend s' nms uns
+
+>          extend phi nms [] = return (phi, nms)
+>          extend phi nms ((n,tm):uns) 
+>             = extend ((scomp $! (delta n tm)) $! phi) ((n,tm):nms) uns
+
+>          scomp :: Subst -> Subst -> Subst
+>          scomp s2 s1 tn = papp s2 (s1 tn)
+
+>          delta n ty n' | n == n' = ty
+>                        | otherwise = P n'
+
 > check :: Monad m => Gamma Name -> Env Name -> Raw -> Maybe (Indexed Name) -> 
 >          m (Indexed Name, Indexed Name)
 > check gam env tm mty = do
->   (tm', _) <- lvlcheck 0 False 0 gam env tm mty
->   return tm'
+>   ((tm', ty'), (_,_,_,convs)) <- lvlcheck 0 False 0 gam env tm mty
+>   tm'' <- doConversion tm gam convs tm' ty'
+>   return tm''
 
 > checkAndBind :: Monad m => Gamma Name -> Env Name -> Raw -> 
 >                 Maybe (Indexed Name) -> 
 >                 m (Indexed Name, Indexed Name, Env Name)
 > checkAndBind gam env tm mty = do
->    ((v,t), (_,_,e,_)) <- lvlcheck 0 True 0 gam env tm mty
->    return (v,t,e)
+>    ((v,t), (_,_,e,convs)) <- lvlcheck 0 True 0 gam env tm mty
+>    (v',ty') <- doConversion tm gam convs v t
+>    return (v',ty',e)
 
 
 Check two things together, with the same environment and variable inference,
@@ -95,8 +157,9 @@ We need this for checking pattern clauses...
 >    let realNames = mkNames next
 >    e' <- fixupB gam realNames e
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
->    ((v2,t2), (_, _, e'', _)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam e' tm2 (Just t1')
->    return (v1',t1',v2,t2,e'')
+>    ((v2,t2), (_, _, e'', bs')) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam e' tm2 (Just t1')
+>    (v2',t2') <- doConversion tm2 gam bs' v2 (normalise gam t2) 
+>    return (v1',t1',v2',t2',e'')
 >  where mkNames 0 = []
 >        mkNames n
 >           = ([],Ind (P (MN ("INFER",n-1))), 
@@ -127,7 +190,7 @@ Do the typechecking, then unify all the inferred terms.
 >     -- Then fill in any remained inferred values we got by knowing the
 >     -- expected type
 >     (next, infer, bindings, errs) <- get
->     tm' <- fixup errs tm
+>     tm <- fixup errs tm
 >     bindings <- fixupB gamma errs bindings
 >     put (next, infer, bindings, errs)
 >     return tm'
@@ -147,8 +210,13 @@ typechecker...
 
 >  tc :: Monad m => Env Name -> Level -> Raw -> Maybe (Indexed Name) ->
 >                   StateT CheckState m (Indexed Name, Indexed Name)
->  tc env lvl (Var n) exp =
->        mkTT (lookupi n env 0) (glookup n gamma)
+>  tc env lvl (Var n) exp = do
+>        (rv, rt) <- mkTT (lookupi n env 0) (glookup n gamma)
+>        case exp of
+>           Nothing -> return (rv,rt)
+>           Just expt -> do checkConvSt env gamma rt expt $ "Type error"
+>                           return (rv,rt)
+
 >    where mkTT (Just (i, B _ t)) _ = return (Ind (P n), Ind t)
 >          mkTT Nothing (Just ((Fun _ _),t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just ((Partial _ _),t)) = return (Ind (P n), t)
@@ -178,19 +246,26 @@ typechecker...
 >     (Ind fv, Ind ft) <- tcfixup env lvl f Nothing
 >     let fnfng = normaliseEnv env (Gam []) (Ind ft)
 >     let fnf = normaliseEnv env gamma (Ind ft)
->     case (fnfng,fnf) of
->       ((Ind (Bind _ (B Pi s) (Sc t))),_) -> do
+>     (rv, rt) <-
+>       case (fnfng,fnf) of
+>        ((Ind (Bind _ (B Pi s) (Sc t))),_) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
 >          checkConvSt env gamma (Ind at) (Ind s) $ "Type error: " ++ show a ++ " : " ++ show at ++ ", expected type "++show s -- ++" "++show env
 >          let tt = (Bind (MN ("x",0)) (B (Let av) at) (Sc t))
 >          let tmty = (normaliseEnv env (Gam []) (Ind tt))
 >          return (Ind (App fv av), tmty)
->       (_, (Ind (Bind _ (B Pi s) (Sc t)))) -> do
+>        (_, (Ind (Bind _ (B Pi s) (Sc t)))) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
 >          checkConvSt env gamma (Ind at) (Ind s) $ "Type error: " ++ show a ++ " : " ++ show at ++ ", expected type "++show s -- ++" "++show env
 >          let tt = (Bind (MN ("x",0)) (B (Let av) at) (Sc t))
+>          let tt' = (normaliseEnv env gamma (Ind tt))
 >          return (Ind (App fv av), (normaliseEnv env gamma (Ind tt)))
->       _ -> fail $ "Cannot apply a non function type " ++ show ft ++ " to " ++ show a
+>        _ -> fail $ "Cannot apply a non function type " ++ show ft ++ " to " ++ show a
+>     return (rv,rt)
+>     case exp of
+>        Nothing -> return (rv,rt)
+>        Just expt -> do checkConvSt env gamma rt expt $ "Type error"
+>                        return (rv,rt)
 >  tc env lvl (RConst x) _ = tcConst x
 >  tc env lvl RStar _ = return (Ind Star, Ind Star)
 
@@ -412,7 +487,7 @@ extended environment.
 > fixupGam gamma ((env,x,y):xs) (Ind tm, Ind ty) = do 
 >      uns <- case unifyenv gamma env y x of
 >                 Success x' -> return x'
->                 Failure err -> fail $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
+>                 Failure err -> return [] -- fail err -- $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
 >      let tm' = fixupNames gamma uns tm
 >      let ty' = fixupNames gamma uns ty
 >      fixupGam gamma xs (Ind tm', Ind ty')

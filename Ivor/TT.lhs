@@ -240,9 +240,10 @@
 >         let runtts = runtt st
 >         term <- raw tm
 >         case (checkAndBind (Gam tmp) [] term (Just inty)) of
->              (Success (v,t,_)) -> do
+>              (Success (v,t@(Ind sc),_)) -> do
 >                 if (convert (defs st) inty t)
 >                     then (do
+>                       checkBound (getNames (Sc sc)) t
 >                       newdefs <- gInsert n (G (Fun [Recursive] v) t defplicit) (Gam ctxt)
 >                               -- = Gam ((n,G (Fun [] v) t):ctxt)
 >                       let scs = lift n (levelise (normalise (Gam []) v))
@@ -262,7 +263,8 @@
 >         let Gam ctxt = defs st
 >         let runtts = runtt st
 >         case (typecheck (Gam ctxt) v) of
->             (Success (v,t)) -> do
+>             (Success (v,t@(Ind sc))) -> do
+>                 checkBound (getNames (Sc sc)) t
 >                 newdefs <- gInsert n (G (Fun [] v) t defplicit) (Gam ctxt)
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
 >                 let scs = lift n (levelise (normalise (Gam []) v))
@@ -271,6 +273,12 @@
 >                 return $ Ctxt st { defs = newdefs, bcdefs = newbc,
 >                                    runtt = (runtts++scs) }
 >             (Failure err) -> fail err
+
+> checkBound :: Monad m => [Name] -> (Indexed Name) -> m ()
+> checkBound [] t = return ()
+> checkBound (nm@(MN ("INFER",_)):ns) t 
+>                = fail $ "Can't infer value for " ++ show nm ++ " in " ++ show t
+> checkBound (_:ns) t = checkBound ns t
 
 > -- |Forget a definition and all following definitions.
 > forgetDef :: Monad m => Context -> Name -> m Context

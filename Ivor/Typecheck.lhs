@@ -157,6 +157,7 @@ We need this for checking pattern clauses...
 >    let realNames = mkNames next
 >    e' <- fixupB gam realNames e
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
+>    (v1'',t1'') <- doConversion tm1 gam bs v1 (normalise gam t1) 
 >    ((v2,t2), (_, _, e'', bs')) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam e' tm2 (Just t1')
 >    (v2',t2') <- doConversion tm2 gam bs' v2 (normalise gam t2) 
 >    return (v1',t1',v2',t2',e'')

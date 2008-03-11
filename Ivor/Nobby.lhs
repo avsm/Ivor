@@ -390,6 +390,7 @@ Do the actual evaluation
 >   where pmatches [] [] vs = return vs
 >         pmatches (a:as) (b:bs) vs = do vs' <- pmatch a b vs
 >                                        pmatches as bs vs'
+>         pmatches _ _ _ = Nothing
 > pmatch _ _ _ = Nothing
 
 

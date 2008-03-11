@@ -102,7 +102,7 @@ constraints and applying it to the term and type.
 >           -- time do them. Because we don't know what order we can solve
 >           -- constraints in and they might depend on each other...
 >       do (subst, nms) <- mkSubst $ (map (\x -> (False,x)) constraints) ++
->                                    (map (\x -> (True,x)) constraints)
+>                                    (map (\x -> (True,x)) ((reverse constraints)++constraints))
 >          let tm' = papp subst tm
 >          let ty' = papp subst ty
 >          return {- $ trace (show nms ++ "\n" ++ show (tm',ty')) -} (Ind tm',Ind ty')
@@ -111,10 +111,13 @@ constraints and applying it to the term and type.
 >          mkSubst ((ok, (env,Ind x,Ind y)):xs) 
 >             = do (s',nms) <- mkSubst xs
 >                  let x' = papp s' x
->                  let y' = papp s' y
+>                  let (Ind y') = normalise gam (Ind (papp s' y))
 >                  uns <- case unifyenvErr ok gam env (Ind x') (Ind y') of
 >                         Success x' -> return x'
->                         Failure err -> {- trace ("XXX: " ++ err ++ show (x',y')) $ return [] -} fail err -- $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
+>                         Failure err -> fail err
+
+{- trace ("XXX: " ++ err ++ show (x',y')) $ return [] -} fail $ err {- ++"\n" ++ show nms ++"\n" ++ show constraints -- $ -} ++ " Can't convert "++show x'++" and "++show y' ++ "\n" ++ show constraints ++ "\n" ++ show nms
+
 >                  extend s' nms uns
 
 >          extend phi nms [] = return (phi, nms)
@@ -198,6 +201,9 @@ Do the typechecking, then unify all the inferred terms.
 
 >  tcfixup env lvl t exp = do
 >     tm@(_,tmty) <- tc env lvl t exp
+>     -- case exp of
+>     --   Nothing -> return ()
+>     --   Just expt -> checkConvSt env gamma expt tmty "Type error"
 >     (next, infer, bindings, errs) <- get
 >     tm' <- fixup errs tm
 >     bindings <- fixupB gamma errs bindings

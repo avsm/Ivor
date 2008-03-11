@@ -5,6 +5,8 @@
 > import Ivor.Nobby
 > import Ivor.TTCore
 
+> import List
+
 > import Debug.Trace
 
 > type Unified = [(Name, TT Name)]
@@ -35,11 +37,13 @@ Unify on named terms, but normalise using de Bruijn indices.
 > -- For the sake of readability of the results, first attempt to unify
 > -- without reducing global names, and reduce if that doesn't work.
 > -- (Actually, I'm not sure this helps. Probably just slows things down.)
-> unifyenvErr i gam env x y = 
->     case unifynferr i env (p (normalise emptyGam x))
+> unifyenvErr i gam env x y = {- trace (show (x,y) ++ "\n" ++
+>                                    show (p (normalise (gam' gam) x)) ++ "\n" ++
+>                                    show (p (normalise (gam' gam) x))) $-}
+>     {-case unifynferr i env (p (normalise emptyGam x))
 >                      (p (normalise emptyGam y)) of
 >           (Just x) -> return x
->           Nothing -> unifynferr i env (p (normalise (gam' gam) x))
+>           Nothing -> -} unifynferr i env (p (normalise (gam' gam) x))
 >                                       (p (normalise (gam' gam) y))
 >    where p (Ind t) = Ind (makePs t)
 >          gam' g = concatGam g (envToGamHACK env)
@@ -61,17 +65,20 @@ Collect names which do unify, and ignore errors
 >            Env Name -> Indexed Name -> Indexed Name -> m Unified
 > unifyCollect = unifynferr False
 
+> sentinel = [(MN ("HACK!!",0), P (MN ("HACK!!",0)))]
+
 > unifynferr :: Monad m => 
 >               Bool -> -- Ignore errors
 >               Env Name -> Indexed Name -> Indexed Name -> m Unified
 > unifynferr ignore env (Ind x) (Ind y) 
 >                = do acc <- un env env x y []
 >                     if ignore then return () else checkAcc acc
->                     return acc
+>                     return (acc \\ sentinel)
 >    where un envl envr (P x) (P y) acc
 >              | x == y = return acc
 >              | loc x envl == loc y envr && loc x envl >=0
 >                  = return acc
+>              -- | ignore = trace (show (x,y)) $ return sentinel -- broken, forget acc, but move on
 >          un envl envr (P x) t acc | hole envl x = return ((x,t):acc)
 >          un envl envr t (P x) acc | hole envl x = return ((x,t):acc)
 >          un envl envr (Bind x b@(B Hole ty) (Sc sc)) t acc
@@ -80,10 +87,22 @@ Collect names which do unify, and ignore errors
 >              do acc' <- unb envl envr b b' acc
 >                 un ((x,b):envl) ((x',b'):envr) sc sc' acc'
 >                 -- combine bu scu
->          un envl envr (App f s) (App f' s') acc = 
->              do acc' <- un envl envr f f' acc
->                 un envl envr s s' acc'
->                        
+>          -- if unifying the functions fails because the names are different, 
+>          -- unifying the arguments is going to be a waste of time bec
+>          un envl envr x@(App f s) y@(App f' s') acc 
+>              | funify (getFun f) (getFun f') = -- trace ("OK " ++ show (f,f',getFun f, getFun f')) $
+>                   do acc' <- un envl envr f f' acc
+>                      un envl envr s s' acc'
+>              | otherwise = if ignore then return acc
+>                               else fail $ "Can't unify "++show x++" and "++show y -- ++ " 5"
+>             where funify (P x) (P y) 
+>                       | x==y = True
+>                       | otherwise = hole envl x || hole envl y
+>                   funify (Con _ _ _) (P x) = hole envr x
+>                   funify (P x) (Con _ _ _) = hole envl x
+>                   funify (TyCon _ _) (P x) = hole envr x
+>                   funify (P x) (TyCon _ _) = hole envl x
+>                   funify _ _ = True -- unify normally
 >          un envl envr (Proj _ i t) (Proj _ i' t') acc
 >             | i == i' = un envl envr t t' acc
 >          un envl envr (Label t c) (Label t' c') acc = un envl envr t t' acc

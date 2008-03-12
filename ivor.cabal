@@ -1,12 +1,14 @@
 Name:		ivor
-Version:	0.1.6
+Version:	0.1.5
 Author:		Edwin Brady
 License:	BSD3
 License-file:	LICENSE
-Maintainer:	eb@dcs.st-and.ac.uk
+Author:		Edwin Brady
+Maintainer:	Edwin Brady <eb@dcs.st-and.ac.uk>
 Homepage:	http://www.dcs.st-and.ac.uk/~eb/Ivor/
+
 Stability:	experimental
-Build-depends:	base, haskell98, parsec, mtl, directory, containers
+Build-depends:	base, haskell98, parsec, mtl, plugins
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,
 		ExistentialQuantification, OverlappingInstances
 Synopsis:	Theorem proving library based on dependent type theory
@@ -18,6 +20,7 @@ Description:    Ivor is a type theory based theorem prover, with a
                 less along the lines of systems such as Coq or Agda,
                 and taking much of its inspiration from Conor
                 McBride's presentation of OLEG.
+                .
                 The API provides a collection of primitive tactics and
                 combinators for building new tactics. It is therefore
                 possible to build new tactics to suit specific
@@ -30,12 +33,20 @@ Description:    Ivor is a type theory based theorem prover, with a
                 new parser rules, user defined tactics and (if you
                 want your proofs to be untrustworthy) a fixpoint
                 combinator.
-Category:       Theorem provers
+
+Build-depends:	base, haskell98, parsec, mtl, plugins, directory
+Build-type:     Simple
+
+Extensions:	MultiParamTypeClasses, FunctionalDependencies,
+		ExistentialQuantification, OverlappingInstances
+-- Needs some -Wall cleanup
+-- GHC-options:    -Wall
+
 Exposed-modules:
-		Ivor.TT, Ivor.Shell, Ivor.Primitives, 
+		Ivor.TT, Ivor.Shell, Ivor.Primitives,
 		Ivor.TermParser, Ivor.ViewTerm, Ivor.Equality,
 		Ivor.Plugin, Ivor.Construction
-Other-modules:	Ivor.Nobby, Ivor.TTCore, Ivor.State, 
+Other-modules:	Ivor.Nobby, Ivor.TTCore, Ivor.State,
 		Ivor.Tactics, Ivor.Typecheck, Ivor.Evaluator
 		Ivor.Gadgets, Ivor.SC, Ivor.Bytecode,
 		Ivor.CodegenC, Ivor.Datatype, Ivor.Display,

@@ -34,7 +34,7 @@ Description:    Ivor is a type theory based theorem prover, with a
                 want your proofs to be untrustworthy) a fixpoint
                 combinator.
 
-Build-depends:	base, haskell98, parsec, mtl, plugins, directory
+Build-depends:	base, parsec, mtl, plugins, directory
 Build-type:     Simple
 
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,

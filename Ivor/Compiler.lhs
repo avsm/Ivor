@@ -10,7 +10,7 @@
 > import Ivor.ICompile
 
 > import System.IO
-> import Monad
+> import Control.Monad
 
 > compile :: IState -> String -> IO ()
 > compile st froot = fail "Deprecated"
@@ -31,12 +31,12 @@ FIXME! Only does elim, not case.
 > compileData gam ((n,dt):xs) st h =
 >     do let caseexp = compileSchemes (e_ischemes dt)
 >        let arity = getArity (e_ischemes dt)
->        rn <- rulename    
+>        rn <- rulename
 >        if (length (datacons dt)>0) then
 >           hPutStrLn h $ "data TT_" ++ exportName n ++ " = " ++ compileCons (datacons dt)
 >           else hPutStrLn h $ "data TT_" ++ exportName n ++ " = TT_" ++ exportName n
 >        let inst = projInstance (datacons dt)
->        when ((length (words inst))>0) 
+>        when ((length (words inst))>0)
 >           $ hPutStrLn h $ "\ninstance Project TT_"++ exportName n ++
 >                 " where\n" ++ inst
 >        let rtt = mkRTElim n arity caseexp
@@ -57,7 +57,7 @@ This creation of elim rule interfaces only works for completely simple types!
 >    where mkET (Bind _ (B Pi ty) (Sc sc)) = mkArg ty ++ mkET sc
 >          mkET _ = "a"
 >          mkArg ty | Star <- getReturnType ty = "" -- Skip Phi
->                   | TyCon x _ <- getFun ty 
+>                   | TyCon x _ <- getFun ty
 >                        = "TT_" ++ exportName x ++ " -> "
 >                   | otherwise = "(" ++ mkET ty ++ ") -> "
 
@@ -71,7 +71,7 @@ This creation of elim rule interfaces only works for completely simple types!
 >          mkET (Bind _ (B Pi ty) (Sc sc)) n = mkArg ty n ++ mkET sc (n+1)
 >          mkET _ _ = ""
 >          mkLams (Bind _ (B Pi ty) (Sc sc)) n | Star <- getReturnType ty
->                                                = mkLams sc n        
+>                                                = mkLams sc n
 >          mkLams (Bind _ (B Pi ty) (Sc sc)) n = "\\x"++show n ++ " -> "
 >                                                ++ mkLams sc (n+1)
 >          mkLams _ _ = ""
@@ -94,7 +94,7 @@ This creation of elim rule interfaces only works for completely simple types!
 
 > projInstance :: [(Name,Gval Name)] -> String
 > projInstance [] = ""
-> projInstance (x:xs) = 
+> projInstance (x:xs) =
 >     let xp = projAll x in
 >        if (length (words xp)>0) then xp ++ "\n" ++ projInstance xs
 >           else projInstance xs
@@ -112,7 +112,7 @@ This creation of elim rule interfaces only works for completely simple types!
 > compileGamma :: Gamma Name -> IState -> Handle -> IO ()
 > compileGamma gam@(Gam g) st h = cg g where
 >   cg [] = return ()
->   cg ((n,G (Fun _ ind) indty _):xs) = 
+>   cg ((n,G (Fun _ ind) indty _):xs) =
 >       do -- putStrLn $ "Compiling " ++ show n
 >          let nind = normalise (Gam []) ind
 >          let rtt = mkRTFun gam (levelise nind)
@@ -140,14 +140,14 @@ This creation of elim rule interfaces only works for completely simple types!
 >          mkBody l (RTBind (RTPi,_) (sc,_)) = "((coerce Type)::val)"
 >          mkBody l RTypeVal = "((coerce Type)::val)"
 >          mkBody l RTCantHappen = "error \"Impossible\""
->          mkBody l (RTProj ty i (v,_)) = "(project " ++ show i ++ 
+>          mkBody l (RTProj ty i (v,_)) = "(project " ++ show i ++
 >                                      "((coerce " ++ mkBody l v ++")::TT_"++show ty++"))"
 >          mkBody l (RTCase ty (v,_) xs) = "(case ((coerce "++mkBody l v++")::TT_"++show ty++") of { " ++ doCaseBody l (getCons (datadefs st) ty) xs ++ "})"
 >          mkBody l (RTConst c) = error "Sorry, can't compile constants yet"
 >          -- mkBody l x = "[[Not done "++show x++"]]"
 
 >          doCaseBody l [] [] = ""
->          doCaseBody l ((n,ar):ns) (i:is) = doCase l n ar i ++ " ; " ++ doCaseBody l ns is 
+>          doCaseBody l ((n,ar):ns) (i:is) = doCase l n ar i ++ " ; " ++ doCaseBody l ns is
 >          doCase l n ar (i,_) = "TT_"++exportName n++" "++caseargs ar++" -> " ++ mkBody l i
 >          caseargs 0 = ""
 >          caseargs n = "_ "++caseargs (n-1)

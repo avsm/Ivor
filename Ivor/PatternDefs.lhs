@@ -10,18 +10,15 @@
 
 > import Debug.Trace
 > import Data.List
-> import Monad
+> import Control.Monad
 
 Use the iota schemes from Datatype to represent pattern matching definitions.
-
-Return the definition and its type, as well as any other names which need
-to be defined to complete the definition.
 
 > checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> 
 >             Bool -> -- Check for coverage
 >             Bool -> -- Check for well-foundedness
 >             m (PMFun Name, Indexed Name, [(Name, Indexed Name)])
-> checkDef gam fn tyin pats cover wellfounded = do 
+> checkDef gam fn tyin pats cover wellfounded = do
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
 >   clausesIn <- mapM (expandClause gam) pats
@@ -42,20 +39,20 @@ to be defined to complete the definition.
 
 
 1) A definition is well founded if, for every clause, there is an argument
-position i such that all recursive calls have an argument in position i 
+position i such that all recursive calls have an argument in position i
 which is structurally smaller than the pattern in position i.
 
 An argument position is considered 'well-founded' if
 in any recursive call, it has a structurally smaller argument.
 
-A clause is well-founded if there are no recursive calls, or it has a 
+A clause is well-founded if there are no recursive calls, or it has a
 well-founded argument in common with all other recursive calls. We keep a list
 of which arguments are well-founded
 
 [REMOVED: Nested recursive calls are not allowed]
 [They are allowed as long as they are also well-founded]
 
-2) Alternatively, a definition is well founded if in every recursive call 
+2) Alternatively, a definition is well founded if in every recursive call
 there are no increasing arguments and at least one decreasing argument.
 
 > checkWellFounded :: Monad m =>
@@ -104,12 +101,12 @@ increasing arguments (iterature through arguments in a call)
 >         oneDec [] [] i True = return ()
 >         oneDec [] [] i False = fail "No decreasing arguments"
 >         oneDec (p:ps) (c:cs) i smaller
->                | structurallySmaller c p = oneDec ps cs (i+1) True 
+>                | structurallySmaller c p = oneDec ps cs (i+1) True
 >                | ss True c p = oneDec ps cs (i+1) smaller
 >                | otherwise = fail $ show c ++ " bigger than " ++ show p
 
 >         findRec args (App f a) = findRec (a:args) f
->         findRec args (P n) | n == fn = [args] ++ 
+>         findRec args (P n) | n == fn = [args] ++
 >                                        -- find nested calls too
 >                                        (concat $ map (findRec []) args)
 >         findRec args (Label t _) = findRec [] t
@@ -121,7 +118,7 @@ increasing arguments (iterature through arguments in a call)
 >                                    ++ (concat (map (findRec []) args))
 >         findRec args _ = concat $ map (findRec []) args
 
->         wfRec [] _ _ (Just last) = fail $ "Not a well-founded call: " 
+>         wfRec [] _ _ (Just last) = fail $ "Not a well-founded call: "
 >                                             ++ show last
 >         wfRec args pats [] _ = return args
 >         wfRec args pats (a:as) _ =
@@ -140,7 +137,7 @@ increasing arguments (iterature through arguments in a call)
 >             | otherwise = wfRec1 (args \\ [i]) (i+1) ps as
 >         wfRec1 args i _ _ = return args -- variadic function, just stop looking
 
-A non-recursive constructor application is structurally smaller than 
+A non-recursive constructor application is structurally smaller than
 anything.
 
 >         structurallySmaller n p = ss False n p
@@ -176,15 +173,11 @@ names bound in patterns) then type check the right hand side.
 
     where mkRaw (RSch pats r) = mkPBind pats tyin r
           mkPBind [] _ r = r
-          mkPBind (p:ps) (RBind n (B _ t) tsc) r 
+          mkPBind (p:ps) (RBind n (B _ t) tsc) r
               = RBind n (B (Pattern p) t) (mkPBind ps tsc r)
 
 >   where mkRaw (RSch pats r) = mkapp (Var fn) pats
 >         getRet (RSch pats r) = r
->         mytypechecks gam [] acc defs = return (reverse acc, defs)
->         mytypechecks gam (c:cs) acc defs
->             = do (cl, cr, newdefs) <- mytypecheck gam c
->                  mytypechecks gam cs ((cl,cr):acc) (defs++newdefs)
 >         mytypecheck gam (clause, ret) = 
 >             do (tm@(Ind tmtt), pty,
 >                 rtm@(Ind rtmtt), rty, env, newdefs) <-
@@ -203,9 +196,9 @@ names bound in patterns) then type check the right hand side.
 >                               _ -> False
 >         checkAllBound r b rhs clause = do
 >              let unbound = filter (\y -> not (elem y b)) r
->              if (length unbound == 0) 
+>              if (length unbound == 0)
 >                 then return ()
->                 else fail $ "Unbound names in clause for " ++ show clause ++ ":\n" ++ show rhs ++ "\n" 
+>                 else fail $ "Unbound names in clause for " ++ show clause ++ ":\n" ++ show rhs ++ "\n"
 >                             ++ show unbound ++ "\n"
 
 > mkScheme :: Gamma Name -> (Indexed Name, Indexed Name) -> PMDef Name
@@ -256,13 +249,13 @@ fails, reporting which case isn't matched, if patterns don't cover.
 
 Remove the clauses which can't possibly be type correct.
 
-> validClauses :: Monad m => Gamma Name -> Name -> Indexed Name -> 
+> validClauses :: Monad m => Gamma Name -> Name -> Indexed Name ->
 >                 [RawScheme] -> m [(Indexed Name, Indexed Name)]
 > validClauses gam fn ty cs = do
 >     -- add fn:ty to the context as an axiom
 >     checkValid gam [] cs
 >  where checkValid gam acc [] = return acc
->        checkValid gam acc ((RSch c r):cs) 
+>        checkValid gam acc ((RSch c r):cs)
 >           = do let app = mkapp (Var fn) c
 >                case typecheck gam app of
 >                  Nothing -> checkValid gam acc cs
@@ -277,7 +270,7 @@ Return true if the given pattern clause is the most specific in a list
 >          msc c (x:xs) | moreSpecClause x c = False
 >                       | otherwise = msc c xs
 
-> moreSpecClause (RSch pa _) (RSch pb _) 
+> moreSpecClause (RSch pa _) (RSch pb _)
 >    = moreSpecClause' pa pb
 
 > moreSpecClause' :: [Raw] -> [Raw] -> Bool
@@ -311,7 +304,7 @@ constructor form
 >   where expandf :: Raw -> [[Raw]] -> [Raw]
 >         expandf f args = map (mkapp f) (combine args)
 >         mkConPatts [] = []
->         mkConPatts ((n,ar):xs) 
+>         mkConPatts ((n,ar):xs)
 >            = (mkapp (Var n) (take ar (repeat RInfer))):(mkConPatts xs)
 
 Turn a list of possibilities for each argument into a list of all
@@ -333,7 +326,7 @@ only
 >         ms' (x:xs) acc | x `lessSpec` xs || x `lessSpec` acc = ms' xs acc
 >                        | otherwise = ms' xs (x:acc)
 >         lessSpec x [] = False
->         lessSpec x (y:ys) = (moreSpec y x) || x==y || (lessSpec x ys) 
+>         lessSpec x (y:ys) = (moreSpec y x) || x==y || (lessSpec x ys)
 
 > moreSpec :: Raw -> Raw -> Bool
 > moreSpec (Var _) (Var _) = False
@@ -359,7 +352,7 @@ return all of the constructor names and arities
 >                      -- Nothing can't happen
 
  checkClause gam n (RSch pats ret) =
-     
+
  generateAll :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> m [PMRaw]
  generateAll gam n tyin pats = do
    (Ind ty, tyty) <- typecheck gam tyin

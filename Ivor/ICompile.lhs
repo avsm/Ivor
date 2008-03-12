@@ -5,7 +5,7 @@
 > import Ivor.Nobby
 > import Ivor.Gadgets
 
-> import List
+> import Data.List
 > import Debug.Trace
 
 Structure of simple case expressions, from which we can build actual code for
@@ -19,7 +19,7 @@ elimination rules in whatever form we like, eg for NBE or compiled code.
 Compile a set of iota schemes to simple case structure.
 
 TMP ASSUMPTION: There is always one argument where all cases are disjoint.
-We can make sure this is always the case even for detaggable/collapsible 
+We can make sure this is always the case even for detaggable/collapsible
 families, although we should do better later.
 
 > compileSchemes :: [Scheme Name] -> SimpleCase
@@ -63,11 +63,11 @@ Case 1: All patterns are disjoint.
 
 > doCase1 :: Int -> [(Pattern Name, Indexed Name)] -> SimpleCase
 > doCase1 x ps = Case (ty ps) x (order ps)
->    where order ps = insertDefaults 
+>    where order ps = insertDefaults
 >	                  (sortBy (\ (x,y) (x',y') -> compare x x') ps)
 >	   insertDefaults ps = id' 0 ps
 >          id' n [] = []
->	   id' n allps@((PCon i _ _ _,t):ps) 
+>	   id' n allps@((PCon i _ _ _,t):ps)
 >             | n == i = (IReduce t):(id' (n+1) ps)
 >             | otherwise = Impossible:(id' (n+1) allps)
 >          ty ((PCon _ _ tyname _, _):xs) = tyname
@@ -83,7 +83,7 @@ Make an elimination rule implementation from a simple case expression.
 >                    case xval of
 >		      (MR (RCon tag _ _)) -> doElim sp (cs!!tag)
 >		      _ -> Nothing
->         doElim sp (IReduce (Ind t)) 
+>         doElim sp (IReduce (Ind t))
 >                = let recrule = mkElim ename ty arity cs
 >		       gam = extend emptyGam (ename,G (ElimRule recrule) ty defplicit)
 >		       red = (nf gam (VG (revlistify sp)) [] False t)

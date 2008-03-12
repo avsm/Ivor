@@ -1,6 +1,6 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
-> -- | 
+> -- |
 > -- Module      : Ivor.TT
 > -- Copyright   : Edwin Brady
 > -- Licence     : BSD-style (see LICENSE in the distribution)
@@ -8,7 +8,7 @@
 > -- Maintainer  : eb@dcs.st-and.ac.uk
 > -- Stability   : experimental
 > -- Portability : non-portable
-> -- 
+> --
 > -- Public interface for theorem proving gadgets.
 
 > module Ivor.TT(-- * System state
@@ -33,7 +33,7 @@
 >               proofterm, getGoals, getGoal, uniqueName, -- getActions
 >               allSolved,qed,
 >               -- * Examining the Context
->               eval, whnf, evalCtxt, getDef, defined, getPatternDef, 
+>               eval, whnf, evalCtxt, getDef, defined, getPatternDef,
 >               getAllTypes, getAllDefs, getAllPatternDefs, getConstructors,
 >               Rule(..), getElimRule,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
@@ -86,7 +86,7 @@
 >               quoteVal,
 >               -- ** Tactic combinators
 >               idTac, tacs,
->               (>->), (>=>), (>+>), (>|>), try, 
+>               (>->), (>=>), (>+>), (>|>), try,
 >               traceTac)
 
 >     where
@@ -109,7 +109,7 @@
 > import Ivor.CodegenC
 > import Ivor.PatternDefs
 
-> import List
+> import Data.List
 > import Debug.Trace
 > import Data.Typeable
 > import Control.Monad(when)
@@ -131,11 +131,11 @@
 > defaultGoal :: Goal
 > defaultGoal = DefaultGoal
 
-> -- |A tactic is any function which manipulates a term at the given goal 
+> -- |A tactic is any function which manipulates a term at the given goal
 > -- binding. Tactics may fail, hence the monad.
 > type Tactic = forall m.Monad m => Goal -> Context -> m Context
 
-> -- | Initialise a context, with no data or definitions and an 
+> -- | Initialise a context, with no data or definitions and an
 > -- empty proof state.
 > emptyContext :: Context
 > emptyContext = Ctxt initstate
@@ -199,7 +199,7 @@
 >     addData' elim (Ctxt st) ind = do st' <- doMkData elim st (datadecl ind)
 >                                      return (Ctxt st')
 >       where
->         datadecl (Inductive n ps inds cty cons) = 
+>         datadecl (Inductive n ps inds cty cons) =
 >             Datadecl n (map (\ (n,ty) -> (n, forget ty)) ps)
 >                        (mkTycon inds cty)
 >                        (map (\ (n,ty) -> (n, forget ty)) cons)
@@ -255,7 +255,7 @@
 > -- but can be optionally partial or general recursive.
 > -- Returns the new context, and a list of names which need to be defined
 > -- to complete the definition.
-> addPatternDef :: (IsTerm ty, Monad m) => 
+> addPatternDef :: (IsTerm ty, Monad m) =>
 >                Context -> Name -> ty -- ^ Type
 >                  -> Patterns -- ^ Definition
 >                -> [PattOpt] -- ^ Options to set which definitions will be accepted
@@ -284,7 +284,7 @@
 
 > -- |Add a new definition, with its type to the global state.
 > -- These definitions can be recursive, so use with care.
-> addTypedDef :: (IsTerm term, IsTerm ty, Monad m) => 
+> addTypedDef :: (IsTerm term, IsTerm ty, Monad m) =>
 >                Context -> Name -> term -> ty -> m Context
 > addTypedDef (Ctxt st) n tm ty = do
 >         checkNotExists n (defs st)
@@ -321,7 +321,7 @@
 
 > checkBound :: Monad m => [Name] -> (Indexed Name) -> m ()
 > checkBound [] t = return ()
-> checkBound (nm@(MN ("INFER",_)):ns) t 
+> checkBound (nm@(MN ("INFER",_)):ns) t
 >                = fail $ "Can't infer value for " ++ show nm ++ " in " ++ show t
 > checkBound (_:ns) t = checkBound ns t
 
@@ -346,6 +346,7 @@ do let olddefs = defs st
 >                              "(P:*)(meth_general:(p:P)P)P"
 >          let tmp = defs tmpctxt
 >          let ctxt = defs st
+>          let runtts = runtt st
 >          general <- raw $ "[P:*][meth_general:(p:P)P](meth_general (" ++ 
 >                            show n ++ " P meth_general))"
 >          case (typecheck tmp general) of
@@ -375,7 +376,7 @@ do let olddefs = defs st
 > -- eqElim : (A:*)(a:A)(b:A)(q:JMEq A A a a)
 > --       (Phi:(a':A)(target:JMEq A A a a')*)
 > --       (meth_refl:(a:A)(Phi a (refl A a)))(Phi a q);
-> -- eqelim A a Phi meth_refl a (refl A a) => meth_refl a 
+> -- eqelim A a Phi meth_refl a (refl A a) => meth_refl a
 
 > eqTyCon jmeq = do ty <- raw $ "(A:*)(B:*)(a:A)(b:B)*"
 >                   return (jmeq, ty)
@@ -384,8 +385,8 @@ do let olddefs = defs st
 >                      return (refl, ty)
 
 > eqElimType jmeq refl nm
->     = do ty <- raw $ 
->                 "(A:*)(a:A)(b:A)(q:" ++ jmeq ++ 
+>     = do ty <- raw $
+>                 "(A:*)(a:A)(b:A)(q:" ++ jmeq ++
 >                 " A A a b)(Phi:(a':A)(target:" ++
 >                 jmeq ++ " A A a a')*)(meth_" ++
 >                 refl ++ ":Phi a (" ++ refl ++ " A a))(Phi b q)"
@@ -556,7 +557,7 @@ do let olddefs = defs st
 >                      Just res ->
 >                          case (Ivor.TT.check (Ctxt st) res) of
 >                             Nothing -> Nothing
->                             Just (Term (Ind tm, _)) -> 
+>                             Just (Term (Ind tm, _)) ->
 >                                 Just $ nf (emptyGam) (VG []) [] False tm
 >                      Nothing -> Nothing
 >          mktt :: [TT Name] -> Maybe (TT Name)
@@ -566,7 +567,7 @@ do let olddefs = defs st
 >                      Just res ->
 >                          case (Ivor.TT.check (Ctxt st) res) of
 >                             Nothing -> Nothing
->                             Just (Term (Ind tm, _)) -> 
+>                             Just (Term (Ind tm, _)) ->
 >                                 Just tm
 >                      Nothing -> Nothing
 
@@ -574,8 +575,8 @@ Using 'Star' here is a bit of a hack; I don't want to export vt from
 ViewTerm, and I don't want to cut&paste code, and it's thrown away anyway...
 Slightly annoying, but we'll cope.
 
->          runf spine = f (map viewValue spine) 
->          viewValue x = view (Term (Ind (forget ((quote x)::Normal)), 
+>          runf spine = f (map viewValue spine)
+>          viewValue x = view (Term (Ind (forget ((quote x)::Normal)),
 >                                 Ind TTCore.Star))
 >          viewtt x = view (Term (Ind x, Ind TTCore.Star))
 
@@ -591,19 +592,19 @@ intuitive)
 > addImplicit ctxt tm = bind 0 (reverse (namesIn tm)) tm
 >   where bind i [] tm = (i,tm)
 >         bind i (n:ns) tm | defined ctxt n = bind i ns tm
->                          | otherwise = bind (i+1) ns 
+>                          | otherwise = bind (i+1) ns
 >                                           (Forall n Placeholder tm)
 
 > -- |Begin a new proof.
 > theorem :: (IsTerm a, Monad m) => Context -> Name -> a -> m Context
-> theorem (Ctxt st) n tm = do 
+> theorem (Ctxt st) n tm = do
 >        checkNotExists n (defs st)
 >        rawtm <- raw tm
 >        (tv,tt) <- tcClaim (defs st) rawtm
 >        case (proofstate st) of
->            Nothing -> do 
+>            Nothing -> do
 >                       let thm = Tactics.theorem n tv
->                       attack defaultGoal 
+>                       attack defaultGoal
 >                                  $ Ctxt st { proofstate = Just $ thm,
 >                                              holequeue = [n],
 >                                              hidden = []
@@ -614,15 +615,15 @@ intuitive)
 > -- Actually, just the same as 'theorem' but this version allows you to
 > -- make recursive calls, which should of course be done with care.
 > interactive :: (IsTerm a, Monad m) => Context -> Name -> a -> m Context
-> interactive (Ctxt st) n tm = do 
+> interactive (Ctxt st) n tm = do
 >        checkNotExists n (defs st)
 >        (Ctxt st') <- declare (Ctxt st) n tm
 >        rawtm <- raw tm
 >        (tv,tt) <- tcClaim (defs st) rawtm
 >        case (proofstate st) of
->            Nothing -> do 
+>            Nothing -> do
 >                       let thm = Tactics.theorem n tv
->                       attack defaultGoal 
+>                       attack defaultGoal
 >                                  $ Ctxt st' { proofstate = Just $ thm,
 >                                               holequeue = [n],
 >                                               hidden = []
@@ -636,18 +637,18 @@ intuitive)
 >                        (Just st') -> Ctxt st'
 >                        Nothing -> Ctxt st
 
-> -- |Resume an unfinished proof, suspending the current one if necessary. 
-> -- Fails if there is no such name. Can also be used to begin a 
+> -- |Resume an unfinished proof, suspending the current one if necessary.
+> -- Fails if there is no such name. Can also be used to begin a
 > -- proof of an identifier previously claimed as an axiom.
 > -- Remember that you will need to 'attack' the goal if you are resuming an
 > -- axiom.
 > resume :: Monad m => Context -> Name -> m Context
-> resume ctxt@(Ctxt st) n = 
+> resume ctxt@(Ctxt st) n =
 >     case glookup n (defs st) of
 >         Just ((Ivor.Nobby.Partial _ _),_) -> do let (Ctxt st) = suspend ctxt
 >                                                 st' <- resumeProof st n
 >                                                 return (Ctxt st')
->         Just (Unreducible,ty) -> 
+>         Just (Unreducible,ty) ->
 >             do let st' = st { defs = remove n (defs st) }
 >                theorem (Ctxt st') n (Term (ty, Ind TTCore.Star))
 >         _ -> fail "No such suspended proof"
@@ -655,7 +656,7 @@ intuitive)
 > -- | Freeze a name (i.e., set it so that it does not reduce)
 > -- Fails if the name does not exist.
 > freeze :: Monad m => Context -> Name -> m Context
-> freeze (Ctxt st) n 
+> freeze (Ctxt st) n
 >      = case glookup n (defs st) of
 >           Nothing -> fail $ show n ++ " is not defined"
 >           _ -> return $ Ctxt st { defs = Ivor.Nobby.freeze n (defs st) }
@@ -692,7 +693,7 @@ Give a parseable but ugly representation of a term.
 
  -- |Parse and typecheck a term
  newTerm :: Monad m => Context -> String -> m Term
- newTerm (Ctxt st) str = do 
+ newTerm (Ctxt st) str = do
      case (parseterm str) of
          Success raw -> do (tm,ty) <- typecheck (defs st) raw
                            return $ Term (tm, ty)
@@ -747,9 +748,9 @@ Give a parseable but ugly representation of a term.
 > -- |Check whether the conversion relation holds between two terms, in the
 > -- context of the given goal
 
-> converts :: (Monad m, IsTerm a, IsTerm b) => 
+> converts :: (Monad m, IsTerm a, IsTerm b) =>
 >             Context -> Goal -> a -> b -> m Bool
-> converts ctxt@(Ctxt st) goal a b 
+> converts ctxt@(Ctxt st) goal a b
 >     = do atm <- checkCtxt ctxt goal a
 >          btm <- checkCtxt ctxt goal b
 >          prf <- case proofstate st of
@@ -782,9 +783,9 @@ Give a parseable but ugly representation of a term.
 
 > -- |Lookup a pattern matching definition in the context.
 > getPatternDef :: Monad m => Context -> Name -> m Patterns
-> getPatternDef (Ctxt st) n 
+> getPatternDef (Ctxt st) n
 >     = case glookup n (defs st) of
->           Just ((PatternDef pmf),ty) -> 
+>           Just ((PatternDef pmf),ty) ->
 >               return $ Patterns (map mkPat (getPats pmf))
 >           Nothing -> fail "Not a pattern matching definition"
 >    where getPats (PMFun _ ps) = ps
@@ -813,7 +814,7 @@ Give a parseable but ugly representation of a term.
 
 > -- | Get the names of all of the constructors of an inductive family
 > getConstructors :: Monad m => Context -> Name -> m [Name]
-> getConstructors (Ctxt st) n 
+> getConstructors (Ctxt st) n
 >      = case glookup n (defs st) of
 >           Just ((TCon _ (Elims _ _ cs)),ty) -> return cs
 >           _ -> fail "Not a type constructor"
@@ -827,7 +828,7 @@ Examine pattern matching elimination rules
 > getElimRule :: Monad m => Context -> Name -- ^ Type
 >                  -> Rule -- ^ Which rule to get patterns for (case or elim)
 >                  -> m Patterns
-> getElimRule (Ctxt st) nm r = 
+> getElimRule (Ctxt st) nm r =
 >     case (lookupval nm (defs st)) of
 >       Just (TCon _ (Elims erule crule cons)) ->
 >          do let rule = case r of -- rule :: Name
@@ -875,7 +876,7 @@ Get the actions performed by the last tactic
 > proofterm :: Monad m => Context -> m Term
 > proofterm (Ctxt st) = case proofstate st of
 >                         Nothing -> fail "No proof in progress"
->                         Just (Ind (Bind _ (B (Guess v) t) _)) -> 
+>                         Just (Ind (Bind _ (B (Guess v) t) _)) ->
 >                             return $ Term (Ind v,Ind t)
 >                         Just t -> fail $ "Proof finished; " ++ show t
 
@@ -893,7 +894,7 @@ Get the actions performed by the last tactic
 >               Nothing -> fail "No such goal"
 
 > getHoleTerm gam hs tm = (getctxt hs, 
->                          Term (normaliseEnv hs (emptyGam) (binderType tm), 
+>                          Term (normaliseEnv hs (Gam []) (binderType tm), 
 >                                Ind TTCore.Star))
 >    where getctxt [] = []
 >          getctxt ((n,B _ ty):xs) = (n,Term (Ind ty,Ind TTCore.Star)):
@@ -902,23 +903,23 @@ Get the actions performed by the last tactic
 >          binderType _ = error "Can't happen (binderType)"
 
 > -- |Environment and goal type for a given subgoal
-> data GoalData = GoalData { 
->                  bindings :: [(Name,Term)], 
+> data GoalData = GoalData {
+>                  bindings :: [(Name,Term)],
 >                      -- ^ Get the premises of the goal
->                  goalName :: Goal, 
+>                  goalName :: Goal,
 >                      -- ^ Get the name of the goal
->                  goalType :: Term 
+>                  goalType :: Term
 >                      -- ^ Get the type of the goal
 >                  }
 
 
 > -- |Get information about a subgoal.
-> goalData :: Monad m => Context -> Bool -- ^ Get all bindings (True), or 
+> goalData :: Monad m => Context -> Bool -- ^ Get all bindings (True), or
 >                                        -- just lambda bindings (False)
 >          -> Goal -> m GoalData
 > goalData (Ctxt st) all goal = case proofstate st of
 >         Nothing -> fail "No proof in progress"
->         (Just prf) -> 
+>         (Just prf) ->
 >             let h = case goal of
 >                           (Goal x) -> x
 >                           DefaultGoal -> head (holequeue st) in
@@ -932,7 +933,7 @@ Get the actions performed by the last tactic
 >                  (Term (Ind tm,
 >                         (Ind TTCore.Star)))
 >        getbs [] = []
->        getbs ((n,B b ty):xs) 
+>        getbs ((n,B b ty):xs)
 >            | (b == TTCore.Lambda || all) && (not (n `elem` (hidden st)))
 >                = (n, (Term (Ind ty, Ind TTCore.Star))):
 >                  getbs xs
@@ -942,7 +943,7 @@ Get the actions performed by the last tactic
 > subGoals :: Monad m => Context -> m [(Name,Term)]
 > subGoals (Ctxt st) = case proofstate st of
 >         Nothing -> fail "No proof in progress"
->         (Just prf) -> return $ 
+>         (Just prf) -> return $
 >                        map (\ (x,ty) -> (x,Term (ty,Ind TTCore.Star)))
 >                         $ Tactics.allholes (defs st) True prf
 
@@ -963,10 +964,10 @@ Tactics
     (tv,tt) <- tcClaim (defs st) rawtm
     case (proofstate st) of
         Nothing -> do let thm = Tactics.theorem n tv
-                      (start, _) <- Tactics.runtactic (defs st) n thm 
+                      (start, _) <- Tactics.runtactic (defs st) n thm
                                        (Tactics.attack (fH tt))
                       return $ Ctxt st { proofstate = Just $ start,
-                                         holequeue = 
+                                         holequeue =
                                              (fH tt):n:(holequeue st) }
         (Just t) -> fail "Already a proof in progress"
    where fH (Ind tt) = uniqify (UN "H") [n]
@@ -977,22 +978,24 @@ Tactics
 > qed (Ctxt st)
 >     = do case proofstate st of
 >            Just prf -> do
->              newdef@(name,val@(G (Fun _ ind) _ _)) <- 
+>              newdef@(name,val@(G (Fun _ ind) _ _)) <-
 >                  qedLift (defs st) False prf
 >              let isrec = rec name
 >              let (Gam olddefs) = remove name (defs st)
 >              defs' <- gInsert name val (defs st)
 >              let newdefs = setRec name isrec defs'
 >              return $ Ctxt st { proofstate = Nothing, 
+>                             bcdefs = newbc,
+>                             runtt = runtts ++ scs,
 >                             defs = newdefs } -- Gam (newdef:olddefs) }
 >            Nothing -> fail "No proof in progress"
 >  where rec nm = case lookupval nm (defs st) of
 >                   Nothing -> False
 >                   _ -> True
 
-> qedLift :: Monad m => Gamma Name -> Bool -> Indexed Name -> 
+> qedLift :: Monad m => Gamma Name -> Bool -> Indexed Name ->
 >                       m (Name, Gval Name)
-> qedLift gam freeze 
+> qedLift gam freeze
 >             (Ind (Bind x (B (TTCore.Let v) ty) (Sc (P n)))) | n == x =
 >     do let (Ind vnorm) = convNormalise (emptyGam) (finalise (Ind v))
 >        verify gam (Ind v)
@@ -1003,7 +1006,7 @@ Tactics
 > -- | Focus on a different hole, i.e. set the default goal.
 > focus :: Tactic
 > focus (Goal n) (Ctxt st)
->    | n `elem` holequeue st 
+>    | n `elem` holequeue st
 >        = attack (Goal n) $ Ctxt st { holequeue = jumpqueue n (holequeue st) }
 >    | otherwise = fail "No such goal"
 > focus _ x = return x -- Default goal already first
@@ -1020,8 +1023,8 @@ Tactics
 > -- | The Tracing tactic; does nothing, but uses 'trace' to dump the
 > -- current proof state
 > traceTac :: Tactic
-> traceTac goal ctxt@(Ctxt st) = trace ("Proofstate: " ++ 
->                                       (show (proofstate st) ++ "\nHoles" ++ 
+> traceTac goal ctxt@(Ctxt st) = trace ("Proofstate: " ++
+>                                       (show (proofstate st) ++ "\nHoles" ++
 >                                       (show (holequeue st)))) $ return ctxt
 
 > infixl 5 >->, >=>, >+>, >|>
@@ -1031,14 +1034,14 @@ Apply two tactics consecutively to the same goal.
 > seqTac :: Tactic -> Tactic -> Tactic
 > seqTac tac1 tac2 goalin ctxt@(Ctxt st) = do
 > -- In case the default goal changes, remember where we are
->     let goal = case goalin of 
+>     let goal = case goalin of
 >                     DefaultGoal -> Goal $ head (holequeue st)
 >                     x -> x
 >     ctxt' <- tac1 goal ctxt
 >     tac2 goal ctxt'
 
 > -- | Sequence two tactics; applies two tactics sequentially to the same goal
-> (>->) :: Tactic -> Tactic -> Tactic 
+> (>->) :: Tactic -> Tactic -> Tactic
 > (>->) x y = seqTac x y
 
 > thenTac :: Tactic -> Tactic -> Tactic
@@ -1053,7 +1056,7 @@ Apply two tactics consecutively to the same goal.
 >                                      runThen xs tac ctxt'
 
 > -- | Apply a tactic, then apply another to each subgoal generated.
-> (>=>) :: Tactic -> Tactic -> Tactic 
+> (>=>) :: Tactic -> Tactic -> Tactic
 > (>=>) x y = thenTac x y
 
 
@@ -1064,22 +1067,22 @@ Apply two tactics consecutively to the same goal.
 
 > -- | Apply a sequence of tactics to the default goal. Read the type
 > -- as ['Tactic'] -> 'Tactic'
-> tacs :: Monad m => [Goal -> Context -> m Context] -> 
+> tacs :: Monad m => [Goal -> Context -> m Context] ->
 >         Goal -> Context -> m Context
 > tacs [] = idTac
 > tacs (t:ts) = \g ctxt -> do ctxt <- t g ctxt
 >                             tacs ts DefaultGoal ctxt
 
 > -- | Apply a tactic, then apply the next tactic to the next default subgoal.
-> (>+>) :: Tactic -> Tactic -> Tactic 
+> (>+>) :: Tactic -> Tactic -> Tactic
 > (>+>) x y = nextTac x y
 
 > -- | Try a tactic.
 > try :: Tactic -- ^ Tactic to apply
 >     -> Tactic -- ^ Apply if first tactic succeeds
->     -> Tactic -- ^ Apply if first tactic fails. 
+>     -> Tactic -- ^ Apply if first tactic fails.
 >     -> Tactic
-> try tac success failure goal ctxt = 
+> try tac success failure goal ctxt =
 >     case tac goal ctxt of
 >         Just ctxt' -> success goal ctxt'
 >         Nothing -> failure goal ctxt
@@ -1101,18 +1104,18 @@ Convert an internal tactic into a publicly available tactic.
 >     (prf', act) <- Tactics.runtactic (defs st) hole prf tac
 >     let st' = addgoals act st
 >     return $ Ctxt st' { proofstate = Just prf',
->                         --holequeue = jumpqueue hole 
+>                         --holequeue = jumpqueue hole
 >                         --       (holequeue st'),
 >                         actions = act
 >                       }
 >     where addgoals [] st = st
 >           addgoals ((Tactics.AddGoal n):xs) st
 >               = addgoals xs (st { holequeue = nub (n:(holequeue st)) })
->           addgoals ((Tactics.NextGoal n):xs) st 
+>           addgoals ((Tactics.NextGoal n):xs) st
 >               = addgoals xs (st { holequeue = nub (second n (holequeue st)) })
 >           addgoals ((Tactics.AddAxiom n ty):xs) st
 >               = let ctxt = defs st in
->                     addgoals xs (st 
+>                     addgoals xs (st
 >                        { defs = extend ctxt (n,G Unreducible (finalise (Ind ty)) defplicit) })
 >           addgoals ((Tactics.HideGoal n):xs) st
 >               = addgoals xs (st { hidden = nub (n:(hidden st)) })
@@ -1123,7 +1126,7 @@ Convert an internal tactic into a publicly available tactic.
 > -- | Prepare a goal for introduction.
 > attackWith :: Name -- ^ Name for new goal
 >            -> Tactic
-> attackWith n goal ctxt = 
+> attackWith n goal ctxt =
 >     do (Ctxt st) <- runTac (Tactics.attack n) goal ctxt
 >        return $ Ctxt st { holequeue = nub (n:(holequeue st)) }
 
@@ -1133,7 +1136,7 @@ Convert an internal tactic into a publicly available tactic.
 >                            attackWith n goal (Ctxt st)
 >    where getName = do allnames <- case (proofstate st) of
 >                             Nothing -> fail "No proof in progress"
->                             Just (Ind tm) -> 
+>                             Just (Ind tm) ->
 >                                 return $ binderMap (\n _ _ -> n) tm
 >                       return $ uniqify (name "H") ((holequeue st)++allnames)
 
@@ -1171,9 +1174,9 @@ Convert an internal tactic into a publicly available tactic.
 
 > -- | Finalise a goal's solution.
 > solve :: Tactic
-> solve goal ctxt 
+> solve goal ctxt
 >     = do (Ctxt st') <- runTac (Tactics.solve) goal ctxt
->          return $ Ctxt st' { holequeue = 
+>          return $ Ctxt st' { holequeue =
 >                                  removeGoal goal (holequeue st') }
 >   where removeGoal DefaultGoal xs = stail xs
 >         removeGoal (Goal x) xs = xs \\ [x]
@@ -1188,16 +1191,16 @@ Convert an internal tactic into a publicly available tactic.
 
 > -- | Finalise as many solutions of as many goals as possible.
 > keepSolving :: Tactic
-> keepSolving goal ctxt 
+> keepSolving goal ctxt
 >     | allSolved ctxt = return ctxt
 > keepSolving goal ctxt = trySolve (getGoals ctxt) ctxt
 >    where trySolve [] ctxt = return ctxt
->          trySolve (x:xs) ctxt 
+>          trySolve (x:xs) ctxt
 >              = case solve x ctxt of
 >                   Just ctxt' -> trySolve xs ctxt'
 >                   Nothing -> trySolve xs ctxt
 
--- > keepSolving goal ctxt 
+-- > keepSolving goal ctxt
 -- >   | not (null (getGoals ctxt)) =
 -- >     case solve goal ctxt of
 -- >        (Just ctxt') -> keepSolving defaultGoal ctxt'
@@ -1249,7 +1252,7 @@ FIXME: Choose a sensible name here
 > -- | Keep introducing things until there's nothing left to introduce,
 > -- Must introduce at least one thing.
 > intros1 :: Tactic
-> intros1 goal ctxt = 
+> intros1 goal ctxt =
 >     do ctxt <- intro goal ctxt -- Must be at least one thing
 >        do_intros goal ctxt
 >   where do_intros :: Tactic
@@ -1264,8 +1267,8 @@ FIXME: Choose a sensible name here
 >     do ctxt <- introName n goal ctxt
 >        introsNames ns goal ctxt
 
-> -- | Check that the goal is definitionally equal to the given term, 
-> -- and rewrite the goal accordingly. 
+> -- | Check that the goal is definitionally equal to the given term,
+> -- and rewrite the goal accordingly.
 > equiv :: IsTerm a => a -> Tactic
 > equiv ty = do rawty <- raw ty
 >               runTac (Tactics.equiv rawty)
@@ -1282,7 +1285,7 @@ FIXME: Choose a sensible name here
 > dependentGeneralise :: IsTerm a => a -> Tactic
 > dependentGeneralise tm = dependentGeneralise' tm
 
-> dependentGeneralise' tm g ctxt = 
+> dependentGeneralise' tm g ctxt =
 >     do gd <- goalData ctxt False g
 >        vtm <- checkCtxt ctxt g tm
 >        ctxt <- gDeps (filter ((occursIn (view vtm)).(view.snd))
@@ -1291,7 +1294,7 @@ FIXME: Choose a sensible name here
 >        generalise tm g ctxt
 >   where gDeps [] ctxt gty = return ctxt
 >         gDeps (x:xs) ctxt gty
->           | freeIn (fst x) gty 
+>           | freeIn (fst x) gty
 >               = do ctxt <- generalise (Name Free (fst x)) g ctxt
 >                    gDeps xs ctxt gty
 >           | otherwise = gDeps xs ctxt gty
@@ -1300,19 +1303,19 @@ FIXME: Choose a sensible name here
 > -- (changing the type of the theorem). This can be useful if, for example,
 > -- you find you need an extra premise to prove a goal.
 > addArg :: IsTerm a => Name -> a -> Tactic
-> addArg n ty g ctxt@(Ctxt st) 
+> addArg n ty g ctxt@(Ctxt st)
 >     = do rawty <- raw ty
 >          Term (Ind tm, _) <- checkCtxt ctxt g rawty
 >          st' <- Ivor.State.addArg st n tm
 >          return $ Ctxt st'
 
 > -- | Replace a term in the goal according to an equality premise. Any
-> -- equality type with three arguments is acceptable (i.e. the type, 
+> -- equality type with three arguments is acceptable (i.e. the type,
 > -- and the two values),
 > -- provided there are suitable replacement and symmetry lemmas.
 > -- Heterogeneous equality as provided by 'addEquality' is acceptable
 > -- (if you provide the lemmas!).
-> replace :: (IsTerm a, IsTerm b, IsTerm c, IsTerm d) => 
+> replace :: (IsTerm a, IsTerm b, IsTerm c, IsTerm d) =>
 >            a -- ^ Equality type (e.g. @Eq : (A:*)(a:A)(b:A)*@)
 >         -> b -- ^ replacement lemma (e.g. @repl : (A:*)(a:A)(b:A)(q:Eq _ a b)(P:(a:A)*)(p:P a)(P b)@)
 >         -> c -- ^ symmetry lemma (e.g. @sym : (A:*)(a:A)(b:A)(p:Eq _ a b)(Eq _ b a)@)
@@ -1320,14 +1323,14 @@ FIXME: Choose a sensible name here
 >         -> Bool -- ^ apply premise backwards (i.e. apply symmetry)
 >         -> Tactic
 > replace eq repl sym tm flip = replace' eq repl sym tm flip >+> attack
-> replace' eq repl sym tm flip = 
+> replace' eq repl sym tm flip =
 >     do rawtm <- raw tm
 >        raweq <- raw eq
 >        rawrepl <- raw repl
 >        rawsym <- raw sym
 >        runTac (Tactics.replace raweq rawrepl rawsym rawtm flip)
 
-> -- | Add an axiom to the global context which would solve the goal, 
+> -- | Add an axiom to the global context which would solve the goal,
 > -- and apply it.
 > -- FIXME: This tactic doesn't pick up all dependencies on types, but is
 > -- okay for simply typed axioms, e.g. equations on Nats.
@@ -1363,7 +1366,7 @@ FIXME: Choose a sensible name here
 > quoteVal :: Tactic
 > quoteVal = runTac Tactics.quote
 
-> -- | Apply an eliminator. 
+> -- | Apply an eliminator.
 > by :: IsTerm a => a -- ^ An elimination rule applied to a target.
 >        -> Tactic
 > by rule = (by' rule >=> attack) >+> keepSolving
@@ -1390,12 +1393,12 @@ FIXME: Choose a sensible name here
 > -- | Find a trivial solution to the goal by searching through the context
 > -- for a premise which solves it immediately by refinement
 > trivial :: Tactic
-> trivial g ctxt 
+> trivial g ctxt
 >     = do gd <- goalData ctxt False g
 >          let ps = bindings gd
 >          tryall ps g ctxt
 >    where tryall [] g ctxt = fail "No trivial solution found"
->          tryall ((x,ty):xs) g ctxt 
+>          tryall ((x,ty):xs) g ctxt
 >              = do ctxt' <- ((refine (Name Free x)) >|> (fill (Name Free x))
 >                                 >|> idTac)  g ctxt
 >                   if (numUnsolved ctxt' < numUnsolved ctxt)
@@ -1427,8 +1430,8 @@ particularly cunning induction hypotheses like those living in memos etc.
 >    isCall n env (Forall name _ scope) = isCall n (name:env) scope
 >    isCall _ _ _ = Nothing
 
-> -- | Make a recursive call of a computation. The term must be an 
-> -- allowed recursive call, identified in the context by having a 
+> -- | Make a recursive call of a computation. The term must be an
+> -- allowed recursive call, identified in the context by having a
 > -- labelled type.
 
 FIXME: This function is horrible. Redo it at some point...
@@ -1438,10 +1441,10 @@ FIXME: This function is horrible. Redo it at some point...
 >                     allowed <- allowedrec g ctxt
 >                     rec <- {- trace (show allowed) $ -} findRec allowed tm
 >                     fill rec g ctxt
->   where 
+>   where
 >     findRec :: Monad m => [RecAllowed] -> Raw -> m ViewTerm
 >     findRec [] tm = fail "This recursive call not allowed"
->     findRec ((Rec fs nm args hyp):rs) tm = 
+>     findRec ((Rec fs nm args hyp):rs) tm =
 >         case mkRec fs nm args hyp tm of
 >            Just x -> return x
 >            _ -> findRec rs tm
@@ -1456,7 +1459,7 @@ FIXME: This function is horrible. Redo it at some point...
 >     getfa (RApp f a) args = getfa f (a:args)
 >     getfa (Var x) args = (x,args)
 >     getIH fs [] [] = return []
->     getIH (f:fs) (x:xs) (y:ys) 
+>     getIH (f:fs) (x:xs) (y:ys)
 >         | Just f == tryvar x = -- x is pi bound, so better get an ih arg.
 >                    do ycheck <- checkCtxt ctxt g y
 >                       rest <- getIH fs xs ys
@@ -1473,7 +1476,7 @@ FIXME: This function is horrible. Redo it at some point...
 >                        jx /= Nothing && jx == jy
 
 > -- | Create a .hs file containing (unreadable) Haskell code implementing
-> -- all of the definitions. 
+> -- all of the definitions.
 > -- (TODO: Generate a more readable, usable interface)
 > compile :: Context -- ^ context to compile
 >            -> String -- ^ root of filenames to generate

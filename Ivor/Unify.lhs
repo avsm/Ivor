@@ -5,7 +5,7 @@
 > import Ivor.Nobby
 > import Ivor.TTCore
 
-> import List
+> import Data.List
 
 > import Debug.Trace
 
@@ -57,22 +57,22 @@ Make the local environment something that Nobby knows about. Very hacky...
 >     = insertGam n (G (Fun [] (Ind v)) (Ind ty) defplicit) (envToGamHACK xs)
 > envToGamHACK (_:xs) = envToGamHACK xs
 
-> unifynf :: Monad m => 
+> unifynf :: Monad m =>
 >            Env Name -> Indexed Name -> Indexed Name -> m Unified
 > unifynf = unifynferr True
 
 Collect names which do unify, and ignore errors
 
-> unifyCollect :: Monad m => 
+> unifyCollect :: Monad m =>
 >            Env Name -> Indexed Name -> Indexed Name -> m Unified
 > unifyCollect = unifynferr False
 
 > sentinel = [(MN ("HACK!!",0), P (MN ("HACK!!",0)))]
 
-> unifynferr :: Monad m => 
+> unifynferr :: Monad m =>
 >               Bool -> -- Ignore errors
 >               Env Name -> Indexed Name -> Indexed Name -> m Unified
-> unifynferr ignore env (Ind x) (Ind y) 
+> unifynferr ignore env (Ind x) (Ind y)
 >                = do acc <- un env env x y []
 >                     if ignore then return () else checkAcc acc
 >                     return (acc \\ sentinel)
@@ -89,15 +89,15 @@ Collect names which do unify, and ignore errors
 >              do acc' <- unb envl envr b b' acc
 >                 un ((x,b):envl) ((x',b'):envr) sc sc' acc'
 >                 -- combine bu scu
->          -- if unifying the functions fails because the names are different, 
+>          -- if unifying the functions fails because the names are different,
 >          -- unifying the arguments is going to be a waste of time bec
->          un envl envr x@(App f s) y@(App f' s') acc 
+>          un envl envr x@(App f s) y@(App f' s') acc
 >              | funify (getFun f) (getFun f') = -- trace ("OK " ++ show (f,f',getFun f, getFun f')) $
 >                   do acc' <- un envl envr f f' acc
 >                      un envl envr s s' acc'
 >              | otherwise = if ignore then return acc
 >                               else fail $ "Can't unify "++show x++" and "++show y -- ++ " 5"
->             where funify (P x) (P y) 
+>             where funify (P x) (P y)
 >                       | x==y = True
 >                       | otherwise = hole envl x || hole envl y
 >                   funify (Con _ _ _) (P x) = hole envr x
@@ -115,7 +115,7 @@ Collect names which do unify, and ignore errors
 >                     | x == y || ignore = return acc
 >                     | otherwise = fail $ "Can't unify " ++ show x ++
 >                                          " and " ++ show y -- ++ " 1"
->          unb envl envr (B b ty) (B b' ty') acc = 
+>          unb envl envr (B b ty) (B b' ty') acc =
 >              do acc' <- unbb envl envr b b' acc
 >                 un envl envr ty ty' acc'
 >          unbb envl envr Lambda Lambda acc = return acc
@@ -123,7 +123,7 @@ Collect names which do unify, and ignore errors
 >          unbb envl envr Hole Hole acc = return acc
 >          unbb envl envr (Let v) (Let v') acc = un envl envr v v' acc
 >          unbb envl envr (Guess v) (Guess v') acc = un envl envr v v' acc
->          unbb envl envr x y acc 
+>          unbb envl envr x y acc
 >                   = if ignore then return acc
 >                        else fail $ "Can't unify "++show x++" and "++show y -- ++ " 2"
 
@@ -143,10 +143,10 @@ Collect names which do unify, and ignore errors
 
 >          checkAcc [] = return ()
 >          checkAcc ((n,tm):xs)
->              | (Just tm') <- lookup n xs 
+>              | (Just tm') <- lookup n xs
 >                  = if (ueq tm tm')  -- Take account of names! == no good.
 >                       then checkAcc xs
->                       else fail $ "Can't unify " ++ show tm ++ 
+>                       else fail $ "Can't unify " ++ show tm ++
 >                                   " and " ++ show tm' -- ++ " 4"
 >              | otherwise = checkAcc xs
 
@@ -178,14 +178,14 @@ Grr!
 Look for a specific term (unifying with a subterm)
 and replace it.
 
-> unifySubstTerm :: Gamma Name -> TT Name -> TT Name -> 
+> unifySubstTerm :: Gamma Name -> TT Name -> TT Name ->
 >                   Scope (TT Name) -> TT Name
 > unifySubstTerm gam p tm (Sc x) = p' x where
 >     p' x | ueq gam x p = tm
 >     p' (App f' a) = (App (p' f') (p' a))
 >     p' (Bind n b (Sc sc)) = (Bind n (fmap p' b) (Sc (p' sc)))
 >      --   | n == p = (Bind n (fmap p' b) (Sc sc))
->      --   | otherwise 
+>      --   | otherwise
 >     p' (Proj n i x) = Proj n i (p' x)
 >     p' (Label t (Comp n cs)) = Label (p' t) (Comp n (map p' cs))
 >     p' (Call (Comp n cs) t) = Call (Comp n (map p' cs)) (p' t)

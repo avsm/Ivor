@@ -8,12 +8,12 @@
 > import Ivor.Gadgets
 > import Ivor.Unify
 
-> import List
-> import Maybe
-> import Char
+> import Data.List
+> import Data.Maybe
+> import Data.Char
 > import Debug.Trace
 
-Tactics for manipulating holes (See Conor McBride's thesis for the 
+Tactics for manipulating holes (See Conor McBride's thesis for the
 inspiration for many of these).
 
 Tactics may do several things in addition to manipulating the term. These
@@ -28,8 +28,8 @@ new axiom to the context.
 >    deriving (Show,Eq)
 
 > type Tactic = Monad m => Gamma Name ->
->                          Env Name -> 
->                          Indexed Name -> 
+>                          Env Name ->
+>                          Indexed Name ->
 >                          m (Indexed Name, [TacticAction])
 
 > type HoleFn a = Gamma Name -> Env Name -> Indexed Name -> a
@@ -38,7 +38,7 @@ Find a named hole in a term (or the leftmost outermost hole if no name
 is given), and do something if/when you get there.  Could be used for,
 e.g., applying tactics, displaying a proof context, etc.
 
-> findhole :: Gamma Name -> Maybe Name -> Indexed Name -> 
+> findhole :: Gamma Name -> Maybe Name -> Indexed Name ->
 >             HoleFn a -> Maybe a
 > findhole gam n (Ind s) holefn = fh [] s
 >     where fh env b@(Bind x (B Hole ty) _)
@@ -91,7 +91,7 @@ no guesses attached (False).
 
 Typecheck a term in the context of the given hole
 
-> holecheck :: Monad m => Name -> Gamma Name -> Indexed Name -> 
+> holecheck :: Monad m => Name -> Gamma Name -> Indexed Name ->
 >              Raw -> m (Indexed Name, Indexed Name)
 > holecheck n gam state raw = case (findhole gam (Just n) state docheck) of
 >                                Nothing -> fail "No such hole binder"
@@ -108,13 +108,13 @@ the term. Oh well.]
 
 FIXME: Why not use a state monad for the unified variables in rt?
 
-> runtactic :: Monad m => Gamma Name -> Name -> 
+> runtactic :: Monad m => Gamma Name -> Name ->
 >              Indexed Name -> Tactic -> m (Indexed Name, [TacticAction])
 > runtactic gam n t tac = runtacticEnv gam [] n t tac
 
-> runtacticEnv :: Monad m => Gamma Name -> Env Name -> Name -> 
+> runtacticEnv :: Monad m => Gamma Name -> Env Name -> Name ->
 >                 Indexed Name -> Tactic -> m (Indexed Name, [TacticAction])
-> runtacticEnv gam env n (Ind s) tactic = 
+> runtacticEnv gam env n (Ind s) tactic =
 >     do (tm, actions) <- (rt env s)
 >        return ((Ind (substNames (mapMaybe mkUnify actions) tm)), actions)
 >     where rt env b@(Bind x (B Hole ty) _)
@@ -137,7 +137,7 @@ FIXME: Why not use a state monad for the unified variables in rt?
 >                  (ty',u') <- rt env ty
 >                  (s',u'') <- rt ((x,binder):env) s
 >                  return (Bind x (B b' ty') (Sc s'), nub (u++u'++u''))
->           rt env (App f s) = 
+>           rt env (App f s) =
 >               do (f',u) <- rt env f
 >                  (s',u') <- rt env s
 >                  return (App f' s', nub (u++u'))
@@ -195,8 +195,8 @@ Create a new definition with holes ?x:S = holey in x
 
 Add a new claim to the current state
 
-> claim :: Name -> Raw -> Tactic -- ?Name:Type. 
-> claim x s gam env (Ind t) = 
+> claim :: Name -> Raw -> Tactic -- ?Name:Type.
+> claim x s gam env (Ind t) =
 >     do (Ind sv, st) <- check gam (ptovenv env) s Nothing
 >        checkConv gam st (Ind Star) "Type of claim must be *"
 >        return $ (Ind (Bind x (B Hole (makePsEnv (map fst env) sv)) (Sc t)),
@@ -225,7 +225,7 @@ Begin solving a goal
 Try filling the current goal with a term
 
 > fill :: Raw -> Tactic
-> fill guess gam env (Ind (Bind x (B Hole tyin') sc)) = 
+> fill guess gam env (Ind (Bind x (B Hole tyin') sc)) =
 >     do let (Ind tyin) = finalise (Ind tyin')
 >        (Ind gvin,Ind gtin, env) <- {-trace ("checking "++show guess++" in context " ++ show (ptovenv env)) $ -}
 >                               checkAndBind gam (ptovenv env) guess (Just (Ind tyin))
@@ -244,7 +244,7 @@ Try filling the current goal with a term
 >        -- let newgv = substNames others gv
 >        let newgv = gv
 >        -- trace ((show others) ++ ", "++ show (Ind newgt)) $ checkConv gam (Ind gt) (Ind ty) $ "Guess is badly typed ("++show gt++", "++show ty++")"
->        return $ (Ind (Bind x (B (Guess newgv) ty) sc), 
+>        return $ (Ind (Bind x (B (Guess newgv) ty) sc),
 >                      map mkAction (nodups others))
 >    where pToVs i [] gv = gv
 >          pToVs i ((x,_):xs) gv = {- trace ("pToVing "++show x++", " ++ show i++ " in "++show gv) $ -}
@@ -260,7 +260,7 @@ Use defaults to fill in arguments which don't appear in the goal (hence aren't
 solvable by unification). (FIXME: Not yet implemented.)
 
 > refine :: Raw -> [Raw] -> Tactic
-> refine rtm defaults gam env tm@(Ind (Bind x (B Hole ty) (Sc sc))) = 
+> refine rtm defaults gam env tm@(Ind (Bind x (B Hole ty) (Sc sc))) =
 >     do (Ind bv,Ind ntyin) <- check gam (ptovenv env) rtm Nothing
 >        let (Ind nty) = normaliseEnv (ptovenv env) gam (Ind ntyin)
 >        let bvin = makePsEnv (map fst env) bv
@@ -276,23 +276,23 @@ solvable by unification). (FIXME: Not yet implemented.)
 >        let claimGuesses = zip claims (map appVar argguesses)
 >        (tm',_) <- {- trace (show claimGuesses) $ -} doClaims x claimGuesses gam env tm
 >        let guess = (mkGuess claimGuesses [] (forget bvin))
->        (filled, unified) <- runtacticEnv gam env x tm' 
+>        (filled, unified) <- runtacticEnv gam env x tm'
 >                  (fill guess)
 >        -- (filled, solved) <- solveUnified [] unified filled
 >        -- filled <- tryDefaults defaults claims filled
 >        -- (tm', _) <- trace (show claims) $ tidy gam env filled
 >        let newgoals = mapMaybe isGoal claimGuesses
->        return $ (filled, map HideGoal (map fst claims) ++ 
+>        return $ (filled, map HideGoal (map fst claims) ++
 >                          map AddGoal (reverse newgoals))
 >        --                  map AddGoal (map fst (reverse claims)))
 >        -- tacret filled --(Ind (Bind x (B Hole ty) (Sc sc')))
 >   where mkGuess [] defs n = n
->         mkGuess (((x,_),guess):xs) (RInfer:ds) n 
+>         mkGuess (((x,_),guess):xs) (RInfer:ds) n
 >             = (mkGuess xs ds (RApp n (Var x)))
->         mkGuess (((x,_),guess):xs) [] n 
+>         mkGuess (((x,_),guess):xs) [] n
 >             = (mkGuess xs [] (RApp n (Var x)))
 >         -- FIXME: Fix this so default arguments use the 'guess'
->         mkGuess (((x,_),_):xs) (d:ds) n 
+>         mkGuess (((x,_),_):xs) (d:ds) n
 >             = (mkGuess xs ds (RApp n d))
 
 >         -- if we inferred a guess, use that, otherwise use the claim name
@@ -303,7 +303,7 @@ solvable by unification). (FIXME: Not yet implemented.)
 
 >         todo uns (x,_) = not (isSolved x uns)
 >         solveUnified tohide [] tm = return (tm, tohide)
->         solveUnified tohide ((Solved x guess):xs) tm 
+>         solveUnified tohide ((Solved x guess):xs) tm
 >             = do (filled,_) <- runtacticEnv gam env x tm (fill (forget guess))
 >                  solveUnified (x:tohide) xs filled
 >         solveUnified tohide (_:xs) tm = solveUnified tohide xs tm
@@ -342,7 +342,7 @@ solvable by unification). (FIXME: Not yet implemented.)
 >         xs' = substClaim x (P newx) xs in
 >         (newx, ty):(uniqifyClaims nspace ((newx, B Hole ty):env) xs')
 >   where substClaim x newx [] = []
->         substClaim x newx ((n,ty):xs) 
+>         substClaim x newx ((n,ty):xs)
 >                        = (n,substName x newx (Sc ty)):
 >                           (substClaim x newx xs)
 >         mkns (UN a) (UN b) = UN (a++"_"++b)
@@ -368,7 +368,7 @@ Give up the current try
 Attempt to solve the current goal with the guess
 
 > solve :: Tactic
-> solve _ _ (Ind (Bind x (B (Guess gv) ty) sc)) 
+> solve _ _ (Ind (Bind x (B (Guess gv) ty) sc))
 >       | (pure gv) = tacret (Ind (Bind x (B (Let (finind gv)) ty) sc))
 >       | otherwise = fail "I see a hole in your solution"
 >    where finind t = case (finalise (Ind t)) of
@@ -381,7 +381,7 @@ Substitute a let bound variable into a term
 > cut _ env (Ind (Bind x (B (Let v) ty) sc)) =
 >     tacret $ {- trace ("Cutting "++show v++" into "++show sc) $ -}
 >            Ind (substName x (makePsEnv (map fst env) v) sc)
->   where 
+>   where
 > cut _ _ _ = fail "Not a let bound term"
 
 Normalise the goal
@@ -410,7 +410,7 @@ Normalise the goal, only expanding the given global name.
 >           Nothing -> fail $ "Unknown name " ++ show fn
 >           Just (v,t) -> do
 >              let (Ind nty) = normaliseEnv (ptovenv env) 
->                                           (extend emptyGam (fn, (G v t defplicit)))
+>                                           (Gam [(fn,G v t defplicit)]) 
 >                                           (finalise (Ind ty))
 >              tacret $ Ind (Bind x (B Hole nty) sc)
 > reduceWith _ _ _ (Ind (Bind x _ _)) = fail $ "reduceWith: " ++ show x ++ " Not a hole"
@@ -419,7 +419,7 @@ Normalise the goal, only expanding the given global name.
 Do case analysis by the given elimination operator
 
 > by :: Raw -> Tactic
-> by rule gam env tm@(Ind (Bind x (B Hole ty) sc)) = 
+> by rule gam env tm@(Ind (Bind x (B Hole ty) sc)) =
 >     do (Ind bv,Ind bt) <- check gam (ptovenv env) rule Nothing
 >        let bvin = makePsEnv (map fst env) bv
 >        let btin = makePsEnv (map fst env) bt
@@ -430,11 +430,11 @@ Do case analysis by the given elimination operator
 >        let elimargs = drop (length eargs - length motiveargs) eargs
 >        let tyuniq = uniqifyBinders (map fst motiveargs) ty
 >        -- Construct the type of the motive Phi
->        let (Ind mtype) = finalise $ Ind $ bind Lambda motiveargs $ 
+>        let (Ind mtype) = finalise $ Ind $ bind Lambda motiveargs $
 >                  Sc $ motiveType (zip (map fst motiveargs) elimargs) tyuniq
 >        let mbinding = (B (Let mtype) (snd motive))
 >        let claims = uniqifyClaims x env methods
->        (Ind mbody, []) 
+>        (Ind mbody, [])
 >            <- doClaims x (zip claims (repeat Nothing)) gam (((fst motive),mbinding):env) tm
 >        let mbind = Bind (fst motive) mbinding (Sc mbody)
 >        let ruleapp = (forget (mkGuess claims (App bvin (P (fst motive)))))
@@ -445,7 +445,7 @@ Do case analysis by the given elimination operator
 >        return (tm', map HideGoal ((fst motive):(map fst claims)) ++
 >                     map AddGoal (map fst (reverse claims)))
 >   where
->     getBits (Bind mname (B Pi ty) (Sc sc)) 
+>     getBits (Bind mname (B Pi ty) (Sc sc))
 >        | getReturnType ty == Star = do
 >            meths <- getMeths sc
 >            let names = map fst env
@@ -456,7 +456,7 @@ Do case analysis by the given elimination operator
 >         return ((meth,ty):rest)
 >     getMeths _ = return []
 >     motiveType [] ty = ty
->     motiveType ((marg,earg):xs) ty 
+>     motiveType ((marg,earg):xs) ty
 >         = let sc = (motiveType xs ty) in
 >             --trace (show marg ++ " for " ++ show earg ++ " in " ++ show sc) $
 >             substTerm earg (P marg) (Sc (motiveType xs ty))
@@ -471,14 +471,14 @@ Either run the induction rule (if rec is true) or the case analysis rule
 otherwise.
 
 > casetac :: Bool -> Raw -> Tactic
-> casetac rec scrutinee gam env tm@(Ind (Bind x (B Hole ty) sc)) = 
+> casetac rec scrutinee gam env tm@(Ind (Bind x (B Hole ty) sc)) =
 >     do (Ind bv,bt) <- check gam (ptovenv env) scrutinee Nothing
 >        let (Ind btnorm) = (normaliseEnv (ptovenv env) gam bt)
 >        let bvin = makePsEnv (map fst env) bv
 >        let btin = makePsEnv (map fst env) btnorm
 >        let indices = getArgs btin
 >        let ty = getFun btin
->        runCaseTac rec ty (indices++[bvin]) gam env tm 
+>        runCaseTac rec ty (indices++[bvin]) gam env tm
 > casetac _ _ _ _ _ = fail "Not focussed on a hole"
 
 > runCaseTac :: Bool -> TT Name -> [TT Name] -> Tactic
@@ -487,11 +487,11 @@ otherwise.
 >         (Just (TCon _ (Elims erule crule cons))) -> do
 >             by (mkapp (Var (if rec then erule else crule))
 >                                (map forget args)) gam env tm
->         (Just (TCon _ NoConstructorsYet)) -> 
+>         (Just (TCon _ NoConstructorsYet)) ->
 >              fail $ (show n) ++ " is declared but not defined"
 >         _ -> fail $ (show n) ++ " is not a type constructor"
 
-> runCaseTac _ x indices gam env tm = 
+> runCaseTac _ x indices gam env tm =
 >     fail $ (show x) ++ " is not a type constructor"
 
 elimargs <- Get arguments to elimination operator
@@ -503,10 +503,10 @@ let motivename = lam motiveargs . motivetype
 in [claim meths]
 
 
-> uniqifyBinders env (Bind n (B Pi p) sc) 
->      | n `elem` env 
+> uniqifyBinders env (Bind n (B Pi p) sc)
+>      | n `elem` env
 >          = let newname = uniqify n env in
->                Bind newname (B Pi p) 
+>                Bind newname (B Pi p)
 >                         (Sc (substName n (P newname) sc))
 >      | otherwise = Bind n (B Pi p) (fmap (uniqifyBinders env) sc)
 > uniqifyBinders env x = x
@@ -531,7 +531,7 @@ Introduce a lambda or let
 >         do let (Ind ty) = normaliseEnv (ptovenv env) (emptyGam) (finalise (Ind tyin))
 >            let ty' = makePsEnv (map fst env) ty
 >            introsty (uniqify x (map fst env)) ty' (Sc p)
->     | otherwise = 
+>     | otherwise =
 >            fail $ "Not an introduceable hole. Attack it first."
 > intro _ _ _ = fail $ "Can't introduce here."
 
@@ -622,7 +622,7 @@ Boolean flag (flip) is True if symmetry should be applied first.
 > replace _ _ _ _ _ _ _ _ = fail "replace: Not a binder, can't happen"
 
 Create an axiom for the current goal (quantifying over all bound variables
-in the goal, and [FIXME!] all variables they depend on) and use it to 
+in the goal, and [FIXME!] all variables they depend on) and use it to
 solve the goal.
 
 > axiomatise :: Name -> [Name] -> Tactic
@@ -631,7 +631,7 @@ solve the goal.
 >        let ty = makePsEnv (map fst env) ty'
 >        let fvs = reverse $ getUsedBoundVars env ((getNames (Sc ty))++helpers)
 >        let axiom = bind Pi fvs (Sc ty)
->        return (Ind (Bind x 
+>        return (Ind (Bind x
 >                     (B (Guess (appArgs (P n) (map (P . fst) fvs))) ty) sc),
 >                    [AddAxiom n axiom])
 >  where getUsedBoundVars [] ns = []

@@ -17,22 +17,21 @@
 > import Ivor.Display
 > import Ivor.Unify
 
-> import IO
-> import System
-> import List
+> import System.Environment
+> import Data.List
 > import Debug.Trace
 
 State of the system, include all definitions, pattern matching rules,
 compiled terms, etc.
 
 > data IState = ISt {
->            -- All definitions        
+>            -- All definitions
 >	     defs :: !(Gamma Name),
 >            -- All datatype definitions
 >            datadefs :: [(Name,Datatype Name)],
 >            -- All elimination rules in their pattern matching form
 >            -- (with type)
->            eliminators :: [(Name, (Indexed Name, 
+>            eliminators :: [(Name, (Indexed Name,
 >                                    ([RawScheme], PMFun Name)))],
 >            -- List of holes to be solved in proof state
 >            holequeue :: ![Name],
@@ -76,22 +75,20 @@ Take a data type definition and add constructors and elim rule to the context.
 > doData :: Monad m => Bool -> IState -> Name -> RawDatatype -> m IState
 > doData elim st n r = do
 >            let ctxt = defs st
+>            let runtts = runtt st 
+>            let bcs = bcdefs st
 >            dt <- if elim then checkType (defs st) r -- Make iota schemes
 >                          else checkTypeNoElim (defs st) r
 >            ctxt <- gInsert (fst (tycon dt)) (snd (tycon dt)) ctxt
 >                        -- let ctxt' = (tycon dt):ctxt
 >            ctxt <- addCons (datacons dt) ctxt
->            case e_ischemes dt of
->              Just eischemes -> 
->                  -- We've done elim rules
->                do let (Just cischemes) = c_ischemes dt
->                   ctxt <- 
->                       addElim ctxt (erule dt) eischemes
->                   newdefs <-
->                       addElim ctxt (crule dt) cischemes
->                   let newelims = (fst (erule dt), (snd (erule dt), 
->                              (e_rawschemes dt, eischemes))):
->                           (fst (crule dt), (snd (crule dt), 
+>            (ctxt, newruntts, newbc) <- 
+>                addElim ctxt runtts bcs (erule dt) (e_ischemes dt)
+>            (newdefs, newruntts, newbc) <-
+>                addElim ctxt newruntts newbc (crule dt) (c_ischemes dt)
+>            let newelims = (fst (erule dt), (snd (erule dt), 
+>                              (e_rawschemes dt, e_ischemes dt))):
+>                           (fst (crule dt), (snd (crule dt),
 >                              (c_rawschemes dt, cischemes))):
 >                           eliminators st
 >                   let newdatadefs = (n,dt):(datadefs st)
@@ -106,13 +103,13 @@ Take a data type definition and add constructors and elim rule to the context.
 >              ctxt <- addCons xs ctxt
 >              gInsert n gl ctxt
 >          addElim ctxt erule schemes = do
->            newdefs <- gInsert (fst erule) 
+>            newdefs <- gInsert (fst erule)
 >                               (G (PatternDef schemes) (snd erule) defplicit)
 >                               ctxt
 >            return newdefs
 
-> doMkData :: Monad m => Bool -> IState -> Datadecl -> m IState
-> doMkData elim st (Datadecl n ps rawty cs) 
+> doMkData :: Monad m => IState -> Datadecl -> m IState
+> doMkData st (Datadecl n ps rawty cs) 
 >     = do (gty,_) <- checkIndices (defs st) ps [] rawty
 >          let ty = forget (normalise (defs st) gty)
 >          -- TMP HACK: Do it twice, to fill in _ placeholders.
@@ -156,10 +153,10 @@ Take a data type definition and add constructors and elim rule to the context.
 >                 let traw = forget ty
 >                 (Ind vrecheck, _) <- typecheck (defs st) vraw
 >                 (Ind trecheck, _) <- typecheck (defs st) traw
->                 return $ st 
+>                 return $ st
 >                    { proofstate = Just
 >                        (Ind (Bind n (B (Guess (makePs vrecheck))
->                                               (makePs trecheck)) 
+>                                               (makePs trecheck))
 >                               (Sc (P n)))),
 >                      defs = remove n (defs st),
 >                      holequeue = q
@@ -172,9 +169,9 @@ e.g. adding z:C x to foo : (x:A)(y:B)Z = [x:A][y:B]H
  becomes foo : (x:A)(z:C x)(y:B) = [x:A][z:C x][y:B]H.
 
 > addArg :: Monad m => IState -> Name -> TT Name -> m IState
-> addArg st n ty = 
+> addArg st n ty =
 >     case proofstate st of
->         Just (Ind (Bind n (B (Guess v) t) sc)) -> do 
+>         Just (Ind (Bind n (B (Guess v) t) sc)) -> do
 >            (v',t') <- addArgTy v t (getDeps ty)
 >            return $ st { proofstate = Just (Ind (Bind n (B (Guess v') t') sc)) }
 >         _ -> fail "Can't add argument now"
@@ -185,7 +182,7 @@ e.g. adding z:C x to foo : (x:A)(y:B)Z = [x:A][y:B]H
 >      addArgTy v t [] = return (Bind n (B Lambda ty) (Sc v),
 >                                Bind n (B Pi ty) (Sc t))
 >      addArgTy (Bind n (B Lambda nty) (Sc v))
->               (Bind n' (B Pi nty') (Sc t)) ds 
+>               (Bind n' (B Pi nty') (Sc t)) ds
 >          | n == n' = do (v',t') <- addArgTy v t (ds \\ [n])
 >                         return (Bind n (B Lambda nty) (Sc v'),
 >                                 Bind n (B Pi nty) (Sc t'))
@@ -197,7 +194,7 @@ e.g. adding z:C x to foo : (x:A)(y:B)Z = [x:A][y:B]H
 > dumpState st = dumpProofstate (proofstate st)
 >  where dumpProofstate Nothing = ""
 >        dumpProofstate (Just p) = dhole p (holequeue st)
->                                  
+>
 >        dhole p [] = show p
 >        dhole p (n:ns) = displayHoleContext (defs st) (hidden st) n p ++
 >                           "Next holes: " ++ show ns++"\n"

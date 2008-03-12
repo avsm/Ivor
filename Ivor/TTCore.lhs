@@ -5,8 +5,8 @@
 > import Ivor.Gadgets
 > import Ivor.Constant
 
-> import List
-> import Char
+> import Data.List
+> import Data.Char
 > import Control.Monad.State
 > import Data.Typeable
 > import Debug.Trace
@@ -33,11 +33,11 @@ Raw terms are those read in directly from the user, and may be badly typed.
 
 > data RStage = RQuote Raw
 >             | RCode Raw
->             | REval Raw 
+>             | REval Raw
 >             | REscape Raw
 >   deriving Eq
 
-TT represents terms in the core type theory, parametrised by the 
+TT represents terms in the core type theory, parametrised by the
 representation of the names
 
 > data TT n
@@ -51,7 +51,7 @@ representation of the names
 >     | Bind n (Binder (TT n)) (Scope (TT n))
 >     | Proj n Int (TT n) -- Projection in iota schemes (carries type name)
 >     | Label (TT n) (Computation n)
->     | Call (Computation n) (TT n) 
+>     | Call (Computation n) (TT n)
 >     | Return (TT n)
 >     | forall c. Constant c => Const !c
 >     | Star
@@ -78,7 +78,7 @@ Constants
 > data Binder n = B (Bind n) n
 >    deriving (Show, Eq)
 
-> data Bind n 
+> data Bind n
 >     = Lambda
 >     | Pi
 >     | Let n
@@ -138,9 +138,9 @@ Pattern represents the patterns used to define iota schemes.
 UN covers names defined by users, MN covers names invented by the system.
 This keeps both namespaces separate.
 
-> data Name 
+> data Name
 >     = UN String
->     | MN (String,Int) 
+>     | MN (String,Int)
 >   deriving (Ord, Eq)
 
 Data declarations and pattern matching
@@ -252,12 +252,12 @@ Each V is processed with a function taking the context and the index.
 >   where
 >     v' ctx (V i) = f (ctx,i)
 >     v' ctx (App f' a) = (App (v' ctx f') (v' ctx a))
->     v' ctx (Bind n b (Sc sc)) = (Bind n (fmap (v' ctx) b) 
+>     v' ctx (Bind n b (Sc sc)) = (Bind n (fmap (v' ctx) b)
 >			          (Sc (v' (n:ctx) sc)))
 >     v' ctx (Proj n i x) = Proj n i (v' ctx x)
->     v' ctx (Label t (Comp n cs)) 
+>     v' ctx (Label t (Comp n cs))
 >         = Label (v' ctx t) (Comp n (fmap (v' ctx) cs))
->     v' ctx (Call (Comp n cs) t) 
+>     v' ctx (Call (Comp n cs) t)
 >         = Call (Comp n (fmap (v' ctx) cs)) (v' ctx t)
 >     v' ctx (Return t) = Return (v' ctx t)
 >     v' ctx (Stage t) = Stage (sLift (v' ctx) t)
@@ -278,12 +278,12 @@ Same, but for Ps
 >     v' (V i) = V i
 >     v' (Meta n t) = Meta n (v' t)
 >     v' (App f' a) = (App (v' f') (v' a))
->     v' (Bind n b (Sc sc)) = (Bind n (fmap (v') b) 
+>     v' (Bind n b (Sc sc)) = (Bind n (fmap (v') b)
 >			          (Sc (v' sc)))
 >     v' (Proj n i x) = Proj n i (v' x)
->     v' (Label t (Comp n cs)) 
+>     v' (Label t (Comp n cs))
 >         = Label (v' t) (Comp n (fmap (v') cs))
->     v' (Call (Comp n cs) t) 
+>     v' (Call (Comp n cs) t)
 >         = Call (Comp n (fmap (v') cs)) (v' t)
 >     v' (Return t) = Return (v' t)
 >     v' (Stage t) = Stage (sLift (v') t)
@@ -294,7 +294,7 @@ we get a duff term when we go back to the indexed version.
 
 > makePs :: TT Name -> TT Name
 > makePs t = let t' = evalState (uniqifyAllState t) [] in
->                 vapp (\ (ctx,i) -> P (traceIndex ctx i "makePsEnv")) t' 
+>                 vapp (\ (ctx,i) -> P (traceIndex ctx i "makePsEnv")) t'
 >                            --if (i<length ctx) then P (ctx!!i)
 >                              --           else V i) t'
 
@@ -310,11 +310,11 @@ we get a duff term when we go back to the indexed version.
 >        b' <- uniqifyAllStateB b
 >        sc' <- uniqifyAllState sc
 >        return (Bind n' b' (Sc sc'))
-> uniqifyAllState (App f a) = 
+> uniqifyAllState (App f a) =
 >     do f' <- uniqifyAllState f
 >        a' <- uniqifyAllState a
 >        return (App f' a')
-> uniqifyAllState (Proj n i t) = 
+> uniqifyAllState (Proj n i t) =
 >     do t' <- uniqifyAllState t
 >        return (Proj n i t')
 > uniqifyAllState (Label t c) =
@@ -325,7 +325,7 @@ we get a duff term when we go back to the indexed version.
 >     do t' <- uniqifyAllState t
 >        c' <- uniqifyAllStateC c
 >        return (Call c' t')
-> uniqifyAllState (Return t) = 
+> uniqifyAllState (Return t) =
 >     do t' <- uniqifyAllState t
 >        return (Return t')
 > uniqifyAllState (Stage t) =
@@ -333,28 +333,28 @@ we get a duff term when we go back to the indexed version.
 >        return (Stage t')
 > uniqifyAllState x = return $ x
 
-> uniqifyAllStateB (B Lambda ty) = 
+> uniqifyAllStateB (B Lambda ty) =
 >     do ty' <- uniqifyAllState ty
 >        return (B Lambda ty')
-> uniqifyAllStateB (B Pi ty) = 
+> uniqifyAllStateB (B Pi ty) =
 >     do ty' <- uniqifyAllState ty
 >        return (B Pi ty')
-> uniqifyAllStateB (B Hole ty) = 
+> uniqifyAllStateB (B Hole ty) =
 >     do ty' <- uniqifyAllState ty
 >        return (B Hole ty')
-> uniqifyAllStateB (B (Let v) ty) = 
+> uniqifyAllStateB (B (Let v) ty) =
 >     do ty' <- uniqifyAllState ty
 >        v' <- uniqifyAllState v
 >        return (B (Let v') ty')
-> uniqifyAllStateB (B (Guess v) ty) = 
+> uniqifyAllStateB (B (Guess v) ty) =
 >     do ty' <- uniqifyAllState ty
 >        v' <- uniqifyAllState v
 >        return (B (Guess v') ty')
-> uniqifyAllStateB (B (Pattern v) ty) = 
+> uniqifyAllStateB (B (Pattern v) ty) =
 >     do ty' <- uniqifyAllState ty
 >        v' <- uniqifyAllState v
 >        return (B (Pattern v') ty')
-> uniqifyAllStateB (B MatchAny ty) = 
+> uniqifyAllStateB (B MatchAny ty) =
 >     do ty' <- uniqifyAllState ty
 >        return (B MatchAny ty')
 > uniqifyAllStateC (Comp n cs) =
@@ -362,7 +362,7 @@ we get a duff term when we go back to the indexed version.
 >        return (Comp n cs')
 
 
-Take a term with explicit names and convert it to a term with 
+Take a term with explicit names and convert it to a term with
 de Bruijn indices
 
 > finalise :: Eq n => Indexed n -> Indexed n
@@ -372,16 +372,16 @@ de Bruijn indices
 >                 | otherwise = P n
 >    pv env (App f a) = App (pv env f) (pv env a)
 >    pv env (Proj n i t) = Proj n i (pv env t)
->    pv env (Bind n b@(B _ ty) (Sc t)) 
+>    pv env (Bind n b@(B _ ty) (Sc t))
 >        = Bind n (fmap (pv env) b) (Sc (pv ((n,(pv env ty)):env) t))
->    pv env (Label t (Comp n cs)) 
+>    pv env (Label t (Comp n cs))
 >       = Label (pv env t) (Comp n (fmap (pv env) cs))
->    pv env (Call (Comp n cs) t) 
+>    pv env (Call (Comp n cs) t)
 >       = Call (Comp n (fmap (pv env) cs)) (pv env t)
 >    pv env (Return t) = Return (pv env t)
 >    pv env (Stage t) = Stage (sLift (pv env) t)
 >    pv env x = x
->    
+>
 >    lookupidx i n ((x,_):xs) | n==x = Just i
 >                             | otherwise = lookupidx (i+1) n xs
 >    lookupidx i n [] = Nothing
@@ -470,7 +470,7 @@ Return all the names used in a scope
 > getNames (Sc x) = nub $ p' x where
 >     p' (P x) = [x]
 >     p' (App f' a) = (p' f')++(p' a)
->     p' (Bind n b (Sc sc)) 
+>     p' (Bind n b (Sc sc))
 >      | scnames <- p' sc = (scnames \\ [n]) ++ pb' b
 >     p' (Proj _ i x) = p' x
 >     p' (Label t (Comp n cs)) = p' t ++ concat (map p' cs)
@@ -510,7 +510,7 @@ with de Bruijn indices or levels. We need a newtype Named n.
 >     p' (App f' a) = (App (p' f') (p' a))
 >     p' (Bind n b (Sc sc)) = (Bind n (fmap p' b) (Sc (p' sc)))
 >      --   | n == p = (Bind n (fmap p' b) (Sc sc))
->      --   | otherwise 
+>      --   | otherwise
 >     p' (Proj n i x) = Proj n i (p' x)
 >     p' (Label t (Comp n cs)) = Label (p' t) (Comp n (map p' cs))
 >     p' (Call (Comp n cs) t) = Call (Comp n (map p' cs)) (p' t)
@@ -527,7 +527,7 @@ Probably hopelessly inefficient.
 >     p' (App f' a) = (App (p' f') (p' a))
 >     p' (Bind n b (Sc sc)) = (Bind n (fmap p' b) (Sc (p' sc)))
 >      --   | n == p = (Bind n (fmap p' b) (Sc sc))
->      --   | otherwise 
+>      --   | otherwise
 >     p' (Proj n i x) = Proj n i (p' x)
 >     p' (Label t (Comp n cs)) = Label (p' t) (Comp n (map p' cs))
 >     p' (Call (Comp n cs) t) = Call (Comp n (map p' cs)) (p' t)
@@ -545,7 +545,7 @@ Apply a function (non-recursively) to every sub term.
 >    mst (Bind x b (Sc sc)) = Bind x (fmap f b) (Sc (f sc))
 >    mst (Proj n i ty) = Proj n i (f ty)
 >    mst (Stage t) = Stage (sLift f t)
->    mst x = x 
+>    mst x = x
 
 Get the arguments of an application
 
@@ -625,7 +625,7 @@ Apply a function to a list of arguments
 >     (==) (Var x) (Var y) = x==y
 >     (==) (RApp f a) (RApp f' a') = f==f' && a==a'
 >     (==) (RBind n b sc) (RBind n' b' sc') = n==n' && b==b' && sc==sc'
->     (==) (RConst x) (RConst y) = case cast x of 
+>     (==) (RConst x) (RConst y) = case cast x of
 >                                    Just x' -> x'==y
 >                                    Nothing -> False
 >     (==) RStar RStar = True
@@ -649,7 +649,7 @@ Apply a function to a list of arguments
 >     (==) (App f a) (App f' a') = f==f' && a==a'
 >     (==) (Bind _ b sc) (Bind _ b' sc') = b==b' && sc==sc'
 >     (==) (Proj _ i x) (Proj _ j y) = i==j && x==y
->     (==) (Const x) (Const y) = case cast x of 
+>     (==) (Const x) (Const y) = case cast x of
 >                                   Just x' -> x'==y
 >                                   Nothing -> False
 >     (==) Star Star = True
@@ -683,7 +683,7 @@ Apply a function to a list of arguments
 >       fPrec x (RApp f a) = bracket x 1 $ fPrec 1 f ++ " " ++ fPrec 0 a
 >       fPrec x (RBind n (B Lambda t) sc) = bracket x 2 $
 >           "["++forget n ++":"++fPrec 10 t++"]" ++ fPrec 10 sc
->       fPrec x (RBind n (B Pi t) sc) 
+>       fPrec x (RBind n (B Pi t) sc)
 >           | nameOccurs n sc = bracket x 2 $
 >              "("++forget n ++":"++fPrec 10 t++") -> " ++ fPrec 10 sc
 >           | otherwise = bracket x 2 $
@@ -804,7 +804,7 @@ Some handy gadgets for Raw terms
 > nameOccurs x (Var n) | x == n = True
 >                      | otherwise = False
 > nameOccurs x (RApp f a) = nameOccurs x f || nameOccurs x a
-> nameOccurs x (RBind n b sc) 
+> nameOccurs x (RBind n b sc)
 >     | x == n = False
 >     | otherwise = occBind x b || nameOccurs x sc
 > nameOccurs x (RLabel r comp) = nameOccurs x r || occComp x comp

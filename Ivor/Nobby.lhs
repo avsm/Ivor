@@ -6,8 +6,8 @@
 > import Ivor.Gadgets
 > import Ivor.Constant
 
-> import List
-> import Monad
+> import Data.List
+> import Control.Monad
 > import Data.Typeable
 > import qualified Data.Map as Map
 
@@ -111,19 +111,21 @@ occurs anywhere in its arguments).
 > concatGam :: Ord n => Gamma n -> Gamma n -> Gamma n
 > concatGam (Gam x) (Gam y) = Gam (Map.union x y)
 
-> setFrozen :: (Ord n, Eq n) => n -> Bool -> Gamma n -> Gamma n
-> setFrozen n freeze (Gam xs) = Gam $ Map.mapWithKey sf xs where
->    sf p (G (Fun opts v) ty plicit)
->        | n == p = (G (Fun (doFreeze freeze opts) v) ty plicit)
->    sf _ x = x
+> setFrozen :: Eq n => n -> Bool -> Gamma n -> Gamma n
+> setFrozen n freeze (Gam xs) = Gam $ sf xs where
+>    sf [] = []
+>    sf ((p,G (Fun opts v) ty plicit):xs) 
+>        | n == p = (p,G (Fun (doFreeze freeze opts) v) ty plicit):xs
+>    sf (x:xs) = x:(sf xs)
 >    doFreeze True opts = nub (Frozen:opts)
 >    doFreeze False opts = opts \\ [Frozen]
 
-> setRec :: (Ord n, Eq n) => n -> Bool -> Gamma n -> Gamma n
-> setRec n frec (Gam xs) = Gam $ Map.mapWithKey sf xs where
->    sf p (G (Fun opts v) ty plicit)
->        | n == p = (G (Fun (doFrec frec opts) v) ty plicit)
->    sf _ x = x
+> setRec :: Eq n => n -> Bool -> Gamma n -> Gamma n
+> setRec n frec (Gam xs) = Gam $ sf xs where
+>    sf [] = []
+>    sf ((p,G (Fun opts v) ty plicit):xs) 
+>        | n == p = (p,G (Fun (doFrec frec opts) v) ty plicit):xs
+>    sf (x:xs) = x:(sf xs)
 >    doFrec True opts = nub (Recursive:opts)
 >    doFrec False opts = opts \\ [Recursive]
 
@@ -148,11 +150,13 @@ the name is replaced.
 >            n -> Gval n -> Gamma n -> m (Gamma n)
 > gInsert nm val (Gam xs) = case Map.lookup nm xs of
 >         -- FIXME: Check ty against val
->       Nothing -> return $ Gam (Map.insert nm val xs)
->       Just (G Undefined ty _) -> return $ Gam (Map.insert nm val xs)
->       Just (G (TCon _ NoConstructorsYet) ty _) -> 
->                                  return $ Gam (Map.insert nm val xs)
->       Just _ -> fail $ "Name " ++ show nm ++ " is already defined"
+>         ins n val (d@(p,G Undefined ty _):xs) acc
+>             | n == p = return $ (n,val):(reverse acc) ++ xs
+>         ins n val (d@(p,G (TCon _ NoConstructorsYet) ty _):xs) acc
+>             | n == p = return $ (n,val):(reverse acc) ++ xs
+>         ins n val (d@(p,_):xs) acc 
+>             | n == p = fail $ "Name " ++ show p ++ " is already defined"
+>             | otherwise = ins n val xs (d:acc)
 
 An ElimRule is a Haskell implementation of the iota reductions of
 a family.
@@ -170,7 +174,7 @@ Model represents normal forms, including Ready (reducible) and Blocked
 > data Model s = MR (Ready s)
 >              | MB (Blocked s, Model s) (Spine (Model s))
 
-> data Ready s 
+> data Ready s
 >     = RdBind Name (Binder (Model s)) (s (Model s))
 >     | RCon Int Name (Spine (Model s))
 >     | RTyCon Name (Spine (Model s))
@@ -217,7 +221,7 @@ We take a flag saying whether this is for conversion checking or not. This is
 necessary because staged evaluation will not reduce things inside a quote
 to normal form, but we need a normal form to compare.
 
-> nf :: Gamma Name -> Ctxt 
+> nf :: Gamma Name -> Ctxt
 >    -> PatVals
 >    -> Bool -- ^ For conversion
 >    -> TT Name -> Value
@@ -231,32 +235,32 @@ Get the type of a given name in the context
 
 Do the actual evaluation
 
->  eval stage gamma (VG g) (V n) 
->      | (length g) <= n = MB (BV n, MR RdInfer) Empty -- error $ "Reference out of context! " ++ show n ++ ", " ++ show (length g) -- 
+>  eval stage gamma (VG g) (V n)
+>      | (length g) <= n = MB (BV n, MR RdInfer) Empty -- error $ "Reference out of context! " ++ show n ++ ", " ++ show (length g) --
 >      | otherwise = g!!n
->  eval stage gamma g (P n) 
+>  eval stage gamma g (P n)
 >      = case lookup n patvals of
 >           Just val -> val
 >           Nothing -> evalP (lookupval n gamma)
 >    where evalP (Just Unreducible) = (MB (BP n,pty n) Empty)
 >          evalP (Just Undefined) = (MB (BP n, pty n) Empty)
->          evalP (Just (PatternDef p@(PMFun 0 pats))) = 
+>          evalP (Just (PatternDef p@(PMFun 0 pats))) =
 >              case patmatch gamma g pats [] of
 >                 Nothing ->  (MB (BPatDef p n, pty n) Empty)
 >                 Just v -> v
 >          evalP (Just (PatternDef p)) = (MB (BPatDef p n, pty n) Empty)
 >          evalP (Just (Partial (Ind v) _)) = (MB (BP n, pty n) Empty)
 >          evalP (Just (PrimOp f _)) = (MB (BPrimOp f n, pty n) Empty)
->          evalP (Just (Fun opts (Ind v))) 
+>          evalP (Just (Fun opts (Ind v)))
 > --               | Frozen `elem` opts && not conv = MB (BP n) Empty
 >                -- recursive functions don't reduce in conversion check, to
 >                -- maintain decidability of typechecking
 >                  | Recursive `elem` opts  && conv
 >                    = MB (BP n, pty n) Empty
->                  | otherwise 
+>                  | otherwise
 >                    = eval stage gamma g v
 >          evalP _ = (MB (BP n, pty n) Empty)
->              --error $ show n ++ 
+>              --error $ show n ++
 >	         --      " is not a function. Something went wrong."
 >                    -- above error is unsound; if names are rebound.
 >  eval stage gamma g (Con tag n 0) = (MR (RCon tag n Empty))
@@ -289,7 +293,7 @@ Do the actual evaluation
 >  eval stage gamma g (Elim n) = MB (BElim (getelim (lookupval n gamma)) n, pty n) Empty
 >    where getelim Nothing = \sp -> Nothing
 >          getelim (Just (ElimRule x)) = x
->          getelim y = error $ show n ++ 
+>          getelim y = error $ show n ++
 >            " is not an elimination rule. Something went wrong." ++ show y
 >  eval stage gamma g (Stage s) = evalStage stage gamma g s
 
@@ -308,12 +312,12 @@ Do the actual evaluation
 >        --               MR (RdQuote cd)
 >        -- MR (RdQuote (substV g t)) --(splice t)) -- broken
 >  evalStage stage gamma g (Eval t ty) = case (eval (stage+1) gamma g t) of
->                            (MR (RdQuote t')) -> eval stage gamma g 
+>                            (MR (RdQuote t')) -> eval stage gamma g
 >                                                   (forget ((quote t')::Normal))
 >                            x -> MB (BEval x bty, bty) Empty
 >     where bty = eval stage gamma g ty
 >  evalStage stage gamma g (Escape t ty) = case (eval (stage+1) gamma g t) of
->                            (MR (RdQuote t')) -> 
+>                            (MR (RdQuote t')) ->
 >                                if (stage>0)
 >                                   then t'
 >                                   else eval stage gamma g (forget ((quote t')::Normal))
@@ -334,12 +338,12 @@ Do the actual evaluation
 >         Nothing -> (MB (BElim e n, ty) (Snoc sp v))
 >         (Just v) -> v -}
 >  app g (MB pat@(BPatDef (PMFun ar pats) n, ty) sp) v
->      | size (Snoc sp v) == ar = 
+>      | size (Snoc sp v) == ar =
 >         case patmatch gam g pats (listify (Snoc sp v)) of
 >           Nothing -> (MB pat (Snoc sp v))
 >           Just v -> v
 >      | otherwise = MB pat (Snoc sp v)
->  app g (MB (BPrimOp e n, ty) sp) v 
+>  app g (MB (BPrimOp e n, ty) sp) v
 >    = case e (Snoc sp v) of
 >        Nothing -> (MB (BPrimOp e n, ty) (Snoc sp v))
 >        (Just v) -> v
@@ -364,11 +368,12 @@ Do the actual evaluation
 > patmatch gam g ((Sch pats ret):ps) vs = case pm gam g pats vs ret [] of
 >                         Nothing -> patmatch gam g ps vs
 >                         Just v -> Just v
+
 > pm :: Gamma Name -> Ctxt -> [Pattern Name] -> [Value] -> Indexed Name -> 
 >       [(Name, Value)] -> -- matches so far
 >       Maybe Value
 > pm gam g [] [] (Ind ret) vals = Just $ nf gam g vals False ret
-> pm gam g (pat:ps) (val:vs) ret vals 
+> pm gam g (pat:ps) (val:vs) ret vals
 >    = do newvals <- pmatch pat val vals
 >         newvals <- checkdups newvals
 >         pm gam g ps vs ret newvals
@@ -473,17 +478,17 @@ Splice the escapes inside a term
 
 > instance Quote Value Normal where
 >     quote' ns (MR r) = MR (quote' ns r)
->     quote' ns (MB (b, ty) sp) = MB (quote' ns b, quote' ns ty) 
+>     quote' ns (MB (b, ty) sp) = MB (quote' ns b, quote' ns ty)
 >                                    (fmap (quote' ns) sp)
 
 > instance Quote (Ready Kripke) (Ready Scope) where
 >     quote' ns (RdConst x) = RdConst x
 >     quote' ns RdStar = RdStar
->     quote' ns (RdBind n b@(B _ ty) sc) 
+>     quote' ns (RdBind n b@(B _ ty) sc)
 >             = let n' = mkUnique n ns in
->                        RdBind n' (quote' ns b) 
+>                        RdBind n' (quote' ns b)
 >                                   (Sc (quote' (n':ns) (krquote ty sc)))
->        where mkUnique n ns | n `elem` ns = 
+>        where mkUnique n ns | n `elem` ns =
 >                                case n of
 >                                   (UN nm) -> (mkUnique (MN (nm, 0)) ns)
 >                                   (MN (nm,i)) -> (mkUnique (MN (nm, i+1)) ns)
@@ -528,23 +533,23 @@ Splice the escapes inside a term
 Quotation to eta long normal form. DOESN'T WORK YET!
 
 -- > instance Quote (Value, Value) Normal where
--- >     quote (v@(MR (RdBind n (B Lambda _) _)), 
+-- >     quote (v@(MR (RdBind n (B Lambda _) _)),
 -- >                 (MR (RdBind _ (B Pi ty) (Kr (f,w)))))
 -- >         = (MR (RdBind n (B Lambda (quote ty))
--- >                (Sc (quote ((apply (VG []) (v) v0), 
+-- >                (Sc (quote ((apply (VG []) (v) v0),
 -- >                      (f w v0))))))
 -- >       where v0 = MB (BV 0, ty) Empty
 -- >     quote (v, (MR (RdBind n (B Pi ty) (Kr (f,w)))))
 -- >         = (MR (RdBind n (B Lambda (quote ty))
--- >                (Sc (quote ((apply (VG []) (weaken (Wk 1) v) v0), 
+-- >                (Sc (quote ((apply (VG []) (weaken (Wk 1) v) v0),
 -- >                      (f w v0))))))
 -- >       where v0 = MB (BV 0, ty) Empty
 -- >     quote ((MB (bl,ty) sp), _)
 -- >         = MB (quote bl, quote ty) (fst (qspine sp))
 -- >        where qspine Empty = (Empty, ty)
--- >              qspine (Snoc sp v) 
+-- >              qspine (Snoc sp v)
 -- >                  | (sp', MR (RdBind _ (B Pi t) (Kr (f,w)))) <- qspine sp
--- >                      = (Snoc sp' (quote (v,weaken (Wk 1) t)), 
+-- >                      = (Snoc sp' (quote (v,weaken (Wk 1) t)),
 -- >                           f w v)
 -- >                  | (sp', t) <- qspine sp
 -- >                      = (Snoc sp' (quote v), t)
@@ -610,14 +615,14 @@ WARNING: quotation to eta long normal form doesn't work yet.
 -- >       Ind (forget (quote (vtm, vty)::Normal))
 
 > convNormalise :: Gamma Name -> (Indexed Name) -> (Indexed Name)
-> convNormalise g (Ind t) 
+> convNormalise g (Ind t)
 >     = Ind (forget (quote (nf g (VG []) [] True t)::Normal))
 
 > normaliseEnv :: Env Name -> Gamma Name -> Indexed Name -> Indexed Name
 > normaliseEnv env g t
 >     = normalise (addenv env g) t
 >   where addenv [] g = g
->         addenv ((n,B (Let v) ty):xs) (Gam g) 
+>         addenv ((n,B (Let v) ty):xs) (Gam g)
 >             = addenv xs (Gam (Map.insert n (G (Fun [] (Ind v)) (Ind ty) defplicit) g))
 >         addenv (_:xs) g = addenv xs g
 
@@ -625,7 +630,7 @@ WARNING: quotation to eta long normal form doesn't work yet.
 > convNormaliseEnv env g t
 >     = convNormalise (addenv env g) t
 >   where addenv [] g = g
->         addenv ((n,B (Let v) ty):xs) (Gam g) 
+>         addenv ((n,B (Let v) ty):xs) (Gam g)
 >             = addenv xs (Gam (Map.insert n (G (Fun [] (Ind v)) (Ind ty) defplicit) g))
 >         addenv (_:xs) g = addenv xs g
 
@@ -636,10 +641,10 @@ WARNING: quotation to eta long normal form doesn't work yet.
           eval env v = nf g (VG env) v
 
 -- > natElim :: ElimRule
--- > natElim (Snoc args@(Snoc (Snoc (Snoc Empty phi) phiZ) phiS)  
+-- > natElim (Snoc args@(Snoc (Snoc (Snoc Empty phi) phiZ) phiS)
 -- >            (MR (RCon 0 (UN "O") sp)))
 -- >      = return phiZ
--- > natElim (Snoc args@(Snoc (Snoc (Snoc Empty phi) phiZ) phiS)  
+-- > natElim (Snoc args@(Snoc (Snoc (Snoc Empty phi) phiZ) phiS)
 -- >            (MR (RCon 1 (UN "S") (Snoc Empty n))))
 -- >      = return (apply (VG []) (apply (VG []) phiS n)
 -- >                  (apply (VG []) rec n))
@@ -650,7 +655,7 @@ WARNING: quotation to eta long normal form doesn't work yet.
 -- > genElim arity con red sp
 -- >   | size sp < arity = Nothing
 -- >   | otherwise = case (sp??con) of
--- >        (MR (RCon t n args)) -> 
+-- >        (MR (RCon t n args)) ->
 -- >              do v <- lookup n red
 -- >                 let ctx = VG $ (makectx args)++(makectx (lose con sp))
 -- >                 return $ v ctx
@@ -673,7 +678,7 @@ WARNING: quotation to eta long normal form doesn't work yet.
 >     fmap f (Fun opts n) = Fun opts $ fmap f n
 >     fmap f (ElimRule e) = ElimRule e
 >     fmap f (DCon t i) = DCon t i
->     fmap f (TCon i (Elims en cn cons)) 
+>     fmap f (TCon i (Elims en cn cons))
 >              = TCon i (Elims (f en) (f cn) (fmap f cons))
 
 

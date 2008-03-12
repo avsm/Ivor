@@ -1,6 +1,6 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
-> -- | 
+> -- |
 > -- Module      : Ivor.Shell
 > -- Copyright   : Edwin Brady
 > -- Licence     : BSD-style (see LICENSE in the distribution)
@@ -8,7 +8,7 @@
 > -- Maintainer  : eb@dcs.st-and.ac.uk
 > -- Stability   : experimental
 > -- Portability : non-portable
-> -- 
+> --
 > -- Shell interface to theorem prover
 
 > module Ivor.Shell(ShellState,
@@ -29,12 +29,11 @@
 > import qualified Ivor.Prefix
 > import Ivor.Plugin
 
-> import IO
-> import System
+> import System.Exit
 > import System.Environment
 > import System.Directory
 > import System.IO
-> import Char
+> import Data.Char
 > import Debug.Trace
 
 > import Text.ParserCombinators.Parsec
@@ -51,7 +50,7 @@
 > newShell ctxt = Shell Nothing "> " False ctxt "" [] [] [] Nothing []
 
 > -- | Update the context in a shell
-> updateShell :: Monad m => 
+> updateShell :: Monad m =>
 >                (Context -> m Context) -- ^ Function to update context
 >                -> ShellState -> m ShellState
 > updateShell fctxt (Shell r p f c resp tacs coms imp ext path)
@@ -80,16 +79,16 @@
 
 > -- | Parse a term using the shell's current parser extensions
 > shellParseTerm :: ShellState -> Parser ViewTerm
-> shellParseTerm st = pTerm (extensions st) 
+> shellParseTerm st = pTerm (extensions st)
 
 > -- | Get the system state from a finished shell
 > getContext :: ShellState -> Context
 > getContext = context
 
 > readToSemi :: IO String
-> readToSemi = 
+> readToSemi =
 >   do c <- getChar
->      if (c==';') 
+>      if (c==';')
 >         then return ";"
 >         else do s <- readToSemi
 >                 return (c:s)
@@ -114,40 +113,40 @@
 >                                  return st { context = ctxt }
 > runCommand (Declare nm tm) st = do ctxt <- declare (context st) (name nm) tm
 >                                    return st { context = ctxt }
-> runCommand (DeclareData nm tm) st 
+> runCommand (DeclareData nm tm) st
 >                = do ctxt <- declareData (context st) (name nm) tm
 >                     return st { context = ctxt }
-> runCommand (Theorem nm ty) st = do ctxt <- theorem (save (context st)) 
+> runCommand (Theorem nm ty) st = do ctxt <- theorem (save (context st))
 >                                                    (name nm) ty
 >                                    let st' = respond st $
 >                                          showProofState st { context = ctxt }
 >                                    return st' { context = ctxt }
-> runCommand (Interactive nm ty) st = do 
->     ctxt <- interactive (save (context st)) 
+> runCommand (Interactive nm ty) st = do
+>     ctxt <- interactive (save (context st))
 >                 (name nm) ty
 >     let st' = respond st $
 >           showProofState st { context = ctxt }
 >     return st' { context = ctxt }
-> runCommand (Forget n) st = do 
+> runCommand (Forget n) st = do
 >     ctxt <- forgetDef (context st) (name n)
->     return $ (respondLn st ("Forgotten back to " ++ n)) 
+>     return $ (respondLn st ("Forgotten back to " ++ n))
 >                { context = ctxt }
-> runCommand (EvalTerm exp) st 
+> runCommand (EvalTerm exp) st
 >        | proving (context st) = do
 >                       tm <- evalCtxt (context st) defaultGoal exp
 >                       return (respondLn st (show tm))
->        | otherwise = do 
+>        | otherwise = do
 >                       tm <- check (context st) exp
 >                       return (respondLn st (show (eval (context st) tm)))
-> runCommand (WHNF exp) st 
+> runCommand (WHNF exp) st
 > {-        | proving (context st) = do
 >                       tm <- newevalCtxt (context st) defaultGoal exp
 >                       return (respondLn st (show tm))
->        | otherwise -} 
->                    = do 
+>        | otherwise -}
+>                    = do
 >                       tm <- check (context st) exp
 >                       return (respondLn st (show (whnf (context st) tm)))
-> runCommand (Print n) st = do 
+> runCommand (Print n) st = do
 >     case (getDef (context st) (name n)) of
 >       Just tm -> return (respondLn st (show (view tm)))
 >       _ -> case (getPatternDef (context st) (name n)) of
@@ -160,32 +159,32 @@
 >                         (Name DataCon _) -> return (respondLn st "Data constructor")
 >                         _ -> fail "Unknown definition"
 >     where printPats (Patterns cs) = unlines (map printClause cs)
->           printClause (PClause args ret) = n ++ " " ++ 
->                                            unwords (map argshow args) ++ 
+>           printClause (PClause args ret) = n ++ " " ++
+>                                            unwords (map argshow args) ++
 >                                            " = " ++ show ret
 >           argshow x | ' ' `elem` show x = "(" ++ show x ++ ")"
 >                     | otherwise = show x
 
-> runCommand (Check exp) st = do 
+> runCommand (Check exp) st = do
 >     tm <- check (context st) exp
 >     return (respondLn st (show (viewType tm)))
 > runCommand (Freeze n) st = do ctxt <- freeze (context st) (name n)
 >                               return st { context = ctxt }
 > runCommand (Thaw n) st = do ctxt <- thaw (context st) (name n)
 >                             return st { context = ctxt }
-> runCommand (Focus n) st = do ctxt <- focus (goal n) (context st) 
+> runCommand (Focus n) st = do ctxt <- focus (goal n) (context st)
 >                              return st { context = ctxt }
-> runCommand (Dump n) st = do 
+> runCommand (Dump n) st = do
 >     let ds = getAllTypes (context st)
 >     return (respondLn st (dumpAll n ds))
-> runCommand (ReplData eq repl sym) st 
+> runCommand (ReplData eq repl sym) st
 >     = return st { repldata = Just (eq, repl, sym) }
-> runCommand Prf st = do 
->     tm <- proofterm (context st) 
+> runCommand Prf st = do
+>     tm <- proofterm (context st)
 >     return (respondLn st (show tm))
 > runCommand PrfState st = do let st' = respond st $ showProofState st
 >                             return st'
-> runCommand Qed st = do ctxt <- qed (context st) 
+> runCommand Qed st = do ctxt <- qed (context st)
 >                        return st { context = (clearSaved ctxt) }
 > runCommand Suspend st = do let st' = respondLn st "Suspending Proof"
 >                            return st' { context = suspend (context st) }
@@ -198,14 +197,14 @@
 >                                          showProofState st' { context = ctxt }
 >                               return st'' { context = ctxt }
 > runCommand Undo st = do ctxt <- restore (context st)
->                         let st' = respondLn st $ 
+>                         let st' = respondLn st $
 >                                      showProofState st { context = ctxt }
 >                         return st' { context = ctxt }
-> runCommand (Ivor.ShellParser.GenRec n) st 
+> runCommand (Ivor.ShellParser.GenRec n) st
 >     = do ctxt <- addGenRec (context st) (name n)
 >          let st' = respondLn st $ "Added general recursion rule"
 >          return st' { context = ctxt }
-> runCommand (JMEq n c) st = do ctxt <- addEquality (context st) (name n) 
+> runCommand (JMEq n c) st = do ctxt <- addEquality (context st) (name n)
 >                                         (name c)
 >                               let st' = respondLn st $ "Added dependent equality"
 >                               return st' { context = ctxt }
@@ -240,7 +239,7 @@
 > runTactic _ _ (AddArg nm tm) = addArg (name nm) tm
 > runTactic _ _ (Generalise False tm) = generalise tm
 > runTactic _ _ (Generalise True tm) = dependentGeneralise tm
-> runTactic _ (Just (eq,repl,sym)) (Replace tm f) 
+> runTactic _ (Just (eq,repl,sym)) (Replace tm f)
 >     = replace eq repl sym tm f
 > runTactic _ Nothing (Replace _ _) = fail "replace not configured"
 > runTactic _ _ (Axiomatise n ns) = axiomatise (name n) (map name ns)
@@ -263,8 +262,8 @@
 
 > dumpAll :: String -> [(Name,Term)] -> String
 > dumpAll pat [] = ""
-> dumpAll pat ((n,ty):xs) 
->         | sublist pat (length pat) (show n) = 
+> dumpAll pat ((n,ty):xs)
+>         | sublist pat (length pat) (show n) =
 >             show n ++" : " ++ show (view ty) ++ "\n" ++ dumpAll pat xs
 >         | otherwise = dumpAll pat xs
 >    where sublist pat i xs | i > length xs = False
@@ -277,11 +276,11 @@ function which doesn't need to be in the IO Monad.
 > process :: Result Input -> ShellState -> IO ShellState
 > process (Failure err) st = return $ respondLn st err
 > process (Success (Command (Load f))) st = do importFile f st
-> process (Success (Command (Plugin f))) st = do 
+> process (Success (Command (Plugin f))) st = do
 >     (ctxt, exts, shell, cmds) <- load f (context st)
 >     let st' = st { context = ctxt }
 >     let st'' = case exts of
->                    Nothing -> st' 
+>                    Nothing -> st'
 >                    Just p -> extendParser st' p
 >     st''' <- case cmds of
 >                    Nothing -> return st''
@@ -303,12 +302,12 @@ function which doesn't need to be in the IO Monad.
 > processInput :: Monad m => Result Input -> ShellState -> m ShellState
 > processInput (Failure err) st = return $ respondLn st err
 > processInput (Success (Command cmd)) st = runCommand cmd st
-> processInput (Success (Tactic goal tac)) st 
+> processInput (Success (Tactic goal tac)) st
 >     = do let ctxt = save (context st)
->          ctxt <- runTactic (usertactics st) (repldata st) 
+>          ctxt <- runTactic (usertactics st) (repldata st)
 >                     tac goal ctxt
 >          ctxt <- keepSolving defaultGoal ctxt
->          ctxt <- if ((numUnsolved ctxt) > 0) 
+>          ctxt <- if ((numUnsolved ctxt) > 0)
 >                    then beta defaultGoal ctxt
 >                    else return ctxt
 >          let st' = respond st $ showProofState $ st { context = ctxt }
@@ -316,7 +315,7 @@ function which doesn't need to be in the IO Monad.
 
 > -- | Get a string representation of the current proof state
 > showProofState :: ShellState -> String
-> showProofState st 
+> showProofState st
 >     | not (proving ctxt) = ""
 >     | null $ getGoals ctxt = "\nNo more goals\n\n"
 >     | otherwise = let (g:gs) = getGoals ctxt in
@@ -340,20 +339,20 @@ function which doesn't need to be in the IO Monad.
 > loop st = do putStr (prompt st)
 >              hFlush stdout
 >              inp <- readToSemi
->              st' <- catch (process (parseInput (extensions st) 
->                                     (gettacs (usertactics st)) 
+>              st' <- catch (process (parseInput (extensions st)
+>                                     (gettacs (usertactics st))
 >                                     (map fst (usercommands st)) inp) st)
 >                      (\e -> do return $ respondLn st (show e))
 >              putStr $ (response st')
->              if (finished st') 
+>              if (finished st')
 >                 then return (clearResponse st')
 >                 else catch (loop (clearResponse st'))
 >                          (\e -> return st')
 
 > -- | Set up the equality type, for use by the 'replace' tactic
-> configureEq :: String 
->             -> String 
->             -> String 
+> configureEq :: String
+>             -> String
+>             -> String
 >             -> ShellState -> ShellState
 > configureEq eq repl sym shell = shell { repldata = Just (eq,repl,sym) }
 
@@ -361,14 +360,14 @@ function which doesn't need to be in the IO Monad.
 > runShell :: String -- ^ Prompt string
 >          -> ShellState -- ^ Initial state
 >          -> IO ShellState
-> runShell p shell = 
+> runShell p shell =
 >     do st <- loop shell { prompt = p }
 >        return st
 
 > -- | Send a command directly to a shell
 > sendCommand :: Monad m => String -> ShellState -> m ShellState
-> sendCommand str st = processInput 
->                        (parseInput (extensions st) 
+> sendCommand str st = processInput
+>                        (parseInput (extensions st)
 >                                    (gettacs (usertactics st))
 >                                    (map fst (usercommands st)) str) $
 >                          clearResponse st
@@ -379,7 +378,7 @@ Special case for importFile. Grr.
 > -- do IO actions.
 > sendCommandIO :: String -> ShellState -> IO ShellState
 > sendCommandIO str st = process
->                        (parseInput (extensions st) 
+>                        (parseInput (extensions st)
 >                                    (gettacs (usertactics st))
 >                                    (map fst (usercommands st)) str) $
 >                          clearResponse st
@@ -393,16 +392,16 @@ Special case for importFile. Grr.
 
 If the given file is already loaded, do nothing.
 
-> -- | Import a file of shell commands; fails if the module does not exist 
+> -- | Import a file of shell commands; fails if the module does not exist
 > -- in the current directory or search path, does nothing if already loaded.
 > importFile :: FilePath -> ShellState -> IO ShellState
-> importFile fp st 
+> importFile fp st
 >     | fp `elem` imported st = return st
 >     | otherwise = do inp <- findFile (modulePath st) fp
 >                      st' <- processFile [] inp st
 >                      --resp <- readFile tmpf
 >                      return $ st' { imported = fp:(imported st') }
->   where processFile acc (';':rest) st = 
+>   where processFile acc (';':rest) st =
 >             do --putStrLn ("processing"++acc)
 >                st' <- sendCommandIO (acc++";") st
 >                processFile [] rest st'

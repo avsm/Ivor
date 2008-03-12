@@ -7,11 +7,11 @@ Author:		Edwin Brady
 Maintainer:	Edwin Brady <eb@dcs.st-and.ac.uk>
 Homepage:	http://www.dcs.st-and.ac.uk/~eb/Ivor/
 
-Stability:	experimental
+Stability:      experimental
 Build-depends:	base, haskell98, parsec, mtl, plugins
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,
 		ExistentialQuantification, OverlappingInstances
-Synopsis:	Theorem proving library based on dependent type theory
+Synopsis:       Theorem proving library based on dependent type theory
 Description:    Ivor is a type theory based theorem prover, with a
                 Haskell API, designed for easy extending and embedding
                 of theorem proving technology in Haskell
@@ -37,8 +37,8 @@ Description:    Ivor is a type theory based theorem prover, with a
 Build-depends:	base, parsec, mtl, plugins, directory
 Build-type:     Simple
 
-Extensions:	MultiParamTypeClasses, FunctionalDependencies,
-		ExistentialQuantification, OverlappingInstances
+Extensions:     MultiParamTypeClasses, FunctionalDependencies,
+                ExistentialQuantification, OverlappingInstances
 -- Needs some -Wall cleanup
 -- GHC-options:    -Wall
 

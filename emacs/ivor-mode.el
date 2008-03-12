@@ -1,3 +1,6 @@
+(eval-when-compile
+  (require 'comint))
+
 (defvar ivor-mode-map
    (let ((map (make-sparse-keymap)))
      (define-key map "\C-j" 'newline-and-indent)
@@ -22,27 +25,27 @@
    "Syntax table for `ivor-mode'.")
 
 ;;;(regexp-opt '("Data" "Rec" "Qed" "Freeze" "Thaw" "Eval" "Check" "Load"
-;;;	      "Suspend" "Resume" "Compile" "Repl" "Equality" "Drop"
-;;;	      "Primitives" "Forget" "Let" "Axiom" "Focus" "Declare" "Where"
+;;;           "Suspend" "Resume" "Compile" "Repl" "Equality" "Drop"
+;;;           "Primitives" "Forget" "Let" "Axiom" "Focus" "Declare" "Where"
 ;;;           "Plugin"))
 
 ;;;(regexp-opt '("attack" "claim" "local" "refine" "solve" "fill" "return"
-;;;	      "quote" "call" "abandon" "rename" "intro" "intros" "arg"
-;;;	      "equiv" "generalise" "dependent" "replace" "axiomatise"
-;;;	      "compute" "unfold" "trivial" "by" "induction" "case" 
+;;;           "quote" "call" "abandon" "rename" "intro" "intros" "arg"
+;;;           "equiv" "generalise" "dependent" "replace" "axiomatise"
+;;;           "compute" "unfold" "trivial" "by" "induction" "case"
 ;;;           "auto" "left" "right" "split" "exists" "decide"))
 
 (defconst ivor-font-lock-keywords
   (list '("\\<\\(Axiom\\|C\\(?:heck\\|ompile\\)\\|D\\(?:ata\\|eclare\\|rop\\)\\|E\\(?:quality\\|val\\)\\|F\\(?:o\\(?:cus\\|rget\\)\\|reeze\\)\\|L\\(?:et\\|oad\\)\\|Primitives\\|Qed\\|Re\\(?:c\\|pl\\|sume\\)\\|Suspend\\|Thaw\\|Plugin\\|Where\\)\\>"
  . font-lock-keyword-face)
         '("a\\(?:bandon\\|rg\\|ttack\\|uto\\|xiomatise\\)\\|by\\|c\\(?:a\\(?:ll\\|se\\)\\|laim\\|ompute\\)\\|de\\(?:cide\\|pendent\\)\\|e\\(?:quiv\\|xists\\)\\|fill\\|generalise\\|in\\(?:duction\\|tros?\\)\\|l\\(?:eft\\|ocal\\)\\|quote\\|r\\(?:e\\(?:fine\\|name\\|place\\|turn\\)\\|ight\\)\\|s\\(?:olve\\|plit\\)\\|trivial\\|unfold" . font-lock-builtin-face)
-	'("<\\([^:]*\\):[^>]*>" . (1 font-lock-string-face keep t))
-	'("<\\([^>:]*\\)>" . (1 font-lock-string-face keep t))
-	'("^\\([a-zA-Z0-9\\'\\_]+\\)\\s-*:" . (1 font-lock-function-name-face keep t))
-	'("^\\([a-zA-Z0-9\\'\\_]+\\)\\s-*=" . (1 font-lock-function-name-face keep t))
-	'("Rec\\s-+\\([a-zA-Z0-9\\'\\_]+\\)\\s-*:" . (1 font-lock-function-name-face t t))
-	'("\\b\\([a-zA-Z0-9\\'\\_]+\\)\\s-*:" . (1 font-lock-variable-name-face keep t))
-	'("\\b\\([a-zA-Z0-9\\'\\_]+\\)\\s-*," . (1 font-lock-variable-name-face keep t))
+        '("<\\([^:]*\\):[^>]*>" . (1 font-lock-string-face keep t))
+        '("<\\([^>:]*\\)>" . (1 font-lock-string-face keep t))
+        '("^\\([a-zA-Z0-9\\'\\_]+\\)\\s-*:" . (1 font-lock-function-name-face keep t))
+        '("^\\([a-zA-Z0-9\\'\\_]+\\)\\s-*=" . (1 font-lock-function-name-face keep t))
+        '("Rec\\s-+\\([a-zA-Z0-9\\'\\_]+\\)\\s-*:" . (1 font-lock-function-name-face t t))
+        '("\\b\\([a-zA-Z0-9\\'\\_]+\\)\\s-*:" . (1 font-lock-variable-name-face keep t))
+        '("\\b\\([a-zA-Z0-9\\'\\_]+\\)\\s-*," . (1 font-lock-variable-name-face keep t))
   )
   "Highlighting for Ivor mode")
 
@@ -63,10 +66,10 @@
    (set (make-local-variable 'comment-start) "-- ")
    (set (make-local-variable 'comment-start-skip) "#+\\s-*")
    (set (make-local-variable 'font-lock-defaults)
-	'(ivor-font-lock-keywords))
+        '(ivor-font-lock-keywords))
    (set (make-local-variable 'indent-line-function) 'ivor-indent-line)
 ;;   (set (make-local-variable 'imenu-generic-expression)
-;;	ivor-imenu-generic-expression)
+;;      ivor-imenu-generic-expression)
 ;;   (set (make-local-variable 'outline-regexp) ivor-outline-regexp)
    )
 
@@ -80,16 +83,16 @@
    "Indent current line of Ivor code."
    (interactive)
    (let ((savep (> (current-column) (current-indentation)))
-	 (indent (condition-case nil (max (ivor-calculate-indentation) 0)
-		   (error 0))))
+         (indent (condition-case nil (max (ivor-calculate-indentation) 0)
+                   (error 0))))
      (if savep
-	 (save-excursion (indent-line-to indent))
+         (save-excursion (indent-line-to indent))
        (indent-line-to indent))))
 
 (defun ivor-calculate-indentation ()
    "Return the column to which the current line should be indented."
    ;; Default is the indentation of the previous line
-  (cond 
+  (cond
    ((ivor-isQed) 0)
    ((ivor-first-is "[ \\t]*|") (ivor-under-eq))
    ((ivor-eq-no-semi) 4)
@@ -116,9 +119,9 @@
     (beginning-of-line)
     (let ((this-line (thing-at-point 'line)))
       (let ((eq-point (string-match "=" this-line)))
-	(progn (if (eq eq-point nil)
-		   2
-		 eq-point))))))
+        (progn (if (eq eq-point nil)
+                   2
+                 eq-point))))))
 
 (defun ivor-first-is (str)
   (save-excursion
@@ -135,24 +138,24 @@
   "Read the current line and send it to the shell process, if any"
   (interactive)
   (progn (save-excursion
-	   (beginning-of-line)
-	   (let* ((this-line (thing-at-point 'line))
-	          (chomped (substring this-line 0 (- (length this-line) 1))))
-	     (progn (set-buffer (get-buffer "*Ivor*"))
-		    (insert chomped)
-		    (comint-send-input))))
-	 (forward-line 1)
-	 (beginning-of-line)
-	 )
+           (beginning-of-line)
+           (let* ((this-line (thing-at-point 'line))
+                  (chomped (substring this-line 0 (- (length this-line) 1))))
+             (progn (set-buffer (get-buffer "*Ivor*"))
+                    (insert chomped)
+                    (comint-send-input))))
+         (forward-line 1)
+         (beginning-of-line)
+         )
 )
 
 (defun ivor-send-all-to-shell ()
   "Send the buffer up to the current point to the shell process"
   (interactive)
   (let ((contents (buffer-substring 1 (point))))
-	(progn (set-buffer (get-buffer "*Ivor*"))
-	       (insert contents)
-	       (comint-send-input))))
+        (progn (set-buffer (get-buffer "*Ivor*"))
+               (insert contents)
+               (comint-send-input))))
 
 (defvar ivor-shell-exec "jones")
 (defvar ivor-shell-sep ";")
@@ -172,9 +175,9 @@
   (interactive)
   (when (not (bufferp (get-buffer "*Ivor*")))
     (progn (shell "*Ivor*")
-	   (set-buffer (get-buffer "*Ivor*"))
-	   (insert ivor-shell-exec)
-	   (comint-send-input))))
+           (set-buffer (get-buffer "*Ivor*"))
+           (insert ivor-shell-exec)
+           (comint-send-input))))
 
 (defun ivor-stop ()
   "Stop the Ivor process"
@@ -182,9 +185,9 @@
   (let ((dir (file-name-directory buffer-file-name)))
     (save-current-buffer
       (progn (set-buffer (get-buffer "*Ivor*"))
-	     (insert (concat "Drop" ivor-shell-sep))
-	     (comint-send-input))))
-  (beginning-of-buffer))
+             (insert (concat "Drop" ivor-shell-sep))
+             (comint-send-input))))
+  (goto-char (point-min)))
 
 (defun ivor-restart ()
   "Restart the Ivor process"
@@ -192,11 +195,11 @@
   (let ((dir (file-name-directory buffer-file-name)))
     (save-current-buffer
       (progn (set-buffer (get-buffer "*Ivor*"))
-	     (insert (concat "Drop" ivor-shell-sep))
-	     (comint-send-input)
-	     (insert (concat "cd " dir "; " ivor-shell-exec))
-	     (comint-send-input))))
-  (beginning-of-buffer))
+             (insert (concat "Drop" ivor-shell-sep))
+             (comint-send-input)
+             (insert (concat "cd " dir "; " ivor-shell-exec))
+             (comint-send-input))))
+  (goto-char (point-min)))
 
 (defun ivor-undo-proof ()
   "Send undo command in a proof state."
@@ -204,8 +207,8 @@
   (let ((dir (file-name-directory buffer-file-name)))
     (save-current-buffer
       (progn (set-buffer (get-buffer "*Ivor*"))
-	     (insert "Undo;")
-	     (comint-send-input))))
-  (beginning-of-buffer))
+             (insert "Undo;")
+             (comint-send-input))))
+  (goto-char (point-min)))
 
 (provide 'ivor)

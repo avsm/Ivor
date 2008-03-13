@@ -16,7 +16,7 @@
 > import Ivor.TT
 > import Ivor.ShellState
 
-> import System.Plugins as Plugins
+> -- import System.Plugins as Plugins
 > import Text.ParserCombinators.Parsec
 
 > -- | Load the given plugin file (which should be a full path to a .o or
@@ -37,46 +37,49 @@
 >               Maybe (Parser ViewTerm),
 >               Maybe (ShellState -> IO ShellState),
 >               Maybe (IO [(String, String -> Context -> IO (String, Context))]))
-> load fn ctxt = do 
->          objIn <- compilePlugin fn
->          obj <- case objIn of
->                    Left errs -> fail errs
->                    Right ok -> return ok
->          contextMod <- Plugins.load_ obj [] "plugin_context"
->          -- mv <- Plugins.load fn [] ["/Users/edwin/.ghc/i386-darwin-6.6.1/package.conf"] "initialise"
->          (mod, contextFn) <- case contextMod of
->                  LoadFailure msg -> fail $ "Plugin loading failed: " ++
->                                              show msg
->                  LoadSuccess mod v -> return (mod, v)
->          parserMod <- Plugins.reload mod "plugin_parser"
->          parserules <- case parserMod of
->                  LoadFailure msg -> return Nothing
->                  LoadSuccess _ v -> return $ Just v
->          cmdMod <- Plugins.reload mod "plugin_commands"
->          cmds <- case cmdMod of
->                  LoadFailure msg -> return Nothing
->                  LoadSuccess _ v -> return $ Just v
->          shellMod <- Plugins.reload mod "plugin_shell"
->          shellfn <- case shellMod of
->                  LoadFailure msg -> return Nothing
->                  LoadSuccess _ v -> return $ Just v
->          ctxt' <- case contextFn ctxt of
->                      Just x -> return x
->                      Nothing -> fail "Error in running plugin_context"
->          return $ (ctxt', parserules, shellfn, cmds)
 
-Make a .o from a .hs, so that we can load Haskell source as well as object
-files
+> load fn ctxt = fail "Currently disabled"
 
-> compilePlugin :: FilePath -> IO (Either String FilePath)
-> compilePlugin hs 
->     | isExt ".hs" hs || isExt ".lhs" hs =
->         do status <- makeAll hs []
->            case status of
->               MakeSuccess c out -> return $ Right out
->               MakeFailure errs -> return $ Left (concat (map (++"\n") errs))
->     | isExt ".o" hs = return $ Right hs
->     | elem '.' hs = return (Left $ "unrecognised file type " ++ hs)
->     | otherwise = compilePlugin (hs++".o")
->   where isExt ext fn = case span (/='.') fn of
->                           (file, e) -> ext == e
+-- > load fn ctxt = do 
+-- >          objIn <- compilePlugin fn
+-- >          obj <- case objIn of
+-- >                    Left errs -> fail errs
+-- >                    Right ok -> return ok
+-- >          contextMod <- Plugins.load_ obj [] "plugin_context"
+-- >          -- mv <- Plugins.load fn [] ["/Users/edwin/.ghc/i386-darwin-6.6.1/package.conf"] "initialise"
+-- >          (mod, contextFn) <- case contextMod of
+-- >                  LoadFailure msg -> fail $ "Plugin loading failed: " ++
+-- >                                              show msg
+-- >                  LoadSuccess mod v -> return (mod, v)
+-- >          parserMod <- Plugins.reload mod "plugin_parser"
+-- >          parserules <- case parserMod of
+-- >                  LoadFailure msg -> return Nothing
+-- >                  LoadSuccess _ v -> return $ Just v
+-- >          cmdMod <- Plugins.reload mod "plugin_commands"
+-- >          cmds <- case cmdMod of
+-- >                  LoadFailure msg -> return Nothing
+-- >                  LoadSuccess _ v -> return $ Just v
+-- >          shellMod <- Plugins.reload mod "plugin_shell"
+-- >          shellfn <- case shellMod of
+-- >                  LoadFailure msg -> return Nothing
+-- >                  LoadSuccess _ v -> return $ Just v
+-- >          ctxt' <- case contextFn ctxt of
+-- >                      Just x -> return x
+-- >                      Nothing -> fail "Error in running plugin_context"
+-- >          return $ (ctxt', parserules, shellfn, cmds)
+
+-- Make a .o from a .hs, so that we can load Haskell source as well as object
+-- files
+
+-- > compilePlugin :: FilePath -> IO (Either String FilePath)
+-- > compilePlugin hs 
+-- >     | isExt ".hs" hs || isExt ".lhs" hs =
+-- >         do status <- makeAll hs []
+-- >            case status of
+-- >               MakeSuccess c out -> return $ Right out
+-- >               MakeFailure errs -> return $ Left (concat (map (++"\n") errs))
+-- >     | isExt ".o" hs = return $ Right hs
+-- >     | elem '.' hs = return (Left $ "unrecognised file type " ++ hs)
+-- >     | otherwise = compilePlugin (hs++".o")
+-- >   where isExt ext fn = case span (/='.') fn of
+-- >                           (file, e) -> ext == e

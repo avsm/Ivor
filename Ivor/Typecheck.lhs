@@ -348,8 +348,16 @@ the expected type.
 >  tc env lvl (RMeta n) (Just (Ind exp)) 
 >     = do (next, infer, bindings, errs, mvs) <- get
 >          put (next, infer, bindings, errs, n:mvs)
->          return (Ind (Meta n exp), Ind exp)
+>          -- Abstract it over the environment so that we have everything
+>          -- in scope we need.
+>          tm <- abstractOver env n exp []
+>          return (tm,Ind exp)
 > --              fail $ show (n, exp, bindings, env) ++ " -- Not implemented"
+>    where abstractOver [] mv exp args =
+>              return (Ind (appArgs (Meta mv exp) args))
+>          abstractOver ((n,B _ t):ns) mv exp args =
+>              abstractOver ns mv (Bind n (B Pi t) (Sc exp)) ((P n):args)
+
 >  tc env lvl (RMeta n) Nothing 
 >         -- we can guess that it's a function type, a->b, but no more 
 >     = do (next, infer, bindings, errs, mvs) <- get

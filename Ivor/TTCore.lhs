@@ -45,6 +45,7 @@ representation of the names
 >     | V Int
 >     | Con Int n Int -- Tag, name and arity
 >     | TyCon n Int  -- Name and arity
+>     | Meta n (TT n) -- Metavariable and its type
 >     | Elim n
 >     | App (TT n) (TT n)
 >     | Bind n (Binder (TT n)) (Scope (TT n))
@@ -188,6 +189,7 @@ is dealt with later.
 >     fmap f (V i) = V i
 >     fmap f (Con t x i) = Con t (f x) i
 >     fmap f (TyCon x i) = TyCon (f x) i
+>     fmap f (Meta x t) = Meta (f x) (fmap f t)
 >     fmap f (Elim x) = Elim (f x)
 >     fmap f (App tf a) = App (fmap f tf) (fmap f a)
 >     fmap f (Bind n b sc) = Bind (f n) (fmap (fmap f) b) (fmap (fmap f) sc)
@@ -274,6 +276,7 @@ Same, but for Ps
 >   where
 >     v' (P n) = f n
 >     v' (V i) = V i
+>     v' (Meta n t) = Meta n (v' t)
 >     v' (App f' a) = (App (v' f') (v' a))
 >     v' (Bind n b (Sc sc)) = (Bind n (fmap (v') b) 
 >			          (Sc (v' sc)))
@@ -433,6 +436,33 @@ maybe find a better way, or think carefully about why this is okay...
 >                        | otherwise = V i
 >         vinc (V n) = V (n+1) -- So that we weakenv it correctly
 >         vinc x = x
+
+Traverse a term looking for metavariables. Replace them with concrete
+names and return all the new names we need to define for it to be
+a complete definition.
+
+> updateMetas :: TT n -> (TT n, [(n, TT n)])
+> updateMetas tm = runState (ums tm) []
+>    where ums (App f a) = do f' <- ums f
+>                             a' <- ums a
+>                             return (App f' a')
+>          ums (Meta n ty) = do ty' <- ums ty
+>                               mvs <- get
+>                               put ((n,ty'):mvs)
+>                               return (P n)
+>          ums (Bind n (B b ty) (Sc sc)) 
+>                  = do b' <- umsB b
+>                       ty' <- ums ty
+>                       sc' <- ums sc
+>                       return (Bind n (B b' ty') (Sc sc'))
+>          ums x = return x
+>          umsB (Let v) = do v' <- ums v
+>                            return (Let v')
+>          umsB (Guess v) = do v' <- ums v
+>                              return (Guess v')
+>          umsB (Pattern v) = do v' <- ums v
+>                                return (Pattern v')
+>          umsB x = return x
 
 Return all the names used in a scope
 
@@ -614,6 +644,7 @@ Apply a function to a list of arguments
 >     (==) (V i) (V j) = i==j
 >     (==) (Con t x i) (Con t' y j) = x==y
 >     (==) (TyCon x i) (TyCon y j) = x==y
+>     (==) (Meta x t) (Meta y t') = x==y && t==t'
 >     (==) (Elim x) (Elim y) = x==y
 >     (==) (App f a) (App f' a') = f==f' && a==a'
 >     (==) (Bind _ b sc) (Bind _ b' sc') = b==b' && sc==sc'
@@ -712,6 +743,7 @@ Apply a function to a list of arguments
 >        forgetTT (V i) = RAnnot $ "v" ++ (show i)
 >        forgetTT (Con t x i) = Var $ UN (show x)
 >        forgetTT (TyCon x i) = Var $ UN (show x)
+>        forgetTT (Meta n i) = RMeta (UN (show n ++ " : " ++ show i))
 >        forgetTT (Elim x) = Var $ UN (show x)
 >        forgetTT (App f a) = RApp (forgetTT f) (forgetTT a)
 >        forgetTT (Bind n (B Lambda t) (Sc sc)) =
@@ -798,6 +830,7 @@ Some handy gadgets for Raw terms
 >        forgetTT (V i) = RAnnot $ "v" ++ (show i)
 >        forgetTT (Con t x i) = Var $ UN (show x)
 >        forgetTT (TyCon x i) = Var $ UN (show x)
+>        forgetTT (Meta x i) = RMeta (UN (show x))
 >        forgetTT (Elim x) = Var $ UN (show x)
 >        forgetTT (App f a) = RApp (forgetTT f) (forgetTT a)
 >        forgetTT (Bind n (B Lambda t) (Sc sc)) =

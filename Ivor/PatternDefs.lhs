@@ -14,10 +14,13 @@
 
 Use the iota schemes from Datatype to represent pattern matching definitions.
 
+Return the definition and its type, as well as any other names which need
+to be defined to complete the definition.
+
 > checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> 
 >             Bool -> -- Check for coverage
 >             Bool -> -- Check for well-foundedness
->             m (PMFun Name, Indexed Name)
+>             m (PMFun Name, Indexed Name, [(Name, Indexed Name)])
 > checkDef gam fn tyin pats cover wellfounded = do 
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
@@ -29,9 +32,9 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 >   checkNotExists fn gam
 >   gam' <- gInsert fn (G Undefined ty defplicit) gam
 >   clauses' <- validClauses gam' fn ty clauses'
->   pmdef <- matchClauses gam' fn pats tyin cover clauses'
+>   (pmdef, newdefs) <- matchClauses gam' fn pats tyin cover clauses'
 >   when wellfounded $ checkWellFounded gam fn [0..arity-1] pmdef
->   return (PMFun arity pmdef, ty)
+>   return (PMFun arity pmdef, ty, newdefs)
 >     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
 >                                 Just _ -> fail $ show n ++ " already defined"
@@ -163,12 +166,13 @@ names bound in patterns) then type check the right hand side.
 
 > matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw ->
 >                 Bool -> -- Check coverage
->                 [(Indexed Name, Indexed Name)] -> m [PMDef Name]
+>                 [(Indexed Name, Indexed Name)] -> 
+>                 m ([PMDef Name], [(Name, Indexed Name)])
 > matchClauses gam fn pats tyin cover gen = do
 >    let raws = zip (map mkRaw pats) (map getRet pats)
->    checkpats <- mapM (mytypecheck gam) raws
+>    (checkpats, newdefs) <- mytypechecks gam raws [] []
 >    when cover $ checkCoverage (map fst checkpats) (map fst gen)
->    return $ map (mkScheme gam) checkpats
+>    return $ (map (mkScheme gam) checkpats, newdefs)
 
     where mkRaw (RSch pats r) = mkPBind pats tyin r
           mkPBind [] _ r = r
@@ -177,20 +181,26 @@ names bound in patterns) then type check the right hand side.
 
 >   where mkRaw (RSch pats r) = mkapp (Var fn) pats
 >         getRet (RSch pats r) = r
+>         mytypechecks gam [] acc defs = return (reverse acc, defs)
+>         mytypechecks gam (c:cs) acc defs
+>             = do (cl, cr, newdefs) <- mytypecheck gam c
+>                  mytypechecks gam cs ((cl,cr):acc) (defs++newdefs)
 >         mytypecheck gam (clause, ret) = 
 >             do (tm@(Ind tmtt), pty,
->                 rtm@(Ind rtmtt), rty, env) <-
+>                 rtm@(Ind rtmtt), rty, env, newdefs) <-
 >                   checkAndBindPair gam clause ret
 >                unified <- unifyenv gam env pty rty
+>                let gam' = foldl (\g (n,t) -> extend g (n,G Undefined t 0))
+>                                   gam newdefs
 >                let rtmtt' = substNames unified rtmtt
 >                -- checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible " ++ show unify
->                let namesret = filter notGlobal $ getNames (Sc rtmtt')
+>                let namesret = filter (notGlobal gam') $ getNames (Sc rtmtt')
 >                let namesbound = getNames (Sc tmtt)
 >                checkAllBound namesret namesbound (Ind rtmtt') tmtt
->                return (tm, Ind rtmtt')
->         notGlobal n = case lookupval n gam of
->                         Nothing -> True
->                         _ -> False
+>                return (tm, Ind rtmtt', newdefs)
+>         notGlobal gam n = case lookupval n gam of
+>                               Nothing -> True
+>                               _ -> False
 >         checkAllBound r b rhs clause = do
 >              let unbound = filter (\y -> not (elem y b)) r
 >              if (length unbound == 0) 

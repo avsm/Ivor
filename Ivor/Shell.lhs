@@ -105,8 +105,9 @@
 >     ctxt <- addTypedDef (context st) (name nm) tm ty
 >     return st { context = ctxt }
 > runCommand (PatternDef nm ty pats opts) st = do
->     ctxt <- addPatternDef (context st) (name nm) ty pats opts
->     return st { context = ctxt }
+>     (ctxt, new) <- addPatternDef (context st) (name nm) ty pats (Holey:opts)
+>     let st' = respondLn st $ ("Need to define: " ++ show new)
+>     return st' { context = ctxt }
 > runCommand (Data dat) st = do ctxt <- addData (context st) dat
 >                               return st { context = ctxt }
 > runCommand (Axiom nm tm) st = do ctxt <- addAxiom (context st) (name nm) tm

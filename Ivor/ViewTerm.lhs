@@ -193,7 +193,7 @@
 >         = Ivor.ViewTerm.Eval (vtaux ctxt tm)
 >     vtaux ctxt (Stage (TTCore.Escape tm _)) 
 >         = Ivor.ViewTerm.Escape (vtaux ctxt tm)
->     vtaux _ _ = error "Can't happen vtaux"
+>     vtaux _ t = error $ "Can't happen vtaux " ++ debugTT t
 
 > -- | Return whether the name occurs free in the term.
 > freeIn :: Name -> ViewTerm -> Bool

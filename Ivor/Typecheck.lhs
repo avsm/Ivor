@@ -84,7 +84,9 @@ type.
 >      Bool, -- Inferring types of names (if true)
 >      Env Name, -- Extra bindings, if above is true
 >      -- conversion constraints; remember the environment at the time we tried
->      [(Env Name, Indexed Name, Indexed Name)])
+>      [(Env Name, Indexed Name, Indexed Name)],
+>      -- Metavariables we've introduce to define later
+>      [Name])
 
 > type Level = Int
 
@@ -133,7 +135,7 @@ constraints and applying it to the term and type.
 > check :: Monad m => Gamma Name -> Env Name -> Raw -> Maybe (Indexed Name) -> 
 >          m (Indexed Name, Indexed Name)
 > check gam env tm mty = do
->   ((tm', ty'), (_,_,_,convs)) <- lvlcheck 0 False 0 gam env tm mty
+>   ((tm', ty'), (_,_,_,convs,_)) <- lvlcheck 0 False 0 gam env tm mty
 >   tm'' <- doConversion tm gam convs tm' ty'
 >   return tm''
 
@@ -141,7 +143,7 @@ constraints and applying it to the term and type.
 >                 Maybe (Indexed Name) -> 
 >                 m (Indexed Name, Indexed Name, Env Name)
 > checkAndBind gam env tm mty = do
->    ((v,t), (_,_,e,convs)) <- lvlcheck 0 True 0 gam env tm mty
+>    ((v,t), (_,_,e,convs,_)) <- lvlcheck 0 True 0 gam env tm mty
 >    (v',ty') <- doConversion tm gam convs v t
 >    return (v',ty',e)
 
@@ -149,39 +151,47 @@ constraints and applying it to the term and type.
 Check two things together, with the same environment and variable inference,
 and with the same expected type.
 We need this for checking pattern clauses...
+Return a list of the functions we need to define to complete the definition.
 
 > checkAndBindPair :: Monad m => Gamma Name -> Raw -> Raw -> 
 >                     m (Indexed Name, Indexed Name, 
->                        Indexed Name, Indexed Name, Env Name)
+>                        Indexed Name, Indexed Name, Env Name,
+>                        [(Name, Indexed Name)])
 > checkAndBindPair gam tm1 tm2 = do
->    ((v1,t1), (next, inf, e, bs)) <- lvlcheck 0 True 0 gam [] tm1 Nothing
+>    ((v1,t1), (next, inf, e, bs,_)) <- lvlcheck 0 True 0 gam [] tm1 Nothing
 >    -- rename all the 'inferred' things to another generated name,
 >    -- so that they actually get properly checked on the rhs
 >    let realNames = mkNames next
 >    e' <- fixupB gam realNames e
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
 >    (v1'',t1'') <- doConversion tm1 gam bs v1 (normalise gam t1) 
->    ((v2,t2), (_, _, e'', bs')) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam e' tm2 (Just t1')
+>    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam e' tm2 (Just t1')
 >    (v2',t2') <- doConversion tm2 gam bs' v2 (normalise gam t2) 
->    return (v1',t1',v2',t2',e'')
+>    if (null metas) 
+>       then return (v1',t1',v2',t2',e'', [])
+>       else do let (Ind v2tt) = v2' 
+>               let (v2'', newdefs) = updateMetas v2tt
+>               return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, Ind y)) newdefs)
 >  where mkNames 0 = []
 >        mkNames n
 >           = ([],Ind (P (MN ("INFER",n-1))), 
 >                 Ind (P (MN ("T",n-1)))):(mkNames (n-1))
+
+> inferName n = (MN ("INFER", n))
 
 > lvlcheck :: Monad m => Level -> Bool -> Int -> 
 >             Gamma Name -> Env Name -> Raw -> 
 >             Maybe (Indexed Name) -> 
 >             m ((Indexed Name, Indexed Name), CheckState)
 > lvlcheck lvl infer next gamma env tm exp 
->     = do runStateT (tcfixupTop env lvl tm exp) (next, infer, [], []) 
+>     = do runStateT (tcfixupTop env lvl tm exp) (next, infer, [], [], []) 
 >  where
 
 Do the typechecking, then unify all the inferred terms.
 
 >  tcfixupTop env lvl t exp = do
 >     tm@(_,tmty) <- tc env lvl t exp
->     (next, infer, bindings, errs) <- get
+>     (next, infer, bindings, errs ,mvs) <- get
 >     -- First, insert inferred values into the term
 >     tm'@(_,tmty) <- fixup errs tm
 >     -- Then check the resulting type matches the expected type.
@@ -193,10 +203,10 @@ Do the typechecking, then unify all the inferred terms.
 >       else return ()
 >     -- Then fill in any remained inferred values we got by knowing the
 >     -- expected type
->     (next, infer, bindings, errs) <- get
+>     (next, infer, bindings, errs, mvs) <- get
 >     tm <- fixup errs tm
 >     bindings <- fixupB gamma errs bindings
->     put (next, infer, bindings, errs)
+>     put (next, infer, bindings, errs, mvs)
 >     return tm'
 
 >  tcfixup env lvl t exp = do
@@ -204,10 +214,10 @@ Do the typechecking, then unify all the inferred terms.
 >     -- case exp of
 >     --   Nothing -> return ()
 >     --   Just expt -> checkConvSt env gamma expt tmty "Type error"
->     (next, infer, bindings, errs) <- get
+>     (next, infer, bindings, errs, mvs) <- get
 >     tm' <- fixup errs tm
 >     bindings <- fixupB gamma errs bindings
->     put (next, infer, bindings, errs)
+>     put (next, infer, bindings, errs, mvs)
 >     return tm'
 
 tc has state threaded through -- state is a tuple of the next name to
@@ -241,11 +251,11 @@ typechecker...
 >          lookupi x (_:xs) i = lookupi x xs (i+1)
 
 >          defaultResult = do
->              (next, infer, bindings, errs) <- get
+>              (next, infer, bindings, errs, mvs) <- get
 >              if infer
 >                 then case exp of
 >                        Nothing -> fail $ "No such name as " ++ show n
->                        Just (Ind t) -> do put (next, infer, (n, B Pi t):bindings, errs)
+>                        Just (Ind t) -> do put (next, infer, (n, B Pi t):bindings, errs, mvs)
 >                                           return (Ind (P n), Ind t)
 >                 else fail $ "No such name as " ++ show n
 
@@ -326,18 +336,29 @@ and we don't convert names to de Bruijn indices
 >          (Ind sv, Ind st) <- tcStage env lvl s exp
 >          return (Ind sv, Ind st)
 >  tc env lvl RInfer (Just exp) = do 
->                       (next, infer, bindings, errs) <- get
->                       put (next+1, infer, bindings, errs)
->                       return (Ind (P (MN ("INFER",next))), exp)
+>                       (next, infer, bindings, errs, mvs) <- get
+>                       put (next+1, infer, bindings, errs, mvs)
+>                       return (Ind (P (inferName next)), exp)
 >  tc env lvl RInfer Nothing = fail "Can't infer a term for placeholder"
 
 If we have a metavariable, we need to record the type of the expression which
 will solve it. It needs to take the environment as arguments, and return
 the expected type.
 
->  tc env lvl (RMeta n) (Just exp) = do (next, infer, bindings, errs) <- get
->                                       fail $ show (n, exp, bindings, env) ++ " -- Not implemented"
->  tc env lvl (RMeta n) Nothing = fail $ "Don't know the expected type of " ++ show n
+>  tc env lvl (RMeta n) (Just (Ind exp)) 
+>     = do (next, infer, bindings, errs, mvs) <- get
+>          put (next, infer, bindings, errs, n:mvs)
+>          return (Ind (Meta n exp), Ind exp)
+> --              fail $ show (n, exp, bindings, env) ++ " -- Not implemented"
+>  tc env lvl (RMeta n) Nothing 
+>         -- we can guess that it's a function type, a->b, but no more 
+>     = do (next, infer, bindings, errs, mvs) <- get
+>          put (next, infer, bindings, errs, mvs)
+>          let guessty = Bind (MN ("X", 0)) (B Pi (P (inferName next)))
+>                           (Sc (P (inferName (next+1))))
+>          tc env lvl (RMeta n) (Just (Ind guessty))
+
+fail $ "Don't know the expected type of " ++ show n
 
 >  tcStage env lvl (RQuote t) _ = do
 >     (Ind tv, Ind tt) <- tc env (lvl+1) t Nothing
@@ -436,11 +457,11 @@ Insert inferred values into the term
 >     return ((B MatchAny tv), env)
 >  checkpatt gamma env lvl n pat t = do
 >     (Ind tv,Ind tt) <- tcfixup env lvl t Nothing
->     (next, infer, bindings, err) <- get
->     put (next, True, bindings, err)
+>     (next, infer, bindings, err, mvs) <- get
+>     put (next, True, bindings, err, mvs)
 >     (Ind patv,Ind patt) <- tcfixup (bindings++env) lvl pat Nothing
->     (next, _ ,bindings, err) <- get
->     put (next, infer, bindings, err)
+>     (next, _ ,bindings, err, mvs) <- get
+>     put (next, infer, bindings, err, mvs)
 >     let ttnf = normaliseEnv env gamma (Ind tt)
 >     --checkConvEnv env gamma (Ind patt) (Ind tv) $ 
 >     --   show patt ++ " and " ++ show tv ++ " are not convertible"
@@ -486,9 +507,10 @@ extended environment.
 -- > checkPatt gam env acc RInfer ty = return (combinepats acc PTerm, env)
 -- > checkPatt gam env _ _ _ = fail "Invalid pattern"
 
-> checkConvSt env g x y err = do (next, infer, bindings, err) <- get
->                                put (next, infer, bindings, (env,x,y):err)
->                                return ()
+> checkConvSt env g x y err 
+>                 = do (next, infer, bindings, err, mvs) <- get
+>                      put (next, infer, bindings, (env,x,y):err, mvs)
+>                      return ()
 
 > fixupGam gamma [] tm = return tm
 > fixupGam gamma ((env,x,y):xs) (Ind tm, Ind ty) = do 
@@ -570,6 +592,8 @@ extended environment.
 > pToV2 v p (V w) = Sc (V w)
 > pToV2 v p (Con t n i) = Sc (Con t n i)
 > pToV2 v p (TyCon n i) = Sc (TyCon n i)
+> pToV2 v p (Meta n t) = Sc (Meta n (getSc (pToV2 v p t)))
+>				where getSc (Sc a) = a
 > pToV2 v p (Elim n) = Sc (Elim n)
 > pToV2 v p (Bind n b (Sc sc)) = Sc (Bind n (fmap (getSc.(pToV2 v p)) b)
 >                                    (pToV2 (v+1) p sc))

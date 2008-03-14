@@ -109,6 +109,7 @@
 > import List
 > import Debug.Trace
 > import Data.Typeable
+> import Control.Monad(when)
 
 > -- | Abstract type representing state of the system.
 > newtype Context = Ctxt IState
@@ -207,25 +208,40 @@
 
 > data PattOpt = Partial -- ^ No need to cover all cases
 >              | GenRec -- ^ No termination checking
+>              | Holey -- ^ Allow metavariables in the definition, which will become theorems which need to be proved.
 >   deriving Eq
 
 > -- |Add a new definition to the global state.
 > -- By default, these definitions must cover all cases and be well-founded,
-> -- but can be optionally partial or general recursive
+> -- but can be optionally partial or general recursive.
+> -- Returns the new context, and a list of names which need to be defined
+> -- to complete the definition.
 > addPatternDef :: (IsTerm ty, Monad m) => 
 >                Context -> Name -> ty -- ^ Type
 >                  -> Patterns -- ^ Definition
 >                -> [PattOpt] -- ^ Options to set which definitions will be accepted
->                -> m Context
+>                -> m (Context, [(Name, ViewTerm)])
 > addPatternDef (Ctxt st) n ty pats opts = do
 >         checkNotExists n (defs st)
+>         let ndefs = defs st
 >         inty <- raw ty
 >         let (Patterns clauses) = pats
->         (pmdef, fty) <- checkDef (defs st) n inty (map mkRawClause clauses)
+>         (pmdef, fty, newnames) 
+>                <- checkDef ndefs n inty (map mkRawClause clauses)
 >                            (not (elem Ivor.TT.Partial opts))
 >                            (not (elem GenRec opts))
->         newdefs <- gInsert n (G (PatternDef pmdef) fty defplicit) (defs st)
->         return $ Ctxt st { defs = newdefs }
+>         (ndefs',vnewnames) 
+>                <- if (null newnames) then return (ndefs, [])
+>                      else do when (not (Holey `elem` opts)) $ 
+>                                    fail "No metavariables allowed"
+>                              let vnew = map (\ (n,t) -> 
+>                                              (n, view (Term (t,Ind TTCore.Star)))) newnames
+>                              let ngam = foldl (\g (n, t) ->
+>                                                  extend g (n, G Unreducible t 0))
+>                                               ndefs newnames
+>                              return (ngam, vnew)
+>         newdefs <- gInsert n (G (PatternDef pmdef) fty defplicit) ndefs'
+>         return (Ctxt st { defs = newdefs }, vnewnames)
 
 > -- |Add a new definition, with its type to the global state.
 > -- These definitions can be recursive, so use with care.

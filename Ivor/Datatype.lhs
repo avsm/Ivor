@@ -61,8 +61,8 @@ the context and an executable elimination rule.
 >	 (ev, _) <- typecheck gamma'' erty
 >	 (cv, _) <- typecheck gamma'' crty
 >	 -- let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev defplicit)
->        (esch, _) <- checkDef gamma'' er erty eschemes False False
->        (csch, _) <- checkDef gamma'' cr crty cschemes False False
+>        (esch, _, _) <- checkDef gamma'' er erty eschemes False False
+>        (csch, _, _) <- checkDef gamma'' cr crty cschemes False False
 >	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv defplicit) consv numps
 >                    (er,ev) (cr,cv) esch csch eschemes cschemes)
 

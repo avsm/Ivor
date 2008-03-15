@@ -13,6 +13,7 @@
 > import Ivor.Constant
 
 > import Control.Monad.State
+> import Data.List
 > import Debug.Trace
 
 Conversion in the presence of staging is a bit more than simply syntactic
@@ -162,10 +163,14 @@ Return a list of the functions we need to define to complete the definition.
 >    -- rename all the 'inferred' things to another generated name,
 >    -- so that they actually get properly checked on the rhs
 >    let realNames = mkNames next
->    e' <- fixupB gam realNames e
+>    e' <- fixupB gam realNames (renameBinders e)
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
->    (v1'',t1'') <- doConversion tm1 gam bs v1 (normalise gam t1) 
->    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam e' tm2 (Just t1')
+>    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' (normalise gam t1') 
+>    -- Drop names out of e' that don't appear in v1'' as a result of the
+>    -- unification.
+>    let namesbound = getNames (Sc vtm)
+>    let ein = orderEnv (filter (\ (n, ty) -> n `elem` namesbound) e')
+>    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam ein tm2 (Just t1')
 >    (v2',t2') <- doConversion tm2 gam bs' v2 (normalise gam t2) 
 >    if (null metas) 
 >       then return (v1',t1',v2',t2',e'', [])
@@ -176,6 +181,28 @@ Return a list of the functions we need to define to complete the definition.
 >        mkNames n
 >           = ([],Ind (P (MN ("INFER",n-1))), 
 >                 Ind (P (MN ("T",n-1)))):(mkNames (n-1))
+>        renameBinders [] = []
+>        renameBinders (((MN ("INFER",n)),b):bs) 
+>                         = ((MN ("T",n),b):(renameBinders bs))
+>        renameBinders (b:bs) = b:renameBinders bs
+
+We need to order environments so that names used later are bound first.
+*sigh*. This is turning into an almighty hack... I'm not convinced an
+ordinary sort will do all the comparisons we need. Still, it's O(n^3) but
+n is unlikely ever to be very big. Let's rethink this if it proves a 
+bottleneck.
+
+>        orderEnv [] = []
+>        orderEnv (x:xs) = insertEnv x (orderEnv xs)
+>        insertEnv x [] = [x]
+>        insertEnv x (y:ys) = if (all (\e -> envLT x e) (y:ys))
+>                                then y:(insertEnv x ys)
+>                                else x:y:ys
+>                              
+>        envLT (n1,B _ t1) (n2,B _ t2)
+>              | n2 `elem` (getNames (Sc t1)) = False
+>              | otherwise = True
+
 
 > inferName n = (MN ("INFER", n))
 
@@ -335,10 +362,13 @@ and we don't convert names to de Bruijn indices
 >  tc env lvl (RStage s) exp = do
 >          (Ind sv, Ind st) <- tcStage env lvl s exp
 >          return (Ind sv, Ind st)
->  tc env lvl RInfer (Just exp) = do 
+>  tc env lvl RInfer (Just (Ind exp)) = do 
 >                       (next, infer, bindings, errs, mvs) <- get
->                       put (next+1, infer, bindings, errs, mvs)
->                       return (Ind (P (inferName next)), exp)
+>                       let bindings' = if infer 
+>                                        then (inferName next, B Pi exp):bindings
+>                                        else bindings
+>                       put (next+1, infer, bindings', errs, mvs)
+>                       return (Ind (P (inferName next)), Ind exp)
 >  tc env lvl RInfer Nothing = fail "Can't infer a term for placeholder"
 
 If we have a metavariable, we need to record the type of the expression which

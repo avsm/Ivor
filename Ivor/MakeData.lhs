@@ -29,7 +29,7 @@ the target, methods and the motives are unique.
 >         cischemes = mkSchemes False name (ruleName name "Case") 
 >                               params datacons motiveName methNames
 >         tycontype = mkCon params contype in
->         return $ --(trace (show ischemes)) $  
+>         return $ -- (trace (show eischemes)) $  
 >          RData (name,tycontype) datacons (length params)
 >                    (ruleName name "Elim", ecasetype) -- elim rule
 >                    (ruleName name "Case", ccasetype) -- case rule

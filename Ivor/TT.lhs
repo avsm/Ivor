@@ -19,7 +19,8 @@
 >               -- * Exported view of terms
 >               module VTerm, IsTerm, IsData,
 >               -- * Definitions and Theorems
->               addDef,addTypedDef,addData,addAxiom,declare,declareData,
+>               addDef,addTypedDef,addData,addDataNoElim,
+>               addAxiom,declare,declareData,
 >               theorem,interactive,
 >               addPrimitive,addBinOp,addBinFn,addPrimFn,addExternalFn,
 >               addEquality,forgetDef,addGenRec,addImplicit,
@@ -143,7 +144,13 @@
 >     raw :: Monad m => a -> m Raw
 
 > class IsData a where
+>     -- Add a data type with case and elim rules an elimination rule
 >     addData :: Monad m => Context -> a -> m Context
+>     addData ctxt x = addData' True ctxt x
+>     -- Add a data type without an elimination rule
+>     addDataNoElim :: Monad m => Context -> a -> m Context
+>     addDataNoElim ctxt x = addData' False ctxt x
+>     addData' :: Monad m => Bool -> Context -> a -> m Context
 
 > instance IsTerm Term where
 >     check _ tm = return tm
@@ -171,14 +178,14 @@
 > -- | Parse and typecheck a data declaration, of the form
 > -- "x:Type = c1:Type | ... | cn:Type"
 > instance IsData String where
->     addData (Ctxt st) str = do
+>     addData' elim (Ctxt st) str = do
 >         case (parseDataString str) of
->             Success ind -> addData (Ctxt st) ind
+>             Success ind -> addData' elim (Ctxt st) ind
 >             Failure err -> fail err
 
 > instance IsData Inductive where
->     addData (Ctxt st) ind = do st' <- doMkData st (datadecl ind)
->                                return (Ctxt st')
+>     addData' elim (Ctxt st) ind = do st' <- doMkData elim st (datadecl ind)
+>                                      return (Ctxt st')
 >       where
 >         datadecl (Inductive n ps inds cty cons) = 
 >             Datadecl n (map (\ (n,ty) -> (n, forget ty)) ps)
@@ -342,7 +349,7 @@
 >     rcrule <- eqElimType (show ty) (show con) "Case"
 >     rischeme <- eqElimSch (show con)
 >     let rdata = (RData rtycon [rdatacon] 2 rerule rcrule [rischeme] [rischeme])
->     st <- doData st ty rdata
+>     st <- doData True st ty rdata
 >     return $ Ctxt st
 
 > -- eqElim : (A:*)(a:A)(b:A)(q:JMEq A A a a)

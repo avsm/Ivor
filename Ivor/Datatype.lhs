@@ -34,8 +34,8 @@ Elaborated version with elimination rule and iota schemes.
 >                 num_params :: Int,
 >	          erule :: (n, Indexed n),
 >                 crule :: (n, Indexed n),
->	          e_ischemes :: PMFun Name,
->	          c_ischemes :: PMFun Name,
+>	          e_ischemes :: Maybe (PMFun Name),
+>	          c_ischemes :: Maybe (PMFun Name),
 >	          e_rawschemes :: [RawScheme],
 >	          c_rawschemes :: [RawScheme]
 >	        }
@@ -64,10 +64,22 @@ the context and an executable elimination rule.
 >        (esch, _, _) <- checkDef gamma'' er erty eschemes False False
 >        (csch, _, _) <- checkDef gamma'' cr crty cschemes False False
 >	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv defplicit) consv numps
->                    (er,ev) (cr,cv) esch csch eschemes cschemes)
+>                    (er,ev) (cr,cv) (Just esch) (Just csch) eschemes cschemes)
 
->    where checkCons gamma t [] = return ([], gamma)
->          checkCons gamma t ((cn,cty):cs) = 
+> checkTypeNoElim :: Monad m => Gamma Name -> RawDatatype -> m (Datatype Name)
+> checkTypeNoElim gamma (RData (ty,kind) cons numps (er,erty) (cr,crty) eschemes cschemes) = 
+>     do (kv, _) <- typecheck gamma kind
+>        let erdata = Elims er cr (map fst cons)
+>	 let gamma' = extend gamma (ty,G (TCon (arity gamma kv) erdata) kv defplicit)
+>	 (consv,gamma'') <- checkCons gamma' 0 cons
+>	 (ev, _) <- typecheck gamma'' erty
+>	 (cv, _) <- typecheck gamma'' crty
+>	 -- let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev defplicit)
+>	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv defplicit) consv numps
+>                    (er,ev) (cr,cv) Nothing Nothing [] [])
+
+> checkCons gamma t [] = return ([], gamma)
+> checkCons gamma t ((cn,cty):cs) = 
 >              do (cv,_) <- typecheck gamma cty
 >		  let ccon = G (DCon t (arity gamma cv)) cv defplicit
 >		  let gamma' = extend gamma (cn,ccon)

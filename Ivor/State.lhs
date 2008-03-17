@@ -77,28 +77,36 @@ compiled terms, etc.
 
 Take a data type definition and add constructors and elim rule to the context.
 
-> doData :: Monad m => IState -> Name -> RawDatatype -> m IState
-> doData st n r = do
+> doData :: Monad m => Bool -> IState -> Name -> RawDatatype -> m IState
+> doData elim st n r = do
 >            let ctxt = defs st
 >            let runtts = runtt st 
 >            let bcs = bcdefs st
->            dt <- checkType (defs st) r -- Make iota schemes
+>            dt <- if elim then checkType (defs st) r -- Make iota schemes
+>                          else checkTypeNoElim (defs st) r
 >            ctxt <- gInsert (fst (tycon dt)) (snd (tycon dt)) ctxt
 >                        -- let ctxt' = (tycon dt):ctxt
 >            ctxt <- addCons (datacons dt) ctxt
->            (ctxt, newruntts, newbc) <- 
->                addElim ctxt runtts bcs (erule dt) (e_ischemes dt)
->            (newdefs, newruntts, newbc) <-
->                addElim ctxt newruntts newbc (crule dt) (c_ischemes dt)
->            let newelims = (fst (erule dt), (snd (erule dt), 
->                              (e_rawschemes dt, e_ischemes dt))):
+>            case e_ischemes dt of
+>              Just eischemes -> 
+>                  -- We've done elim rules
+>                do let (Just cischemes) = c_ischemes dt
+>                   (ctxt, newruntts, newbc) <- 
+>                       addElim ctxt runtts bcs (erule dt) eischemes
+>                   (newdefs, newruntts, newbc) <-
+>                       addElim ctxt newruntts newbc (crule dt) cischemes
+>                   let newelims = (fst (erule dt), (snd (erule dt), 
+>                              (e_rawschemes dt, eischemes))):
 >                           (fst (crule dt), (snd (crule dt), 
->                              (c_rawschemes dt, c_ischemes dt))):
+>                              (c_rawschemes dt, cischemes))):
 >                           eliminators st
->            let newdatadefs = (n,dt):(datadefs st)
->            return $ st { defs = newdefs, datadefs = newdatadefs,
->                          eliminators = newelims,
->                          bcdefs = newbc, runtt = newruntts }
+>                   let newdatadefs = (n,dt):(datadefs st)
+>                   return $ st { defs = newdefs, datadefs = newdatadefs,
+>                                 eliminators = newelims,
+>                                 bcdefs = newbc, runtt = newruntts }
+>              Nothing -> -- no elim rules
+>                   return $ st { defs = ctxt, 
+>                                 datadefs = (n,dt):(datadefs st) }
 >    where addCons [] ctxt = return ctxt
 >          addCons ((n,gl):xs) ctxt = do
 >              ctxt <- addCons xs ctxt
@@ -109,16 +117,16 @@ Take a data type definition and add constructors and elim rule to the context.
 >                               ctxt
 >            return (newdefs, runtts, bcdefs)
 
-> doMkData :: Monad m => IState -> Datadecl -> m IState
-> doMkData st (Datadecl n ps rawty cs) 
+> doMkData :: Monad m => Bool -> IState -> Datadecl -> m IState
+> doMkData elim st (Datadecl n ps rawty cs) 
 >     = do (gty,_) <- checkIndices (defs st) ps [] rawty
 >          let ty = forget (normalise (defs st) gty)
 >          -- TMP HACK: Do it twice, to fill in _ placeholders.
 >          rd1 <- mkRawData n ps ty cs
->          dt1 <- checkType (defs st) rd1
+>          dt1 <- checkTypeNoElim (defs st) rd1
 >          let csfilled = map (forgetcon (length ps)) (datacons dt1)
 >          rd <- mkRawData n ps ty csfilled
->          doData st n rd
+>          doData elim st n rd
 >  where checkIndices gam [] env rawty = check gam env rawty Nothing
 >        checkIndices gam ((n,nrawty):xs) env rawty = do
 >            (Ind nty,_) <- check gam env nrawty Nothing

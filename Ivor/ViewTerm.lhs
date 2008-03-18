@@ -256,4 +256,3 @@
 > getApp :: ViewTerm -> ViewTerm
 > getApp (Ivor.ViewTerm.App f a) = getApp f
 > getApp x = x
-

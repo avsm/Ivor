@@ -85,7 +85,8 @@ type.
 >      Bool, -- Inferring types of names (if true)
 >      Env Name, -- Extra bindings, if above is true
 >      -- conversion constraints; remember the environment at the time we tried
->      [(Env Name, Indexed Name, Indexed Name)],
+>      -- also a string explaining where the constraint came from
+>      [(Env Name, Indexed Name, Indexed Name, String)],
 >      -- Metavariables we've introduce to define later
 >      [Name])
 
@@ -96,7 +97,7 @@ constraints and applying it to the term and type.
 
 > doConversion :: Monad m =>
 >                 Raw -> Gamma Name ->
->                 [(Env Name, Indexed Name, Indexed Name)] ->
+>                 [(Env Name, Indexed Name, Indexed Name,String)] ->
 >                 Indexed Name -> Indexed Name -> 
 >                m (Indexed Name, Indexed Name)
 > doConversion raw gam constraints (Ind tm) (Ind ty) =
@@ -111,15 +112,16 @@ constraints and applying it to the term and type.
 >          return {- $ trace (show nms ++ "\n" ++ show (tm',ty')) -} (Ind tm',Ind ty')
 
 >    where mkSubst [] = return (P, [])
->          mkSubst ((ok, (env,Ind x,Ind y)):xs) 
+>          mkSubst ((ok, (env,Ind x,Ind y,msg)):xs) 
 >             = do (s',nms) <- mkSubst xs
 >                  let x' = papp s' x
 >                  let (Ind y') = normalise gam (Ind (papp s' y))
 >                  uns <- case unifyenvErr ok gam env (Ind x') (Ind y') of
 >                         Success x' -> return x'
+
 >                         Failure err -> fail err
 
-{- trace ("XXX: " ++ err ++ show (x',y')) $ return [] -} fail $ err {- ++"\n" ++ show nms ++"\n" ++ show constraints -- $ -} ++ " Can't convert "++show x'++" and "++show y' ++ "\n" ++ show constraints ++ "\n" ++ show nms
+                         Failure err -> fail $ err ++"\n" ++ show nms ++"\n" ++ show constraints -- $ -} ++ " Can't convert "++show x'++" and "++show y' ++ "\n" ++ show constraints ++ "\n" ++ show nms
 
 >                  extend s' nms uns
 
@@ -165,13 +167,13 @@ Return a list of the functions we need to define to complete the definition.
 >    let realNames = mkNames next
 >    e' <- fixupB gam realNames (renameBinders e)
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
->    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' (normalise gam t1') 
+>    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
 >    -- Drop names out of e' that don't appear in v1'' as a result of the
 >    -- unification.
 >    let namesbound = getNames (Sc vtm)
 >    let ein = orderEnv (filter (\ (n, ty) -> n `elem` namesbound) e')
 >    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam ein tm2 (Just t1')
->    (v2',t2') <- doConversion tm2 gam bs' v2 (normalise gam t2) 
+>    (v2',t2') <- doConversion tm2 gam bs' v2 t2 -- (normalise gam t2) 
 >    if (null metas) 
 >       then return (v1',t1',v2',t2',e'', [])
 >       else do let (Ind v2tt) = v2' 
@@ -180,7 +182,7 @@ Return a list of the functions we need to define to complete the definition.
 >  where mkNames 0 = []
 >        mkNames n
 >           = ([],Ind (P (MN ("INFER",n-1))), 
->                 Ind (P (MN ("T",n-1)))):(mkNames (n-1))
+>                 Ind (P (MN ("T",n-1))), "renaming"):(mkNames (n-1))
 >        renameBinders [] = []
 >        renameBinders (((MN ("INFER",n)),b):bs) 
 >                         = ((MN ("T",n),b):(renameBinders bs))
@@ -294,9 +296,10 @@ typechecker...
 >       case (fnfng,fnf) of
 >        ((Ind (Bind _ (B Pi s) (Sc t))),_) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
->          checkConvSt env gamma (Ind at) (Ind s) $ "Type error: " ++ show a ++ " : " ++ show at ++ ", expected type "++show s -- ++" "++show env
+>          let sty = (normaliseEnv env (Gam []) (Ind s))
 >          let tt = (Bind (MN ("x",0)) (B (Let av) at) (Sc t))
 >          let tmty = (normaliseEnv env (Gam []) (Ind tt))
+>          checkConvSt env gamma (Ind at) (Ind s) $ "Type error in application of " ++ show fv ++ " : " ++ show a ++ " : " ++ show at ++ ", expected type "++show sty ++ " " ++ show tmty
 >          return (Ind (App fv av), tmty)
 >        (_, (Ind (Bind _ (B Pi s) (Sc t)))) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
@@ -545,13 +548,13 @@ extended environment.
 -- > checkPatt gam env acc RInfer ty = return (combinepats acc PTerm, env)
 -- > checkPatt gam env _ _ _ = fail "Invalid pattern"
 
-> checkConvSt env g x y err 
+> checkConvSt env g x y msg
 >                 = do (next, infer, bindings, err, mvs) <- get
->                      put (next, infer, bindings, (env,x,y):err, mvs)
+>                      put (next, infer, bindings, (env,x,y,msg):err, mvs)
 >                      return ()
 
 > fixupGam gamma [] tm = return tm
-> fixupGam gamma ((env,x,y):xs) (Ind tm, Ind ty) = do 
+> fixupGam gamma ((env,x,y,_):xs) (Ind tm, Ind ty) = do 
 >      uns <- case unifyenv gamma env y x of
 >                 Success x' -> return x'
 >                 Failure err -> return [] -- fail err -- $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"

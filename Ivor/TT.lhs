@@ -13,7 +13,7 @@
 
 > module Ivor.TT(-- * System state
 >               emptyContext, Context,
->               Ivor.TT.check,
+>               Ivor.TT.check,fastCheck,
 >               checkCtxt,converts,
 >               Ivor.TT.compile,
 >               -- * Exported view of terms
@@ -93,6 +93,7 @@
 > import Ivor.TTCore as TTCore
 > import Ivor.State
 > import Ivor.Typecheck
+> import Ivor.Scopecheck
 > import Ivor.Gadgets
 > import Ivor.Nobby
 > import Ivor.Evaluator
@@ -174,6 +175,16 @@
 >           (Success (t, ty)) -> return $ Term (t,ty)
 >           (Failure err) -> fail err
 >     raw t = return t
+
+> -- | Quickly convert a 'ViewTerm' into a real 'Term'.
+> -- This is dangerous; you must know that typechecking will succeed,
+> -- and the resulting term won't have a valid type, but you will be
+> -- able to run it. This is useful if you simply want to do a substitution
+> -- into a 'ViewTerm'.
+
+> fastCheck :: Context -> ViewTerm -> Term
+> fastCheck (Ctxt st) vt = Term (Ind (scopeCheck (defs st) [] (forget vt)),
+>                               (Ind TTCore.Star))
 
 > -- | Parse and typecheck a data declaration, of the form
 > -- "x:Type = c1:Type | ... | cn:Type"

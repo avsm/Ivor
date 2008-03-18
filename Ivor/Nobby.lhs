@@ -367,7 +367,6 @@ Do the actual evaluation
 > patmatch gam g ((Sch pats ret):ps) vs = case pm gam g pats vs ret [] of
 >                         Nothing -> patmatch gam g ps vs
 >                         Just v -> Just v
-
 > pm :: Gamma Name -> Ctxt -> [Pattern Name] -> [Value] -> Indexed Name -> 
 >       [(Name, Value)] -> -- matches so far
 >       Maybe Value

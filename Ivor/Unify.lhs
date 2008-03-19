@@ -35,13 +35,15 @@ Unify on named terms, but normalise using de Bruijn indices.
 >                Gamma Name -> Env Name ->
 >                Indexed Name -> Indexed Name -> m Unified
 > -- For the sake of readability of the results, first attempt to unify
-> -- without reducing global names, and reduce if that doesn't work.
-> -- (Actually, I'm not sure this helps. Probably just slows things down.)
+> -- without reducing, and reduce if that doesn't work.
+> -- Also, there is no point reducing if we don't have to, and not calling
+> -- the normaliser really speeds things up if we have a lot of easy
+> -- constraints to solve...
 > unifyenvErr i gam env x y = {- trace (show (x,y) ++ "\n" ++
 >                                    show (p (normalise (gam' gam) x)) ++ "\n" ++
 >                                    show (p (normalise (gam' gam) x))) $-}
->     case unifynferr i env (p (normalise emptyGam x))
->                      (p (normalise emptyGam y)) of
+>     case unifynferr i env (p x)
+>                           (p y) of
 >           (Just x) -> return x
 >           Nothing -> unifynferr i env (p (normalise (gam' gam) x))
 >                                       (p (normalise (gam' gam) y))

@@ -107,8 +107,8 @@ constraints and applying it to the term and type.
 >           -- constraints in and they might depend on each other...
 >       do let cs = nub constraints
 >          (subst, nms) <- {-# SCC "name" #-}
->                            mkSubst $ (map (\x -> (True,x)) (reverse cs))
->                                    ++ (map (\x -> (False,x)) cs)
+>                            mkSubst $ (map (\x -> (True,x)) cs)
+>                                    ++ (map (\x -> (False,x)) (reverse cs))
 >          let tm' = papp subst tm
 >          let ty' = papp subst ty
 >          return {- $ trace (show nms ++ "\n" ++ show (tm',ty')) -} (Ind tm',Ind ty')

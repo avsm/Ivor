@@ -54,7 +54,7 @@ compiled terms, etc.
 >            undoState :: !(Maybe IState)
 >        }
 
-> initstate = ISt (Gam []) [] [] [] [] [] [] Nothing [] mknames "" Nothing
+> initstate = ISt (emptyGam) [] [] [] [] [] [] Nothing [] mknames "" Nothing
 >   where mknames = [MN ("myName",x) | x <- [1..]]
 
 > respond :: IState -> String -> IState
@@ -139,10 +139,10 @@ Take a data type definition and add constructors and elim rule to the context.
 > suspendProof :: Monad m => IState -> m IState
 > suspendProof st = do case proofstate st of
 >                        (Just prf) -> do
->                          let (Gam olddefs) = defs st
+>                          let olddefs = defs st
 >                          newdef <- suspendFrom (defs st) prf (holequeue st)
 >                          return $ st { proofstate = Nothing,
->                                        defs = Gam (newdef:olddefs),
+>                                        defs = extend olddefs newdef,
 >                                        holequeue = []
 >                                      }
 >                        _ -> fail "No proof in progress"

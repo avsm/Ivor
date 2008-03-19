@@ -269,18 +269,18 @@
 >         checkNotExists n (defs st)
 >         (Term (inty,_)) <- Ivor.TT.check (Ctxt st) ty
 >         (Ctxt tmpctxt) <- declare (Ctxt st) n ty
->         let Gam tmp = defs tmpctxt
->         let Gam ctxt = defs st
+>         let tmp = defs tmpctxt
+>         let ctxt = defs st
 >         let runtts = runtt st
 >         term <- raw tm
->         case (checkAndBind (Gam tmp) [] term (Just inty)) of
+>         case (checkAndBind tmp [] term (Just inty)) of
 >              (Success (v,t@(Ind sc),_)) -> do
 >                 if (convert (defs st) inty t)
 >                     then (do
 >                       checkBound (getNames (Sc sc)) t
->                       newdefs <- gInsert n (G (Fun [Recursive] v) t defplicit) (Gam ctxt)
+>                       newdefs <- gInsert n (G (Fun [Recursive] v) t defplicit) ctxt
 >                               -- = Gam ((n,G (Fun [] v) t):ctxt)
->                       let scs = lift n (levelise (normalise (Gam []) v))
+>                       let scs = lift n (levelise (normalise (emptyGam) v))
 >                       let bc = compileAll (runtts++scs) scs
 >                       let newbc = bc++(bcdefs st)
 >                       return $ Ctxt st { defs = newdefs, bcdefs = newbc,
@@ -294,14 +294,14 @@
 > addDef (Ctxt st) n tm = do
 >         checkNotExists n (defs st)
 >         v <- raw tm
->         let Gam ctxt = defs st
+>         let ctxt = defs st
 >         let runtts = runtt st
->         case (typecheck (Gam ctxt) v) of
+>         case (typecheck ctxt v) of
 >             (Success (v,t@(Ind sc))) -> do
 >                 checkBound (getNames (Sc sc)) t
->                 newdefs <- gInsert n (G (Fun [] v) t defplicit) (Gam ctxt)
+>                 newdefs <- gInsert n (G (Fun [] v) t defplicit) ctxt
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
->                 let scs = lift n (levelise (normalise (Gam []) v))
+>                 let scs = lift n (levelise (normalise (emptyGam) v))
 >                 let bc = compileAll (runtts++scs) scs
 >                 let newbc = bc++(bcdefs st)
 >                 return $ Ctxt st { defs = newdefs, bcdefs = newbc,
@@ -316,12 +316,14 @@
 
 > -- |Forget a definition and all following definitions.
 > forgetDef :: Monad m => Context -> Name -> m Context
-> forgetDef (Ctxt st) n = do let (Gam olddefs) = defs st
->                            newdefs <- f olddefs n
->                            return $ Ctxt st { defs = Gam newdefs }
->   where f [] n = fail "No such name"
->         f (def@(x,_):xs) n | x == n = return xs
->                            | otherwise = f xs n
+> forgetDef (Ctxt st) n = fail "Not any more..."
+
+do let olddefs = defs st
+                            newdefs <- f olddefs n
+                            return $ Ctxt st { defs = newdefs
+   where f [] n = fail "No such name"
+         f (def@(x,_):xs) n | x == n = return xs
+                            | otherwise = f xs n
 
 > -- |Add the general recursion elimination rule, thus making all further
 > -- definitions untrustworthy :).
@@ -331,16 +333,16 @@
 >     = do checkNotExists n (defs st)
 >          (Ctxt tmpctxt) <- addAxiom (Ctxt st) n
 >                              "(P:*)(meth_general:(p:P)P)P"
->          let Gam tmp = defs tmpctxt
->          let Gam ctxt = defs st
+>          let tmp = defs tmpctxt
+>          let ctxt = defs st
 >          let runtts = runtt st
 >          general <- raw $ "[P:*][meth_general:(p:P)P](meth_general (" ++ 
 >                            show n ++ " P meth_general))"
->          case (typecheck (Gam tmp) general) of
+>          case (typecheck tmp general) of
 >              (Success (v,t)) -> do
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
->                 newdefs <- gInsert n (G (Fun [] v) t defplicit) (Gam ctxt)
->                 let scs = lift n (levelise (normalise (Gam []) v))
+>                 newdefs <- gInsert n (G (Fun [] v) t defplicit) ctxt
+>                 let scs = lift n (levelise (normalise (emptyGam) v))
 >                 let bc = compileAll (runtts++scs) scs
 >                 let newbc = bc++(bcdefs st)
 >                 return $ Ctxt st { defs = newdefs, bcdefs = newbc,
@@ -477,7 +479,7 @@
 >                   Just x' -> case cast y of
 >                      Just y' -> case Ivor.TT.check (Ctxt st) $ f x' y' of
 >                          Just (Term (Ind v,_)) ->
->                              Just $ nf (Gam []) (VG []) [] False v
+>                              Just $ nf (emptyGam) (VG []) [] False v
 >                      Nothing -> Nothing
 >                   Nothing -> Nothing
 >          mkfun _ = Nothing
@@ -502,16 +504,16 @@
 >        checkNotExists n (defs st)
 >        Term (ty, _) <- Ivor.TT.check (Ctxt st) tyin
 >        let fndef = PrimOp mkfun mktt
->        let Gam ctxt = defs st
+>        let ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
->        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
+>        newdefs <- gInsert n (G fndef ty defplicit) ctxt
 >        return $ Ctxt st { defs = newdefs }
 >    where mkfun :: Spine Value -> Maybe Value
 >          mkfun (Snoc Empty (MR (RdConst x)))
 >              = case cast x of
 >                   Just x' -> case Ivor.TT.check (Ctxt st) $ f x' of
 >                                  Just (Term (Ind v,_)) ->
->                                      Just $ nf (Gam []) (VG []) [] False v
+>                                      Just $ nf (emptyGam) (VG []) [] False v
 >                                  Nothing -> Nothing
 >                   Nothing -> Nothing
 >          mkfun _ = Nothing
@@ -536,9 +538,9 @@
 >        checkNotExists n (defs st)
 >        Term (ty, _) <- Ivor.TT.check (Ctxt st) tyin
 >        let fndef = PrimOp mkfun mktt
->        let Gam ctxt = defs st
+>        let ctxt = defs st
 >        -- let newdefs = Gam ((n,(G fndef ty)):ctxt)
->        newdefs <- gInsert n (G fndef ty defplicit) (Gam ctxt)
+>        newdefs <- gInsert n (G fndef ty defplicit) ctxt
 >        return $ Ctxt st { defs = newdefs }
 >    where mkfun :: Spine Value -> Maybe Value
 >          mkfun sx | xs <- listify sx
@@ -548,7 +550,7 @@
 >                          case (Ivor.TT.check (Ctxt st) res) of
 >                             Nothing -> Nothing
 >                             Just (Term (Ind tm, _)) -> 
->                                 Just $ nf (Gam []) (VG []) [] False tm
+>                                 Just $ nf (emptyGam) (VG []) [] False tm
 >                      Nothing -> Nothing
 >          mktt :: [TT Name] -> Maybe (TT Name)
 >          mktt xs
@@ -788,7 +790,7 @@ Give a parseable but ugly representation of a term.
 
 > -- |Get all the names and types in the context
 > getAllDefs :: Context -> [(Name,Term)]
-> getAllDefs (Ctxt st) = let (Gam ds) = defs st in
+> getAllDefs (Ctxt st) = let ds = getAList (defs st) in
 >                            reverse (map info ds) -- input order!
 >    where info (n,G _ ty _) = (n, Term (ty, Ind TTCore.Star))
 
@@ -874,7 +876,7 @@ Get the actions performed by the last tactic
 >               Nothing -> fail "No such goal"
 
 > getHoleTerm gam hs tm = (getctxt hs, 
->                          Term (normaliseEnv hs (Gam []) (binderType tm), 
+>                          Term (normaliseEnv hs (emptyGam) (binderType tm), 
 >                                Ind TTCore.Star))
 >    where getctxt [] = []
 >          getctxt ((n,B _ ty):xs) = (n,Term (Ind ty,Ind TTCore.Star)):
@@ -963,7 +965,7 @@ Tactics
 >              let isrec = rec name
 >              let (Gam olddefs) = remove name (defs st)
 >              let runtts = runtt st
->              let scs = lift name (levelise (normalise (Gam []) ind))
+>              let scs = lift name (levelise (normalise (emptyGam) ind))
 >              let bc = compileAll (runtts++scs) scs
 >              let newbc = bc++(bcdefs st)
 >              defs' <- gInsert name val (defs st)
@@ -981,7 +983,7 @@ Tactics
 >                       m (Name, Gval Name)
 > qedLift gam freeze 
 >             (Ind (Bind x (B (TTCore.Let v) ty) (Sc (P n)))) | n == x =
->     do let (Ind vnorm) = convNormalise (Gam []) (finalise (Ind v))
+>     do let (Ind vnorm) = convNormalise (emptyGam) (finalise (Ind v))
 >        verify gam (Ind v)
 >        return $ (x, G (Fun opts (Ind vnorm)) (finalise (Ind ty)) defplicit)
 >   where opts = if freeze then [Frozen] else []
@@ -1098,9 +1100,9 @@ Convert an internal tactic into a publicly available tactic.
 >           addgoals ((Tactics.NextGoal n):xs) st 
 >               = addgoals xs (st { holequeue = nub (second n (holequeue st)) })
 >           addgoals ((Tactics.AddAxiom n ty):xs) st
->               = let Gam ctxt = defs st in
+>               = let ctxt = defs st in
 >                     addgoals xs (st 
->                        { defs = Gam ((n,G Unreducible (finalise (Ind ty)) defplicit):ctxt) })
+>                        { defs = extend ctxt (n,G Unreducible (finalise (Ind ty)) defplicit) })
 >           addgoals ((Tactics.HideGoal n):xs) st
 >               = addgoals xs (st { hidden = nub (n:(hidden st)) })
 >           addgoals (_:xs) st = addgoals xs st

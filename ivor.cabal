@@ -6,7 +6,7 @@ License-file:	LICENSE
 Maintainer:	eb@dcs.st-and.ac.uk
 Homepage:	http://www.dcs.st-and.ac.uk/~eb/Ivor/
 Stability:	experimental
-Build-depends:	base, haskell98, parsec, mtl, directory
+Build-depends:	base, haskell98, parsec, mtl, directory, containers
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,
 		ExistentialQuantification, OverlappingInstances
 Synopsis:	Theorem proving library based on dependent type theory

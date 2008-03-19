@@ -231,13 +231,13 @@ Try filling the current goal with a term
 >                               checkAndBind gam (ptovenv env) guess (Just (Ind tyin))
 >        let gv = makePsEnv (map fst env) gvin
 >        let gt = makePsEnv (map fst env) gtin
->        let (Ind ty') = normaliseEnv (ptovenv env) (Gam []) (Ind tyin)
+>        let (Ind ty') = normaliseEnv (ptovenv env) (emptyGam) (Ind tyin)
 >        let (Ind ty) = normaliseEnv (ptovenv env) gam (Ind tyin)
 >        let fgt = finalise (Ind gt)
 >        let fty' = finalise (Ind ty')
 >        let fty = finalise (Ind ty)
 >        others <- -- trace ("unifying "++show gt++" and "++show ty') $
->                  case unifyenv (Gam []) (ptovenv env) fgt fty' of
+>                  case unifyenv (emptyGam) (ptovenv env) fgt fty' of
 >                     Nothing -> unifyenv gam (ptovenv env) fgt fty
 >                     (Just x) -> return x
 >        -- let newgt = substNames others gt
@@ -397,7 +397,7 @@ Do beta reductions (i.e., normalise the goal without expanding global names)
 
 > betaReduce :: Tactic
 > betaReduce gam env (Ind (Bind x (B Hole ty) sc)) =
->    do let (Ind nty) = normaliseEnv (ptovenv env) (Gam []) (finalise (Ind ty))
+>    do let (Ind nty) = normaliseEnv (ptovenv env) (emptyGam) (finalise (Ind ty))
 >       tacret $ Ind (Bind x (B Hole nty) sc)
 > betaReduce _ _ (Ind (Bind x _ _)) = fail $ "betaReduce: " ++ show x ++ " Not a hole"
 > betaReduce _ _ _ = fail "betaReduce: Not a binder, can't happen"
@@ -410,7 +410,7 @@ Normalise the goal, only expanding the given global name.
 >           Nothing -> fail $ "Unknown name " ++ show fn
 >           Just (v,t) -> do
 >              let (Ind nty) = normaliseEnv (ptovenv env) 
->                                           (Gam [(fn,G v t defplicit)]) 
+>                                           (extend emptyGam (fn, (G v t defplicit)))
 >                                           (finalise (Ind ty))
 >              tacret $ Ind (Bind x (B Hole nty) sc)
 > reduceWith _ _ _ (Ind (Bind x _ _)) = fail $ "reduceWith: " ++ show x ++ " Not a hole"
@@ -528,7 +528,7 @@ Introduce a lambda or let
 > intro :: Tactic
 > intro gam env intm@(Ind (Bind x (B Hole tyin) (Sc p)))
 >     | p == (P x) =
->         do let (Ind ty) = normaliseEnv (ptovenv env) (Gam []) (finalise (Ind tyin))
+>         do let (Ind ty) = normaliseEnv (ptovenv env) (emptyGam) (finalise (Ind tyin))
 >            let ty' = makePsEnv (map fst env) ty
 >            introsty (uniqify x (map fst env)) ty' (Sc p)
 >     | otherwise = 
@@ -570,7 +570,7 @@ Replace a goal with an equivalent (convertible) goal.
 > generalise :: Raw -> Tactic
 > generalise expr gam env (Ind (Bind x (B Hole tyin) sc)) =
 >     do (nv, nt) <- check gam (ptovenv env) expr Nothing
->        let (Ind ntyin) = normaliseEnv (ptovenv env) (Gam []) (finalise (Ind tyin))
+>        let (Ind ntyin) = normaliseEnv (ptovenv env) (emptyGam) (finalise (Ind tyin))
 >        let (Ind exprv) = normaliseEnv (ptovenv env) gam nv
 >        let (Ind exprt) = normaliseEnv (ptovenv env) gam nt
 >        let ty = makePsEnv (map fst env) ntyin
@@ -627,7 +627,7 @@ solve the goal.
 
 > axiomatise :: Name -> [Name] -> Tactic
 > axiomatise n helpers gam env tm@(Ind (Bind x (B Hole tyin) sc)) =
->     do let (Ind ty') = normaliseEnv (ptovenv env) (Gam []) (finalise (Ind tyin))
+>     do let (Ind ty') = normaliseEnv (ptovenv env) (emptyGam) (finalise (Ind tyin))
 >        let ty = makePsEnv (map fst env) ty'
 >        let fvs = reverse $ getUsedBoundVars env ((getNames (Sc ty))++helpers)
 >        let axiom = bind Pi fvs (Sc ty)
@@ -645,7 +645,7 @@ Prepare to return a quoted value
 
 > quote :: Tactic
 > quote gam env tm@(Ind (Bind h (B Hole tyin) sc)) =
->     do let (Ind ty') = normaliseEnv (ptovenv env) (Gam []) (finalise (Ind tyin))
+>     do let (Ind ty') = normaliseEnv (ptovenv env) (emptyGam) (finalise (Ind tyin))
 >        ty <- checkQuoted ty'
 >        let qv = uniqify (mkns h (UN "qv")) $
 >                        (map fst env) ++ (getBoundNames (Sc ty))

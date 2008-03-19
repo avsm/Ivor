@@ -18,7 +18,7 @@ Functions for displaying proof state "helpfully".
 > displayHole :: [Name] -> Gamma Name -> Env Name -> Indexed Name -> String
 > displayHole hidden gam hs tm = dh hs ++ 
 >                         "\n=======================================\n" ++
->                         show (normaliseEnv hs (Gam []) tm) ++ "\n"
+>                         show (normaliseEnv hs emptyGam tm) ++ "\n"
 >    where dh [] = ""
 >          dh ((n,B _ ty):xs) 
 >              | n `elem` hidden = dh xs

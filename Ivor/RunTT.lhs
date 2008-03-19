@@ -94,7 +94,7 @@ Make an elimination rule in RunTT from a simple case expression
 > mkRTElim :: Name -> Int -> SimpleCase -> RunTT
 > mkRTElim ename arity es = fst $ abstract arity (mkrt es)
 >    where mkrt Impossible = RTCantHappen
->          mkrt (IReduce t) = mkRTFun (Gam []) (mkvarnum t)
+>          mkrt (IReduce t) = mkRTFun (emptyGam) (mkvarnum t)
 >          mkrt (Case ty x cs) = RTCase ty (RTVar (arity-x-1), TI 0 False)
 >		                  (map mkcase cs)
 >	   mkcase c = (mkrt c, TI 0 False)

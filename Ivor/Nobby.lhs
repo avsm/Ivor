@@ -9,6 +9,7 @@
 > import List
 > import Monad
 > import Data.Typeable
+> import qualified Data.Map as Map
 
 > import Debug.Trace
 
@@ -52,28 +53,32 @@ to do with it, when the time comes.
 
 > defplicit = 0
 
-> data Gval n = G (Global n) (Indexed n) Plicity
+> data Ord n => Gval n = G (Global n) (Indexed n) Plicity
 >    deriving Show
 
 > getglob (G v t p) = v
 > gettype (G v t p) = t
 > getplicity (G v t p) = p
 
-> newtype Gamma n = Gam [(n,Gval n)]
+> newtype Ord n => Gamma n = Gam (Map.Map n (Gval n))
 >     deriving Show
 
-> extend (Gam x) (n,v) = Gam ((n,v):x)
+> extend (Gam x) (n,v) = Gam (Map.insert n v x)
 
-> emptyGam = Gam []
+> emptyGam :: Ord n => Gamma n
+> emptyGam = Gam Map.empty
 
-> lookupval :: Eq n => n -> Gamma n -> Maybe (Global n)
-> lookupval n (Gam xs) = fmap getglob (lookup n xs)
+> getAList :: Ord n => Gamma n -> [(n,(Gval n))]
+> getAList (Gam n) = Map.toAscList n
 
-> lookuptype :: Eq n => n -> Gamma n -> Maybe (Indexed n)
-> lookuptype n (Gam xs) = fmap gettype (lookup n xs)
+> lookupval :: (Ord n, Eq n) => n -> Gamma n -> Maybe (Global n)
+> lookupval n (Gam xs) = fmap getglob (Map.lookup n xs)
 
-> glookup ::  Eq n => n -> Gamma n -> Maybe (Global n,Indexed n)
-> glookup n (Gam xs) = fmap (\x -> (getglob x,gettype x)) (lookup n xs)
+> lookuptype :: (Ord n, Eq n) => n -> Gamma n -> Maybe (Indexed n)
+> lookuptype n (Gam xs) = fmap gettype (Map.lookup n xs)
+
+> glookup ::  (Ord n, Eq n) => n -> Gamma n -> Maybe (Global n,Indexed n)
+> glookup n (Gam xs) = fmap (\x -> (getglob x,gettype x)) (Map.lookup n xs)
 
 Get a type name from the context
 
@@ -100,62 +105,54 @@ occurs anywhere in its arguments).
 >          checkRec n [] = False
 >          checkRec n (x:xs) = nameOccurs n (forget x) || checkRec n xs
 
-> insertGam :: n -> Gval n -> Gamma n -> Gamma n
-> insertGam nm val (Gam gam) = Gam $ (nm,val):gam
+> insertGam :: Ord n => n -> Gval n -> Gamma n -> Gamma n
+> insertGam nm val (Gam gam) = Gam $ Map.insert nm val gam
 
-> concatGam :: Gamma n -> Gamma n -> Gamma n
-> concatGam (Gam x) (Gam y) = Gam (x++y)
+> concatGam :: Ord n => Gamma n -> Gamma n -> Gamma n
+> concatGam (Gam x) (Gam y) = Gam (Map.union x y)
 
-> setFrozen :: Eq n => n -> Bool -> Gamma n -> Gamma n
-> setFrozen n freeze (Gam xs) = Gam $ sf xs where
->    sf [] = []
->    sf ((p,G (Fun opts v) ty plicit):xs) 
->        | n == p = (p,G (Fun (doFreeze freeze opts) v) ty plicit):xs
->    sf (x:xs) = x:(sf xs)
+> setFrozen :: (Ord n, Eq n) => n -> Bool -> Gamma n -> Gamma n
+> setFrozen n freeze (Gam xs) = Gam $ Map.mapWithKey sf xs where
+>    sf p (G (Fun opts v) ty plicit)
+>        | n == p = (G (Fun (doFreeze freeze opts) v) ty plicit)
+>    sf _ x = x
 >    doFreeze True opts = nub (Frozen:opts)
 >    doFreeze False opts = opts \\ [Frozen]
 
-> setRec :: Eq n => n -> Bool -> Gamma n -> Gamma n
-> setRec n frec (Gam xs) = Gam $ sf xs where
->    sf [] = []
->    sf ((p,G (Fun opts v) ty plicit):xs) 
->        | n == p = (p,G (Fun (doFrec frec opts) v) ty plicit):xs
->    sf (x:xs) = x:(sf xs)
+> setRec :: (Ord n, Eq n) => n -> Bool -> Gamma n -> Gamma n
+> setRec n frec (Gam xs) = Gam $ Map.mapWithKey sf xs where
+>    sf p (G (Fun opts v) ty plicit)
+>        | n == p = (G (Fun (doFrec frec opts) v) ty plicit)
+>    sf _ x = x
 >    doFrec True opts = nub (Recursive:opts)
 >    doFrec False opts = opts \\ [Recursive]
 
 
-> freeze :: Eq n => n -> Gamma n -> Gamma n
+> freeze :: (Ord n, Eq n) => n -> Gamma n -> Gamma n
 > freeze n gam = setFrozen n True gam
 
-> thaw :: Eq n => n -> Gamma n -> Gamma n
+> thaw :: (Ord n, Eq n) => n -> Gamma n -> Gamma n
 > thaw n gam = setFrozen n False gam
 
 Remove a name from the middle of the context - should only be valid
 if it's a partial definition or an axiom which is about to be replaced.
 
-> remove :: Eq n => n -> Gamma n -> Gamma n
-> remove n (Gam xs) = Gam $ rm n xs where
->    rm n [] = []
->    rm n (d@(p,_):xs) | n==p = xs
->                      | otherwise = d:(rm n xs)
+> remove :: (Ord n, Eq n) => n -> Gamma n -> Gamma n
+> remove n (Gam xs) = Gam $ Map.delete n xs where
 
 Insert a name into the context. If the name is already there, this
 is an error *unless* the old definition was 'Undefined', in which case
 the name is replaced.
 
-> gInsert :: (Monad m, Eq n, Show n) => n -> Gval n -> Gamma n -> m (Gamma n)
-> gInsert nm val (Gam xs) = do xs' <- ins nm val xs []
->                              return $ Gam xs'
->   where ins n val [] acc = return $ (n,val):(reverse acc)
+> gInsert :: (Monad m, Ord n, Eq n, Show n) => 
+>            n -> Gval n -> Gamma n -> m (Gamma n)
+> gInsert nm val (Gam xs) = case Map.lookup nm xs of
 >         -- FIXME: Check ty against val
->         ins n val (d@(p,G Undefined ty _):xs) acc
->             | n == p = return $ (n,val):(reverse acc) ++ xs
->         ins n val (d@(p,G (TCon _ NoConstructorsYet) ty _):xs) acc
->             | n == p = return $ (n,val):(reverse acc) ++ xs
->         ins n val (d@(p,_):xs) acc 
->             | n == p = fail $ "Name " ++ show p ++ " is already defined"
->             | otherwise = ins n val xs (d:acc)
+>       Nothing -> return $ Gam (Map.insert nm val xs)
+>       Just (G Undefined ty _) -> return $ Gam (Map.insert nm val xs)
+>       Just (G (TCon _ NoConstructorsYet) ty _) -> 
+>                                  return $ Gam (Map.insert nm val xs)
+>       Just _ -> fail $ "Name " ++ show nm ++ " is already defined"
 
 An ElimRule is a Haskell implementation of the iota reductions of
 a family.
@@ -306,7 +303,7 @@ Do the actual evaluation
 >     -- This is again a bit of a hack, just evaluating without any definitions
 >     -- but it is a nice cheap way of seeing what we'd have to generate code
 >     -- for at run-time.
->     else MR (RdQuote (eval (stage+1) (Gam []) g t))
+>     else MR (RdQuote (eval (stage+1) (Gam Map.empty) g t))
 >     -- else let cd = (forget ((quote (eval (Gam []) g t)::Normal))) in
 >        --               MR (RdQuote cd)
 >        -- MR (RdQuote (substV g t)) --(splice t)) -- broken
@@ -621,7 +618,7 @@ WARNING: quotation to eta long normal form doesn't work yet.
 >     = normalise (addenv env g) t
 >   where addenv [] g = g
 >         addenv ((n,B (Let v) ty):xs) (Gam g) 
->             = addenv xs (Gam ((n,G (Fun [] (Ind v)) (Ind ty) defplicit):g))
+>             = addenv xs (Gam (Map.insert n (G (Fun [] (Ind v)) (Ind ty) defplicit) g))
 >         addenv (_:xs) g = addenv xs g
 
 > convNormaliseEnv :: Env Name -> Gamma Name -> Indexed Name -> Indexed Name
@@ -629,7 +626,7 @@ WARNING: quotation to eta long normal form doesn't work yet.
 >     = convNormalise (addenv env g) t
 >   where addenv [] g = g
 >         addenv ((n,B (Let v) ty):xs) (Gam g) 
->             = addenv xs (Gam ((n,G (Fun [] (Ind v)) (Ind ty) defplicit):g))
+>             = addenv xs (Gam (Map.insert n (G (Fun [] (Ind v)) (Ind ty) defplicit) g))
 >         addenv (_:xs) g = addenv xs g
 
      = Ind (forget (quote (nf g (VG (valenv env [])) t)::Normal))
@@ -664,11 +661,13 @@ WARNING: quotation to eta long normal form doesn't work yet.
 
 ====================== Functors for contexts ===============================
 
-> instance Functor Gamma where
->     fmap f (Gam xs) = Gam (fmap (\ (x,y) -> (f x,fmap f y)) xs)
+ instance Functor Gamma where
+     fmap f (Gam xs) = let xsList = Map.toAscList xs
+                           mList = fmap (\ (x,y) -> (f x,fmap f y)) xsList in
+                           Gam (Map.fromAscList mList)
 
-> instance Functor Gval where
->     fmap f (G g i p) = G (fmap f g) (fmap f i) p
+ instance Functor Gval where
+     fmap f (G g i p) = G (fmap f g) (fmap f i) p
 
 > instance Functor Global where
 >     fmap f (Fun opts n) = Fun opts $ fmap f n

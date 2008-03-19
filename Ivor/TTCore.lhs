@@ -141,7 +141,7 @@ This keeps both namespaces separate.
 > data Name 
 >     = UN String
 >     | MN (String,Int) 
->   deriving Eq
+>   deriving (Ord, Eq)
 
 Data declarations and pattern matching
 

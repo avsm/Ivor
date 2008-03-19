@@ -85,6 +85,6 @@ Make an elimination rule implementation from a simple case expression.
 >		      _ -> Nothing
 >         doElim sp (IReduce (Ind t)) 
 >                = let recrule = mkElim ename ty arity cs
->		       gam = Gam ((ename,G (ElimRule recrule) ty defplicit):[])
+>		       gam = extend emptyGam (ename,G (ElimRule recrule) ty defplicit)
 >		       red = (nf gam (VG (revlistify sp)) [] False t)
 >			 in (Just red)

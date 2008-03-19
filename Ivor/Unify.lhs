@@ -157,7 +157,7 @@ An equality test which takes account of names which should be equal.
 TMP HACK! ;)
 
 >          ueq :: TT Name -> TT Name -> Bool
->          ueq x y = case unifyenv (Gam []) [] (Ind x) (Ind y) of
+>          ueq x y = case unifyenv emptyGam [] (Ind x) (Ind y) of
 >                   Just _ -> True
 >                   _ -> False
 

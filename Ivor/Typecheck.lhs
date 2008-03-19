@@ -101,12 +101,12 @@ constraints and applying it to the term and type.
 >                 Indexed Name -> Indexed Name -> 
 >                m (Indexed Name, Indexed Name)
 > doConversion raw gam constraints (Ind tm) (Ind ty) =
->     -- trace ("Finishing checking " ++ show tm) $ -- ++ " with " ++ show constraints) $ 
+>     -- trace ("Finishing checking " ++ show tm ++ " with " ++ show (length constraints) ++ " equations") $ 
 >           -- Unify twice; first time collect the substitutions, second
 >           -- time do them. Because we don't know what order we can solve
 >           -- constraints in and they might depend on each other...
 >       do (subst, nms) <- mkSubst $ (map (\x -> (False,x)) constraints) ++
->                                    (map (\x -> (True,x)) ((reverse constraints)++constraints))
+>                                    (map (\x -> (True,x)) (reverse constraints))
 >          let tm' = papp subst tm
 >          let ty' = papp subst ty
 >          return {- $ trace (show nms ++ "\n" ++ show (tm',ty')) -} (Ind tm',Ind ty')
@@ -290,15 +290,15 @@ typechecker...
 
 >  tc env lvl (RApp f a) exp = do
 >     (Ind fv, Ind ft) <- tcfixup env lvl f Nothing
->     let fnfng = normaliseEnv env (Gam []) (Ind ft)
+>     let fnfng = normaliseEnv env emptyGam (Ind ft)
 >     let fnf = normaliseEnv env gamma (Ind ft)
 >     (rv, rt) <-
 >       case (fnfng,fnf) of
 >        ((Ind (Bind _ (B Pi s) (Sc t))),_) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
->          let sty = (normaliseEnv env (Gam []) (Ind s))
+>          let sty = (normaliseEnv env emptyGam (Ind s))
 >          let tt = (Bind (MN ("x",0)) (B (Let av) at) (Sc t))
->          let tmty = (normaliseEnv env (Gam []) (Ind tt))
+>          let tmty = (normaliseEnv env emptyGam (Ind tt))
 >          checkConvSt env gamma (Ind at) (Ind s) $ "Type error in application of " ++ show fv ++ " : " ++ show a ++ " : " ++ show at ++ ", expected type "++show sty ++ " " ++ show tmty
 >          return (Ind (App fv av), tmty)
 >        (_, (Ind (Bind _ (B Pi s) (Sc t)))) -> do

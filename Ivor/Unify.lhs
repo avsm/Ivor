@@ -40,10 +40,10 @@ Unify on named terms, but normalise using de Bruijn indices.
 > unifyenvErr i gam env x y = {- trace (show (x,y) ++ "\n" ++
 >                                    show (p (normalise (gam' gam) x)) ++ "\n" ++
 >                                    show (p (normalise (gam' gam) x))) $-}
->     {-case unifynferr i env (p (normalise emptyGam x))
+>     case unifynferr i env (p (normalise emptyGam x))
 >                      (p (normalise emptyGam y)) of
 >           (Just x) -> return x
->           Nothing -> -} unifynferr i env (p (normalise (gam' gam) x))
+>           Nothing -> unifynferr i env (p (normalise (gam' gam) x))
 >                                       (p (normalise (gam' gam) y))
 >    where p (Ind t) = Ind (makePs t)
 >          gam' g = concatGam g (envToGamHACK env)

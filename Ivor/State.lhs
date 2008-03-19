@@ -34,10 +34,6 @@ compiled terms, etc.
 >            -- (with type)
 >            eliminators :: [(Name, (Indexed Name, 
 >                                    ([RawScheme], PMFun Name)))],
->            -- Supercombinators for each definition
->            runtt :: SCs,
->            -- Bytecode for each definitions
->            bcdefs :: ByteDef,
 >            -- List of holes to be solved in proof state
 >            holequeue :: ![Name],
 >            -- Premises we're not interested in, so don't show
@@ -54,7 +50,7 @@ compiled terms, etc.
 >            undoState :: !(Maybe IState)
 >        }
 
-> initstate = ISt (emptyGam) [] [] [] [] [] [] Nothing [] mknames "" Nothing
+> initstate = ISt (emptyGam) [] [] [] [] Nothing [] mknames "" Nothing
 >   where mknames = [MN ("myName",x) | x <- [1..]]
 
 > respond :: IState -> String -> IState
@@ -80,8 +76,6 @@ Take a data type definition and add constructors and elim rule to the context.
 > doData :: Monad m => Bool -> IState -> Name -> RawDatatype -> m IState
 > doData elim st n r = do
 >            let ctxt = defs st
->            let runtts = runtt st 
->            let bcs = bcdefs st
 >            dt <- if elim then checkType (defs st) r -- Make iota schemes
 >                          else checkTypeNoElim (defs st) r
 >            ctxt <- gInsert (fst (tycon dt)) (snd (tycon dt)) ctxt
@@ -91,10 +85,10 @@ Take a data type definition and add constructors and elim rule to the context.
 >              Just eischemes -> 
 >                  -- We've done elim rules
 >                do let (Just cischemes) = c_ischemes dt
->                   (ctxt, newruntts, newbc) <- 
->                       addElim ctxt runtts bcs (erule dt) eischemes
->                   (newdefs, newruntts, newbc) <-
->                       addElim ctxt newruntts newbc (crule dt) cischemes
+>                   ctxt <- 
+>                       addElim ctxt (erule dt) eischemes
+>                   newdefs <-
+>                       addElim ctxt (crule dt) cischemes
 >                   let newelims = (fst (erule dt), (snd (erule dt), 
 >                              (e_rawschemes dt, eischemes))):
 >                           (fst (crule dt), (snd (crule dt), 
@@ -102,8 +96,8 @@ Take a data type definition and add constructors and elim rule to the context.
 >                           eliminators st
 >                   let newdatadefs = (n,dt):(datadefs st)
 >                   return $ st { defs = newdefs, datadefs = newdatadefs,
->                                 eliminators = newelims,
->                                 bcdefs = newbc, runtt = newruntts }
+>                                 eliminators = newelims
+>                                 }
 >              Nothing -> -- no elim rules
 >                   return $ st { defs = ctxt, 
 >                                 datadefs = (n,dt):(datadefs st) }
@@ -111,11 +105,11 @@ Take a data type definition and add constructors and elim rule to the context.
 >          addCons ((n,gl):xs) ctxt = do
 >              ctxt <- addCons xs ctxt
 >              gInsert n gl ctxt
->          addElim ctxt runtts bcdefs erule schemes = do
+>          addElim ctxt erule schemes = do
 >            newdefs <- gInsert (fst erule) 
 >                               (G (PatternDef schemes) (snd erule) defplicit)
 >                               ctxt
->            return (newdefs, runtts, bcdefs)
+>            return newdefs
 
 > doMkData :: Monad m => Bool -> IState -> Datadecl -> m IState
 > doMkData elim st (Datadecl n ps rawty cs) 

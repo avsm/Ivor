@@ -165,7 +165,7 @@ Return a list of the functions we need to define to complete the definition.
 >    -- rename all the 'inferred' things to another generated name,
 >    -- so that they actually get properly checked on the rhs
 >    let realNames = mkNames next
->    e' <- fixupB gam realNames (renameBinders e)
+>    e' <- renameB gam realNames (renameBinders e)
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
 >    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
 >    -- Drop names out of e' that don't appear in v1'' as a result of the
@@ -234,7 +234,7 @@ Do the typechecking, then unify all the inferred terms.
 >     -- expected type
 >     (next, infer, bindings, errs, mvs) <- get
 >     tm <- fixup errs tm
->     bindings <- fixupB gamma errs bindings
+>     -- bindings <- fixupB gamma errs bindings
 >     put (next, infer, bindings, errs, mvs)
 >     return tm'
 
@@ -570,6 +570,16 @@ extended environment.
 >    bs' <- fixupB gam xs bs
 >    (Ind t', _) <- fixupGam gam xs (Ind t, Ind Star)
 >    return ((n,(B b t')):bs')
+
+> renameB gam xs [] = return []
+> renameB gam xs ((n, (B b t)):bs) = do
+>       bs' <- renameB gam xs bs
+>       let t' = renameGam xs t
+>       return ((n,(B b t')):bs')
+>    where renameGam [] tm = tm
+>          renameGam ((env,Ind (P x),Ind (P y),_):xs) tm =
+>              let tm' = fixupNames gam [(x, P y)] tm in
+>              renameGam xs tm' 
 
 > combinepats Nothing x = x
 > combinepats (Just (PVar n)) x = error "can't apply things to a variable"

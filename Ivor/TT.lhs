@@ -271,7 +271,6 @@
 >         (Ctxt tmpctxt) <- declare (Ctxt st) n ty
 >         let tmp = defs tmpctxt
 >         let ctxt = defs st
->         let runtts = runtt st
 >         term <- raw tm
 >         case (checkAndBind tmp [] term (Just inty)) of
 >              (Success (v,t@(Ind sc),_)) -> do
@@ -280,11 +279,7 @@
 >                       checkBound (getNames (Sc sc)) t
 >                       newdefs <- gInsert n (G (Fun [Recursive] v) t defplicit) ctxt
 >                               -- = Gam ((n,G (Fun [] v) t):ctxt)
->                       let scs = lift n (levelise (normalise (emptyGam) v))
->                       let bc = compileAll (runtts++scs) scs
->                       let newbc = bc++(bcdefs st)
->                       return $ Ctxt st { defs = newdefs, bcdefs = newbc,
->                                    runtt = (runtts++scs) })
+>                       return $ Ctxt st { defs = newdefs })
 >                     else (fail $ "The given type and inferred type do not match, inferred " ++ show t)
 >              (Failure err) -> fail err
 
@@ -295,17 +290,12 @@
 >         checkNotExists n (defs st)
 >         v <- raw tm
 >         let ctxt = defs st
->         let runtts = runtt st
 >         case (typecheck ctxt v) of
 >             (Success (v,t@(Ind sc))) -> do
 >                 checkBound (getNames (Sc sc)) t
 >                 newdefs <- gInsert n (G (Fun [] v) t defplicit) ctxt
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
->                 let scs = lift n (levelise (normalise (emptyGam) v))
->                 let bc = compileAll (runtts++scs) scs
->                 let newbc = bc++(bcdefs st)
->                 return $ Ctxt st { defs = newdefs, bcdefs = newbc,
->                                    runtt = (runtts++scs) }
+>                 return $ Ctxt st { defs = newdefs }
 >             (Failure err) -> fail err
 
 > checkBound :: Monad m => [Name] -> (Indexed Name) -> m ()
@@ -335,7 +325,6 @@ do let olddefs = defs st
 >                              "(P:*)(meth_general:(p:P)P)P"
 >          let tmp = defs tmpctxt
 >          let ctxt = defs st
->          let runtts = runtt st
 >          general <- raw $ "[P:*][meth_general:(p:P)P](meth_general (" ++ 
 >                            show n ++ " P meth_general))"
 >          case (typecheck tmp general) of
@@ -343,10 +332,7 @@ do let olddefs = defs st
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
 >                 newdefs <- gInsert n (G (Fun [] v) t defplicit) ctxt
 >                 let scs = lift n (levelise (normalise (emptyGam) v))
->                 let bc = compileAll (runtts++scs) scs
->                 let newbc = bc++(bcdefs st)
->                 return $ Ctxt st { defs = newdefs, bcdefs = newbc,
->                                    runtt = (runtts++scs) }
+>                 return $ Ctxt st { defs = newdefs }
 >              (Failure err) -> fail $ "Can't happen (general): "++err
 
 > -- | Add the heterogenous (\"John Major\") equality rule and its reduction
@@ -964,15 +950,9 @@ Tactics
 >                  qedLift (defs st) False prf
 >              let isrec = rec name
 >              let (Gam olddefs) = remove name (defs st)
->              let runtts = runtt st
->              let scs = lift name (levelise (normalise (emptyGam) ind))
->              let bc = compileAll (runtts++scs) scs
->              let newbc = bc++(bcdefs st)
 >              defs' <- gInsert name val (defs st)
 >              let newdefs = setRec name isrec defs'
 >              return $ Ctxt st { proofstate = Nothing, 
->                             bcdefs = newbc,
->                             runtt = runtts ++ scs,
 >                             defs = newdefs } -- Gam (newdef:olddefs) }
 >            Nothing -> fail "No proof in progress"
 >  where rec nm = case lookupval nm (defs st) of
@@ -1468,10 +1448,6 @@ FIXME: This function is horrible. Redo it at some point...
 >            -> String -- ^ root of filenames to generate
 >            -> IO ()
 > compile (Ctxt st) froot
->     = do let hd = mkHeaders (bcdefs st)
->          let ev = mkEval (bcdefs st)
->          let cd = mkCode (bcdefs st)
->          Compiler.compile st froot
->          -- writeFile (froot++".c") $ hd ++ ev ++ cd
+>     = fail "No compiler at the minute"
 
 

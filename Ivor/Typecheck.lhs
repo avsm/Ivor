@@ -105,21 +105,28 @@ constraints and applying it to the term and type.
 >           -- Unify twice; first time collect the substitutions, second
 >           -- time do them. Because we don't know what order we can solve
 >           -- constraints in and they might depend on each other...
->       do (subst, nms) <- mkSubst $ (map (\x -> (False,x)) constraints) ++
->                                    (map (\x -> (True,x)) (reverse constraints))
+>       do let cs = nub constraints
+>          (subst, nms) <- {-# SCC "name" #-}
+>                            mkSubst $ (map (\x -> (True,x)) (reverse cs))
+>                                    ++ (map (\x -> (False,x)) cs)
 >          let tm' = papp subst tm
 >          let ty' = papp subst ty
 >          return {- $ trace (show nms ++ "\n" ++ show (tm',ty')) -} (Ind tm',Ind ty')
 
->    where mkSubst [] = return (P, [])
->          mkSubst ((ok, (env,Ind x,Ind y,msg)):xs) 
->             = do (s',nms) <- mkSubst xs
+>    where mkSubst xs = mkSubst' (P,[]) xs
+>          mkSubst' acc [] = return acc
+>          mkSubst' acc (q:xs) 
+>             = do acc' <- mkSubstQ acc q
+>                  mkSubst' acc' xs
+>
+>          mkSubstQ (s',nms) (ok, (env,Ind x,Ind y,msg))
+>             = do -- (s',nms) <- mkSubst xs
 >                  let x' = papp s' x
 >                  let (Ind y') = normalise gam (Ind (papp s' y))
->                  uns <- case unifyenvErr ok gam env (Ind x') (Ind y') of
->                         Success x' -> return x'
-
->                         Failure err -> fail err
+>                  uns <- {-# SCC "substUnify" #-}
+>                         case unifyenvErr ok gam env (Ind x') (Ind y') of
+>                           Success x' -> return x'
+>                           Failure err -> fail err
 
                          Failure err -> fail $ err ++"\n" ++ show nms ++"\n" ++ show constraints -- $ -} ++ " Can't convert "++show x'++" and "++show y' ++ "\n" ++ show constraints ++ "\n" ++ show nms
 
@@ -167,18 +174,22 @@ Return a list of the functions we need to define to complete the definition.
 >    let realNames = mkNames next
 >    e' <- renameB gam realNames (renameBinders e)
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
->    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
+>    (v1''@(Ind vtm),t1'') <- {-# SCC "convert1" #-}doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
 >    -- Drop names out of e' that don't appear in v1'' as a result of the
 >    -- unification.
 >    let namesbound = getNames (Sc vtm)
 >    let ein = orderEnv (filter (\ (n, ty) -> n `elem` namesbound) e')
->    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam ein tm2 (Just t1')
->    (v2',t2') <- doConversion tm2 gam bs' v2 t2 -- (normalise gam t2) 
+>    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} {-# SCC "pairLvlCheck" #-} lvlcheck 0 inf next gam ein tm2 (Just t1')
+>    (v2',t2') <- {-# SCC "convert2" #-} doConversion tm2 gam bs' v2 t2 -- (normalise gam t2) 
 >    if (null metas) 
 >       then return (v1',t1',v2',t2',e'', [])
 >       else do let (Ind v2tt) = v2' 
 >               let (v2'', newdefs) = updateMetas v2tt
 >               return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, Ind y)) newdefs)
+
+               if (null newdefs) then 
+                  else trace (traceConstraints bs') $ return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, Ind y)) newdefs)
+
 >  where mkNames 0 = []
 >        mkNames n
 >           = ([],Ind (P (MN ("INFER",n-1))), 
@@ -205,6 +216,9 @@ bottleneck.
 >              | n2 `elem` (getNames (Sc t1)) = False
 >              | otherwise = True
 
+
+> traceConstraints [] = ""
+> traceConstraints ((_,x,y,_):xs) = show (x,y) ++ "\n" ++ traceConstraints xs
 
 > inferName n = (MN ("INFER", n))
 
@@ -245,7 +259,7 @@ Do the typechecking, then unify all the inferred terms.
 >     --   Just expt -> checkConvSt env gamma expt tmty "Type error"
 >     (next, infer, bindings, errs, mvs) <- get
 >     tm' <- fixup errs tm
->     bindings <- fixupB gamma errs bindings
+>     bindings <- (fixupB gamma errs) $! bindings
 >     put (next, infer, bindings, errs, mvs)
 >     return tm'
 
@@ -565,11 +579,17 @@ extended environment.
 > fixupNames gam [] tm = tm
 > fixupNames gam ((x,ty):xs) tm = fixupNames gam xs $ substName x ty (Sc tm)
 
-> fixupB gam xs [] = return []
-> fixupB gam xs ((n, (B b t)):bs) = do
->    bs' <- fixupB gam xs bs
->    (Ind t', _) <- fixupGam gam xs (Ind t, Ind Star)
->    return ((n,(B b t')):bs')
+> fixupB gam xs bs = fixupB' gam xs bs []
+
+> fixupB' gam xs [] acc = return acc
+> fixupB' gam xs ((n, (B b t)):bs) acc =
+>    -- if t is already fully explicit, don't bother
+>   if (allExplicit (getNames (Sc t))) then fixupB' gam xs bs ((n,(B b t)):acc)
+>       else do (Ind t', _) <- fixupGam gam xs (Ind t, Ind Star)
+>               fixupB' gam xs bs ((n,(B b t')):acc)
+>   where allExplicit [] = True
+>         allExplicit ((MN ("INFER",_)):_) = False
+>         allExplicit (_:xs) = allExplicit xs
 
 > renameB gam xs [] = return []
 > renameB gam xs ((n, (B b t)):bs) = do

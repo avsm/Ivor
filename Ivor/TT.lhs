@@ -26,6 +26,7 @@
 >               addEquality,forgetDef,addGenRec,addImplicit,
 >               -- * Pattern matching definitions
 >               PClause(..), Patterns(..),PattOpt(..),addPatternDef,
+>               toPattern,
 >               -- * Manipulating Proof State
 >               proving,numUnsolved,suspend,resume,
 >               save, restore, clearSaved,
@@ -223,6 +224,26 @@
 > mkRawClause :: PClause -> RawScheme
 > mkRawClause (PClause args ret) =
 >     RSch (map forget args) (forget ret)
+
+
+> -- ^ Convert a term to matchable pattern form; i.e. the only names allowed
+> -- are variables and constructors. Any arbitrary function application is
+> -- removed.
+
+> toPattern :: Context -> ViewTerm -> ViewTerm
+> toPattern (Ctxt ctxt) tm = toPat (defs ctxt) tm where
+>     toPat gam c@(Name _ n) | matchable gam n = c
+>                            | otherwise = Placeholder
+>     toPat gam (VTerm.App f a) = case toPat gam f of
+>                                   Placeholder -> Placeholder
+>                                   apptm -> VTerm.App f (toPat gam a)
+>     toPat gam _ = Placeholder
+>     matchable gam n
+>        = case lookupval n gam of
+>            Just (DCon _ _) -> True -- since it's a constructor
+>            Nothing -> True -- since it' a variable
+>            _ -> False
+>            
 
 > data PattOpt = Partial -- ^ No need to cover all cases
 >              | GenRec -- ^ No termination checking

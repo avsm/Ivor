@@ -34,7 +34,7 @@
 >               allSolved,qed,
 >               -- * Examining the Context
 >               eval, whnf, evalCtxt, getDef, defined, getPatternDef, 
->               getAllDefs, getConstructors,
+>               getAllTypes, getAllDefs, getAllPatternDefs, getConstructors,
 >               Rule(..), getElimRule,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
 >               -- * Goals, tactic types
@@ -796,10 +796,20 @@ Give a parseable but ugly representation of a term.
 >          viewPat _ = Placeholder
 
 > -- |Get all the names and types in the context
-> getAllDefs :: Context -> [(Name,Term)]
-> getAllDefs (Ctxt st) = let ds = getAList (defs st) in
->                            reverse (map info ds) -- input order!
+> getAllTypes :: Context -> [(Name,Term)]
+> getAllTypes (Ctxt st) = let ds = getAList (defs st) in
+>                             reverse (map info ds) -- input order!
 >    where info (n,G _ ty _) = (n, Term (ty, Ind TTCore.Star))
+
+> -- |Get all the pattern matching definitions in the context
+> getAllPatternDefs :: Context -> [(Name,Patterns)]
+> getAllPatternDefs ctxt 
+>        = let names = map fst (getAllTypes ctxt) in
+>              map (\ x -> (x, unJust (getPatternDef ctxt x))) names
+
+> getAllDefs :: Context -> [(Name, Term)]
+> getAllDefs ctxt = let names = map fst (getAllTypes ctxt) in
+>                       map (\ x -> (x, unJust (getDef ctxt x))) names
 
 > -- | Get the names of all of the constructors of an inductive family
 > getConstructors :: Monad m => Context -> Name -> m [Name]

@@ -176,7 +176,7 @@
 > runCommand (Focus n) st = do ctxt <- focus (goal n) (context st) 
 >                              return st { context = ctxt }
 > runCommand (Dump n) st = do 
->     let ds = getAllDefs (context st)
+>     let ds = getAllTypes (context st)
 >     return (respondLn st (dumpAll n ds))
 > runCommand (ReplData eq repl sym) st 
 >     = return st { repldata = Just (eq, repl, sym) }

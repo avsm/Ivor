@@ -81,3 +81,6 @@ in turn. If present, return the contents, otherwise fail
 >                         catch (do content <- readFile $ d ++ "/" ++ fn
 >                                   return content)
 >                               (\e -> ff' ds fn)
+
+> unJust :: Maybe a -> a
+> unJust (Just a) = a

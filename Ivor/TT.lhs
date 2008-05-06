@@ -346,7 +346,6 @@ do let olddefs = defs st
 >                              "(P:*)(meth_general:(p:P)P)P"
 >          let tmp = defs tmpctxt
 >          let ctxt = defs st
->          let runtts = runtt st
 >          general <- raw $ "[P:*][meth_general:(p:P)P](meth_general (" ++ 
 >                            show n ++ " P meth_general))"
 >          case (typecheck tmp general) of
@@ -894,7 +893,7 @@ Get the actions performed by the last tactic
 >               Nothing -> fail "No such goal"
 
 > getHoleTerm gam hs tm = (getctxt hs, 
->                          Term (normaliseEnv hs (Gam []) (binderType tm), 
+>                          Term (normaliseEnv hs (emptyGam) (binderType tm), 
 >                                Ind TTCore.Star))
 >    where getctxt [] = []
 >          getctxt ((n,B _ ty):xs) = (n,Term (Ind ty,Ind TTCore.Star)):
@@ -985,8 +984,6 @@ Tactics
 >              defs' <- gInsert name val (defs st)
 >              let newdefs = setRec name isrec defs'
 >              return $ Ctxt st { proofstate = Nothing, 
->                             bcdefs = newbc,
->                             runtt = runtts ++ scs,
 >                             defs = newdefs } -- Gam (newdef:olddefs) }
 >            Nothing -> fail "No proof in progress"
 >  where rec nm = case lookupval nm (defs st) of

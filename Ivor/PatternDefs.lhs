@@ -14,6 +14,9 @@
 
 Use the iota schemes from Datatype to represent pattern matching definitions.
 
+Return the definition and its type, as well as any other names which need
+to be defined to complete the definition.
+
 > checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> 
 >             Bool -> -- Check for coverage
 >             Bool -> -- Check for well-foundedness
@@ -178,6 +181,10 @@ names bound in patterns) then type check the right hand side.
 
 >   where mkRaw (RSch pats r) = mkapp (Var fn) pats
 >         getRet (RSch pats r) = r
+>         mytypechecks gam [] acc defs = return (reverse acc, defs)
+>         mytypechecks gam (c:cs) acc defs
+>             = do (cl, cr, newdefs) <- mytypecheck gam c
+>                  mytypechecks gam cs ((cl,cr):acc) (defs++newdefs)
 >         mytypecheck gam (clause, ret) = 
 >             do (tm@(Ind tmtt), pty,
 >                 rtm@(Ind rtmtt), rty, env, newdefs) <-

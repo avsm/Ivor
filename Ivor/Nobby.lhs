@@ -111,21 +111,19 @@ occurs anywhere in its arguments).
 > concatGam :: Ord n => Gamma n -> Gamma n -> Gamma n
 > concatGam (Gam x) (Gam y) = Gam (Map.union x y)
 
-> setFrozen :: Eq n => n -> Bool -> Gamma n -> Gamma n
-> setFrozen n freeze (Gam xs) = Gam $ sf xs where
->    sf [] = []
->    sf ((p,G (Fun opts v) ty plicit):xs) 
->        | n == p = (p,G (Fun (doFreeze freeze opts) v) ty plicit):xs
->    sf (x:xs) = x:(sf xs)
+> setFrozen :: (Ord n, Eq n) => n -> Bool -> Gamma n -> Gamma n
+> setFrozen n freeze (Gam xs) = Gam $ Map.mapWithKey sf xs where
+>    sf p (G (Fun opts v) ty plicit)
+>        | n == p = (G (Fun (doFreeze freeze opts) v) ty plicit)
+>    sf _ x = x
 >    doFreeze True opts = nub (Frozen:opts)
 >    doFreeze False opts = opts \\ [Frozen]
 
-> setRec :: Eq n => n -> Bool -> Gamma n -> Gamma n
-> setRec n frec (Gam xs) = Gam $ sf xs where
->    sf [] = []
->    sf ((p,G (Fun opts v) ty plicit):xs) 
->        | n == p = (p,G (Fun (doFrec frec opts) v) ty plicit):xs
->    sf (x:xs) = x:(sf xs)
+> setRec :: (Ord n, Eq n) => n -> Bool -> Gamma n -> Gamma n
+> setRec n frec (Gam xs) = Gam $ Map.mapWithKey sf xs where
+>    sf p (G (Fun opts v) ty plicit)
+>        | n == p = (G (Fun (doFrec frec opts) v) ty plicit)
+>    sf _ x = x
 >    doFrec True opts = nub (Recursive:opts)
 >    doFrec False opts = opts \\ [Recursive]
 
@@ -150,13 +148,11 @@ the name is replaced.
 >            n -> Gval n -> Gamma n -> m (Gamma n)
 > gInsert nm val (Gam xs) = case Map.lookup nm xs of
 >         -- FIXME: Check ty against val
->         ins n val (d@(p,G Undefined ty _):xs) acc
->             | n == p = return $ (n,val):(reverse acc) ++ xs
->         ins n val (d@(p,G (TCon _ NoConstructorsYet) ty _):xs) acc
->             | n == p = return $ (n,val):(reverse acc) ++ xs
->         ins n val (d@(p,_):xs) acc 
->             | n == p = fail $ "Name " ++ show p ++ " is already defined"
->             | otherwise = ins n val xs (d:acc)
+>       Nothing -> return $ Gam (Map.insert nm val xs)
+>       Just (G Undefined ty _) -> return $ Gam (Map.insert nm val xs)
+>       Just (G (TCon _ NoConstructorsYet) ty _) -> 
+>                                  return $ Gam (Map.insert nm val xs)
+>       Just _ -> fail $ "Name " ++ show nm ++ " is already defined"
 
 An ElimRule is a Haskell implementation of the iota reductions of
 a family.

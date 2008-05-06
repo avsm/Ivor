@@ -10,7 +10,7 @@ CABALOPTS = -O
 
 package:
 	echo "module Ivor.Prefix where prefix = \"$(PREFIX)\"" > Ivor/Prefix.hs
-	runhaskell Setup.lhs configure $(DB) --ghc --prefix=$(PREFIX) $(PROFILE)
+	runhaskell Setup.lhs configure $(DB) $(CABALOPTS) --ghc --prefix=$(PREFIX) $(PROFILE)
 	runhaskell Setup.lhs build
 
 install: .PHONY

@@ -410,7 +410,7 @@ Normalise the goal, only expanding the given global name.
 >           Nothing -> fail $ "Unknown name " ++ show fn
 >           Just (v,t) -> do
 >              let (Ind nty) = normaliseEnv (ptovenv env) 
->                                           (Gam [(fn,G v t defplicit)]) 
+>                                           (extend emptyGam (fn, (G v t defplicit)))
 >                                           (finalise (Ind ty))
 >              tacret $ Ind (Bind x (B Hole nty) sc)
 > reduceWith _ _ _ (Ind (Bind x _ _)) = fail $ "reduceWith: " ++ show x ++ " Not a hole"

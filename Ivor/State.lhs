@@ -75,19 +75,21 @@ Take a data type definition and add constructors and elim rule to the context.
 > doData :: Monad m => Bool -> IState -> Name -> RawDatatype -> m IState
 > doData elim st n r = do
 >            let ctxt = defs st
->            let runtts = runtt st 
->            let bcs = bcdefs st
 >            dt <- if elim then checkType (defs st) r -- Make iota schemes
 >                          else checkTypeNoElim (defs st) r
 >            ctxt <- gInsert (fst (tycon dt)) (snd (tycon dt)) ctxt
 >                        -- let ctxt' = (tycon dt):ctxt
 >            ctxt <- addCons (datacons dt) ctxt
->            (ctxt, newruntts, newbc) <- 
->                addElim ctxt runtts bcs (erule dt) (e_ischemes dt)
->            (newdefs, newruntts, newbc) <-
->                addElim ctxt newruntts newbc (crule dt) (c_ischemes dt)
->            let newelims = (fst (erule dt), (snd (erule dt), 
->                              (e_rawschemes dt, e_ischemes dt))):
+>            case e_ischemes dt of
+>              Just eischemes -> 
+>                  -- We've done elim rules
+>                do let (Just cischemes) = c_ischemes dt
+>                   ctxt <- 
+>                       addElim ctxt (erule dt) eischemes
+>                   newdefs <-
+>                       addElim ctxt (crule dt) cischemes
+>                   let newelims = (fst (erule dt), (snd (erule dt), 
+>                              (e_rawschemes dt, eischemes))):
 >                           (fst (crule dt), (snd (crule dt),
 >                              (c_rawschemes dt, cischemes))):
 >                           eliminators st
@@ -108,8 +110,8 @@ Take a data type definition and add constructors and elim rule to the context.
 >                               ctxt
 >            return newdefs
 
-> doMkData :: Monad m => IState -> Datadecl -> m IState
-> doMkData st (Datadecl n ps rawty cs) 
+> doMkData :: Monad m => Bool -> IState -> Datadecl -> m IState
+> doMkData elim st (Datadecl n ps rawty cs) 
 >     = do (gty,_) <- checkIndices (defs st) ps [] rawty
 >          let ty = forget (normalise (defs st) gty)
 >          -- TMP HACK: Do it twice, to fill in _ placeholders.

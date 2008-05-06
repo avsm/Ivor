@@ -1,16 +1,16 @@
 Name:		ivor
-Version:	0.1.5
+Version:	0.1.6
 Author:		Edwin Brady
 License:	BSD3
 License-file:	LICENSE
 Author:		Edwin Brady
 Maintainer:	Edwin Brady <eb@dcs.st-and.ac.uk>
 Homepage:	http://www.dcs.st-and.ac.uk/~eb/Ivor/
-
 Stability:      experimental
-Build-depends:	base, haskell98, parsec, mtl, plugins
+Build-depends:	base, haskell98, parsec, mtl, directory, containers
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,
 		ExistentialQuantification, OverlappingInstances
+Category:       Theorem provers
 Synopsis:       Theorem proving library based on dependent type theory
 Description:    Ivor is a type theory based theorem prover, with a
                 Haskell API, designed for easy extending and embedding
@@ -58,7 +58,7 @@ Extra-source-files: emacs/ivor-mode.el, examplett/staged.tt, examplett/test.c, e
 
 
 
-Build-depends:  base, parsec, mtl, plugins, directory
+Build-depends:  base, parsec, mtl, directory
 Build-type:     Simple
 
 Extensions:     MultiParamTypeClasses, FunctionalDependencies,
@@ -77,5 +77,4 @@ Other-modules:	Ivor.Nobby, Ivor.TTCore, Ivor.State,
 		Ivor.ICompile, Ivor.MakeData, Ivor.Unify,
 		Ivor.Grouper, Ivor.ShellParser, Ivor.Constant,
 		Ivor.RunTT, Ivor.Compiler, Ivor.Prefix,
-		Ivor.PatternDefs,  Ivor.ShellState
-
+		Ivor.PatternDefs,  Ivor.ShellState, Ivor.Scopecheck

@@ -786,7 +786,7 @@ Give a parseable but ugly representation of a term.
 >     = case glookup n (defs st) of
 >           Just ((PatternDef pmf),ty) ->
 >               return $ Patterns (map mkPat (getPats pmf))
->           Nothing -> fail "Not a pattern matching definition"
+>           _ -> fail "Not a pattern matching definition"
 >    where getPats (PMFun _ ps) = ps
 >          mkPat (Sch ps ret) = PClause (map viewPat ps) (view (Term (ret, (Ind TTCore.Star))))
 >
@@ -804,8 +804,11 @@ Give a parseable but ugly representation of a term.
 > -- |Get all the pattern matching definitions in the context
 > getAllPatternDefs :: Context -> [(Name,Patterns)]
 > getAllPatternDefs ctxt 
->        = let names = map fst (getAllTypes ctxt) in
->              map (\ x -> (x, unJust (getPatternDef ctxt x))) names
+>        = getPD (map fst (getAllTypes ctxt))
+>   where getPD [] = []
+>         getPD (x:xs) = case (getPatternDef ctxt x) of
+>                          Just d -> (x,d):(getPD xs)
+>                          _ -> getPD xs
 
 > getAllDefs :: Context -> [(Name, Term)]
 > getAllDefs ctxt = let names = map fst (getAllTypes ctxt) in

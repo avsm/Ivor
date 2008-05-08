@@ -150,7 +150,7 @@
 >     case (getDef (context st) (name n)) of
 >       Just tm -> return (respondLn st (show (view tm)))
 >       _ -> case (getPatternDef (context st) (name n)) of
->             Just pats -> return (respondLn st (printPats pats))
+>             Just (_,pats) -> return (respondLn st (printPats pats))
 >             _ -> do tm <- check (context st) n
 >                     case view tm of
 >                         (Name TypeCon _) -> return (respondLn st "Type constructor")

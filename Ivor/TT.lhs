@@ -780,12 +780,14 @@ Give a parseable but ugly representation of a term.
 >                          Just _ -> True
 >                          _ -> False
 
-> -- |Lookup a pattern matching definition in the context.
-> getPatternDef :: Monad m => Context -> Name -> m Patterns
+> -- |Lookup a pattern matching definition in the context. Return the
+> -- type and the pattern definition.
+> getPatternDef :: Monad m => Context -> Name -> m (ViewTerm, Patterns)
 > getPatternDef (Ctxt st) n
 >     = case glookup n (defs st) of
 >           Just ((PatternDef pmf),ty) ->
->               return $ Patterns (map mkPat (getPats pmf))
+>               return $ (view (Term (ty, Ind TTCore.Star)), 
+>                         Patterns (map mkPat (getPats pmf)))
 >           _ -> fail "Not a pattern matching definition"
 >    where getPats (PMFun _ ps) = ps
 >          mkPat (Sch ps ret) = PClause (map viewPat ps) (view (Term (ret, (Ind TTCore.Star))))
@@ -802,7 +804,7 @@ Give a parseable but ugly representation of a term.
 >    where info (n,G _ ty _) = (n, Term (ty, Ind TTCore.Star))
 
 > -- |Get all the pattern matching definitions in the context
-> getAllPatternDefs :: Context -> [(Name,Patterns)]
+> getAllPatternDefs :: Context -> [(Name,(ViewTerm, Patterns))]
 > getAllPatternDefs ctxt 
 >        = getPD (map fst (getAllTypes ctxt))
 >   where getPD [] = []
@@ -814,14 +816,14 @@ Give a parseable but ugly representation of a term.
 > getAllDefs ctxt = let names = map fst (getAllTypes ctxt) in
 >                       map (\ x -> (x, unJust (getDef ctxt x))) names
 
-> -- | Get the names of all of the constructors of an inductive family
+> -- |Get the names of all of the constructors of an inductive family
 > getConstructors :: Monad m => Context -> Name -> m [Name]
 > getConstructors (Ctxt st) n
 >      = case glookup n (defs st) of
 >           Just ((TCon _ (Elims _ _ cs)),ty) -> return cs
 >           _ -> fail "Not a type constructor"
 
-> -- | Find out what type of variable the given name is
+> -- |Find out what type of variable the given name is
 > nameType :: Monad m => Context -> Name -> m NameType
 > nameType (Ctxt st) n 
 >     = case glookup n (defs st) of

@@ -145,10 +145,20 @@ This keeps both namespaces separate.
 
 Data declarations and pattern matching
 
-> data RawScheme = RSch [Raw] Raw
+ data RawWith = RWith [Raw] 
+              | RWPatt [Raw]
+              | RWNone
+   deriving Show
+
+ data With = With [Indexed n]
+           | WPatt [Pattern n]
+           | WNone
+   deriving Show
+
+> data RawScheme = RSch [Raw] {- RawWith -} Raw
 >   deriving Show
 
-> data Scheme n = Sch [Pattern n] (Indexed n)
+> data Scheme n = Sch [Pattern n] {- With -} (Indexed n)
 >         deriving Show
 
 > type PMRaw = RawScheme

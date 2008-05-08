@@ -17,12 +17,12 @@
 >                        -- * Terms
 >                        Term(..), ViewTerm(..), apply,
 >                        view, viewType, ViewConst, typeof, 
->                        freeIn, namesIn, occursIn, getApp,
+>                        freeIn, namesIn, occursIn, subst, getApp,
 >                        -- * Inductive types
 >                        Inductive(..)) 
 >    where
 
-> import Ivor.TTCore as TTCore
+> import Ivor.TTCore as TTCore hiding (subst)
 > import Ivor.Gadgets
 > import Ivor.State
 > import Ivor.Typecheck
@@ -256,3 +256,36 @@
 > getApp :: ViewTerm -> ViewTerm
 > getApp (Ivor.ViewTerm.App f a) = getApp f
 > getApp x = x
+
+> -- |Substitute a name n with a value v in a term f 
+> -- (ie implement f[v/n]
+> subst :: Name -> ViewTerm -> ViewTerm -> ViewTerm
+> subst n v nm@(Name _ p) | p == n = v
+>                         | otherwise = nm
+> subst n v (Ivor.ViewTerm.App f a) 
+>    = Ivor.ViewTerm.App (subst n v f) (subst n v a)
+> subst n v (Ivor.ViewTerm.Lambda nn ty sc) 
+>    = Ivor.ViewTerm.Lambda nn (subst n v ty) $
+>         if (n==nn) then sc else subst n v sc
+> subst n v (Forall nn ty sc) 
+>    = Forall nn (subst n v ty) $
+>         if (n==nn) then sc else subst n v sc
+> subst n v (Ivor.ViewTerm.Let nn ty vv sc) 
+>    = Ivor.ViewTerm.Let nn (subst n v ty) (subst n v vv) $
+>         if (n==nn) then sc else subst n v sc
+> subst n v (Ivor.ViewTerm.Label fn args ty)
+>    = Ivor.ViewTerm.Label fn (map (subst n v) args) (subst n v ty)
+> subst n v (Ivor.ViewTerm.Call fn args ty)
+>    = Ivor.ViewTerm.Call fn (map (subst n v) args) (subst n v ty)
+> subst n v (Ivor.ViewTerm.Return r) 
+>           = Ivor.ViewTerm.Return (subst n v r)
+> subst n v (Ivor.ViewTerm.Quote r) 
+>           = Ivor.ViewTerm.Quote (subst n v r)
+> subst n v (Ivor.ViewTerm.Code r) 
+>           = Ivor.ViewTerm.Code (subst n v r)
+> subst n v (Ivor.ViewTerm.Eval r) 
+>           = Ivor.ViewTerm.Eval (subst n v r)
+> subst n v (Ivor.ViewTerm.Escape r) 
+>           = Ivor.ViewTerm.Escape (subst n v r)
+> subst n v t = t
+

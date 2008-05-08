@@ -35,7 +35,7 @@
 >               -- * Examining the Context
 >               eval, whnf, evalCtxt, getDef, defined, getPatternDef,
 >               getAllTypes, getAllDefs, getAllPatternDefs, getConstructors,
->               Rule(..), getElimRule, nameType,
+>               Rule(..), getElimRule, nameType, getConstructorTag,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
 >               -- * Goals, tactic types
 >               Goal,goal,defaultGoal,
@@ -830,6 +830,13 @@ Give a parseable but ugly representation of a term.
 >         Just _ -> return Bound -- any function
 >         Nothing -> fail "No such name"
 
+> -- | Get an integer tag for a constructor. Each constructor has a tag
+> -- unique within the data type, which could be used by a compiler.
+> getConstructorTag :: Monad m => Context -> Name -> m Int
+> getConstructorTag (Ctxt st) n
+>    = case glookup n (defs st) of
+>        Just ((DCon tag _), _) -> return tag
+>        _ -> fail "Not a constructor"
 
 Examine pattern matching elimination rules
 

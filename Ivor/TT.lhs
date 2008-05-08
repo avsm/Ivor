@@ -35,7 +35,7 @@
 >               -- * Examining the Context
 >               eval, whnf, evalCtxt, getDef, defined, getPatternDef,
 >               getAllTypes, getAllDefs, getAllPatternDefs, getConstructors,
->               Rule(..), getElimRule,
+>               Rule(..), getElimRule, nameType,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
 >               -- * Goals, tactic types
 >               Goal,goal,defaultGoal,
@@ -820,6 +820,16 @@ Give a parseable but ugly representation of a term.
 >      = case glookup n (defs st) of
 >           Just ((TCon _ (Elims _ _ cs)),ty) -> return cs
 >           _ -> fail "Not a type constructor"
+
+> -- | Find out what type of variable the given name is
+> nameType :: Monad m => Context -> Name -> m NameType
+> nameType (Ctxt st) n 
+>     = case glookup n (defs st) of
+>         Just ((DCon _ _), _) -> return DataCon
+>         Just ((TCon _ _), _) -> return TypeCon
+>         Just _ -> return Bound -- any function
+>         Nothing -> fail "No such name"
+
 
 Examine pattern matching elimination rules
 

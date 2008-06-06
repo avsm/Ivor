@@ -107,7 +107,7 @@ constraints and applying it to the term and type.
 >           -- constraints in and they might depend on each other...
 >       do let cs = nub constraints
 >          (subst, nms) <- {-# SCC "name" #-}
->                            mkSubst $ (map (\x -> (True,x)) cs)
+>                          mkSubst $ (map (\x -> (True,x)) cs)
 >                                    ++ (map (\x -> (False,x)) (reverse cs))
 >          let tm' = papp subst tm
 >          let ty' = papp subst ty
@@ -185,7 +185,7 @@ Return a list of the functions we need to define to complete the definition.
 >       then return (v1',t1',v2',t2',e'', [])
 >       else do let (Ind v2tt) = v2' 
 >               let (v2'', newdefs) = updateMetas v2tt
->               return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, Ind y)) newdefs)
+>               return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, (normalise gam (Ind y)))) newdefs)
 
                if (null newdefs) then 
                   else trace (traceConstraints bs') $ return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, Ind y)) newdefs)

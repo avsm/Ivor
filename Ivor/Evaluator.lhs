@@ -1,11 +1,12 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
-> module Ivor.Evaluator(eval_whnf) where
+> module Ivor.Evaluator(eval_whnf, eval_nf) where
 
 > import Ivor.TTCore
 > import Ivor.Gadgets
 > import Ivor.Constant
 > import Ivor.Nobby
+> import Ivor.Typecheck
 
 > import Debug.Trace
 > import Data.Typeable
@@ -17,6 +18,10 @@
 > eval_whnf :: Gamma Name -> Indexed Name -> Indexed Name
 > eval_whnf gam (Ind tm) = let res = makePs (evaluate False gam tm)
 >                              in finalise (Ind res)
+
+> eval_nf :: Gamma Name -> Indexed Name -> Indexed Name
+> eval_nf gam (Ind tm) = let res = makePs (evaluate True gam tm)
+>                            in finalise (Ind res)
 
 > type Stack = [TT Name]
 > type SEnv = [(Name, TT Name, TT Name)]
@@ -71,9 +76,11 @@ Code			Stack	Env	Result
 
 >     evalScope n ty sc (x:xs) env pats = eval sc xs ((n,ty,x):env) pats
 >     evalScope n ty sc [] env pats
->               | open = error "Normalising not implemented"
->               | otherwise 
->                   = buildenv env $ unload (Bind n (B Lambda ty) (Sc sc)) [] pats env -- in Whnf
+>       | open = let newsc = pToV n (eval sc [] ((n,ty,P n):env) pats) in
+>                    buildenv env $ unload (Bind n (B Lambda ty) newsc)
+>                                          [] pats env
+>       | otherwise 
+>          = buildenv env $ unload (Bind n (B Lambda ty) (Sc sc)) [] pats env -- in Whnf
 >     unload x [] pats env 
 >                = foldl (\tm (n,val) -> substName n val (Sc tm)) x pats
 >     unload x (a:as) pats env = unload (App x a) as pats env

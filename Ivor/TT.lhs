@@ -33,7 +33,7 @@
 >               proofterm, getGoals, getGoal, uniqueName, -- getActions
 >               allSolved,qed,
 >               -- * Examining the Context
->               eval, whnf, evalCtxt, getDef, defined, getPatternDef,
+>               eval, whnf, evalnew, evalCtxt, getDef, defined, getPatternDef,
 >               getAllTypes, getAllDefs, getAllPatternDefs, getConstructors,
 >               Rule(..), getElimRule, nameType, getConstructorTag,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
@@ -698,7 +698,7 @@ Give a parseable but ugly representation of a term.
                            return $ Term (tm, ty)
          Failure err -> fail err
 
-> -- |Normalise a term and its type
+> -- |Normalise a term and its type (using old evaluator_
 > eval :: Context -> Term -> Term
 > eval (Ctxt st) (Term (tm,ty)) = Term (normalise (defs st) tm,
 >                                       normalise (defs st) ty)
@@ -707,6 +707,11 @@ Give a parseable but ugly representation of a term.
 > whnf :: Context -> Term -> Term
 > whnf (Ctxt st) (Term (tm,ty)) = Term (eval_whnf (defs st) tm,
 >                                          eval_whnf (defs st) ty)
+
+> -- |Reduce a term and its type to Normal Form (using new evaluator)
+> evalnew :: Context -> Term -> Term
+> evalnew (Ctxt st) (Term (tm,ty)) = Term (eval_nf (defs st) tm,
+>                                          eval_nf (defs st) ty)
 
 > -- |Check a term in the context of the given goal
 > checkCtxt :: (IsTerm a, Monad m) => Context -> Goal -> a -> m Term

@@ -17,7 +17,7 @@
 >                        -- * Terms
 >                        Term(..), ViewTerm(..), apply,
 >                        view, viewType, ViewConst, typeof, 
->                        freeIn, namesIn, occursIn, subst, getApp,
+>                        freeIn, namesIn, occursIn, subst, getApp, dbgshow,
 >                        -- * Inductive types
 >                        Inductive(..)) 
 >    where
@@ -256,6 +256,9 @@
 > getApp :: ViewTerm -> ViewTerm
 > getApp (Ivor.ViewTerm.App f a) = getApp f
 > getApp x = x
+
+> dbgshow (UN n) = "UN " ++ show n
+> dbgshow (MN (n,i)) = "MN [" ++ show n ++ "," ++ show i ++ "]"
 
 > -- |Substitute a name n with a value v in a term f 
 > -- (ie implement f[v/n]

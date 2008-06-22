@@ -36,6 +36,7 @@
 >               eval, whnf, evalnew, evalCtxt, getDef, defined, getPatternDef,
 >               getAllTypes, getAllDefs, getAllPatternDefs, getConstructors,
 >               Rule(..), getElimRule, nameType, getConstructorTag,
+>               getConstructorArity,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
 >               -- * Goals, tactic types
 >               Goal,goal,defaultGoal,
@@ -797,7 +798,7 @@ Give a parseable but ugly representation of a term.
 >    where getPats (PMFun _ ps) = ps
 >          mkPat (Sch ps ret) = PClause (map viewPat ps) (view (Term (ret, (Ind TTCore.Star))))
 >
->          viewPat (PVar n) = Name Bound (name (show n))
+>          viewPat (PVar n) = Name Bound n --(name (show n))
 >          viewPat (PCon t n ty ts) = VTerm.apply (Name Bound (name (show n))) (map viewPat ts)
 >          viewPat (PConst c) = Constant c
 >          viewPat _ = Placeholder
@@ -843,6 +844,13 @@ Give a parseable but ugly representation of a term.
 > getConstructorTag (Ctxt st) n
 >    = case glookup n (defs st) of
 >        Just ((DCon tag _), _) -> return tag
+>        _ -> fail "Not a constructor"
+
+> -- | Get the arity of the given constructor.
+> getConstructorArity :: Monad m => Context -> Name -> m Int
+> getConstructorArity (Ctxt st) n
+>    = case glookup n (defs st) of
+>        Just ((DCon _ _), Ind ty) -> return (length (getExpected ty))
 >        _ -> fail "Not a constructor"
 
 Examine pattern matching elimination rules

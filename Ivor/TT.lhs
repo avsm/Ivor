@@ -794,10 +794,13 @@ Give a parseable but ugly representation of a term.
 >           Just ((PatternDef pmf),ty) ->
 >               return $ (view (Term (ty, Ind TTCore.Star)), 
 >                         Patterns (map mkPat (getPats pmf)))
+>           Just ((Fun _ ind), ty) ->
+>               return $ (view (Term (ty, Ind TTCore.Star)),
+>                         Patterns [mkCAFpat ind])
 >           _ -> fail "Not a pattern matching definition"
 >    where getPats (PMFun _ ps) = ps
 >          mkPat (Sch ps ret) = PClause (map viewPat ps) (view (Term (ret, (Ind TTCore.Star))))
->
+>          mkCAFpat tm = PClause [] (view (Term (tm, (Ind TTCore.Star))))
 >          viewPat (PVar n) = Name Bound n --(name (show n))
 >          viewPat (PCon t n ty ts) = VTerm.apply (Name Bound (name (show n))) (map viewPat ts)
 >          viewPat (PConst c) = Constant c
@@ -809,7 +812,8 @@ Give a parseable but ugly representation of a term.
 >                             reverse (map info ds) -- input order!
 >    where info (n,G _ ty _) = (n, Term (ty, Ind TTCore.Star))
 
-> -- |Get all the pattern matching definitions in the context
+> -- |Get all the pattern matching definitions in the context.
+> -- Also returns CAFs (i.e. 0 argument functions)
 > getAllPatternDefs :: Context -> [(Name,(ViewTerm, Patterns))]
 > getAllPatternDefs ctxt 
 >        = getPD (map fst (getAllTypes ctxt))

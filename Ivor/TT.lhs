@@ -651,6 +651,9 @@ intuitive)
 >         Just (Unreducible,ty) ->
 >             do let st' = st { defs = remove n (defs st) }
 >                theorem (Ctxt st') n (Term (ty, Ind TTCore.Star))
+>         Just (Undefined,ty) ->
+>             do let st' = st { defs = remove n (defs st) }
+>                theorem (Ctxt st') n (Term (ty, Ind TTCore.Star))
 >         _ -> fail "No such suspended proof"
 
 > -- | Freeze a name (i.e., set it so that it does not reduce)

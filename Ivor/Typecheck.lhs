@@ -406,11 +406,12 @@ the expected type.
 >              abstractOver ns mv (Bind n (B Pi t) (Sc exp)) ((P n):args)
 
 >  tc env lvl (RMeta n) Nothing 
->         -- we can guess that it's a function type, a->b, but no more 
+>         -- just invent a name for it and see what inference gives us
 >     = do (next, infer, bindings, errs, mvs) <- get
->          put (next, infer, bindings, errs, mvs)
->          let guessty = Bind (MN ("X", 0)) (B Pi (P (inferName next)))
->                           (Sc (P (inferName (next+1))))
+>          put (next+1, infer, bindings, errs, mvs)
+>          -- let guessty = Bind (MN ("X", 0)) (B Pi (P (inferName next)))
+>          --                 (Sc (P (inferName (next+1))))
+>          let guessty = (P (inferName next))
 >          tc env lvl (RMeta n) (Just (Ind guessty))
 
 fail $ "Don't know the expected type of " ++ show n

@@ -525,6 +525,22 @@ Rename a binder
 > rename _ _ _ (Ind (Bind x _ _)) = fail $ "rename: " ++ show x ++ " Not a hole"
 > rename _ _ _ _ = fail "rename: Not a binder, can't happen"
 
+Make sure the binder has a user accessible name
+
+> rename_user :: Tactic
+> rename_user gam env (Ind (Bind x (B Hole rnin) sc))
+>       -- better make sure we haven't used it already
+>     = do renamed <- doRename rnin
+>          tacret $ Ind (Bind x (B Hole renamed) sc)
+>   where doRename (Bind x b sc)
+>             = do let n = uniqify (sensible x) (map fst env)
+>                  return (Bind n b (Sc (substName x (P n) sc)))
+>         doRename _ = fail "Nothing to rename"
+>         sensible n@(MN _) = UN "X"
+>         sensible x = x
+> rename_user _ _ (Ind (Bind x _ _)) = fail $ "rename: " ++ show x ++ " Not a hole"
+> rename_user _ _ _ = fail "rename: Not a binder, can't happen"
+
 Introduce a lambda or let
 
 > intro :: Tactic
@@ -532,10 +548,13 @@ Introduce a lambda or let
 >     | p == (P x) =
 >         do let (Ind ty) = normaliseEnv (ptovenv env) (emptyGam) (finalise (Ind tyin))
 >            let ty' = makePsEnv (map fst env) ty
->            introsty (uniqify x (map fst env)) ty' (Sc p)
+>            introsty (uniqify (sensible x) (map fst env)) ty' (Sc p)
 >     | otherwise =
 >            fail $ "Not an introduceable hole. Attack it first."
 > intro _ _ _ = fail $ "Can't introduce here."
+
+> sensible (MN _) = (UN "X") -- don't use machine names
+> sensible x = x
 
 > introsty x (Bind y (B Pi s) (Sc t)) xscope =
 >     tacret $ Ind (Bind y (B Lambda s) (Sc (Bind x (B Hole t) xscope)))

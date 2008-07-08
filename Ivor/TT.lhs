@@ -1300,7 +1300,7 @@ FIXME: Choose a sensible name here
 
 > -- | Introduce an assumption (i.e. a lambda binding)
 > intro :: Tactic
-> intro = runTac (Tactics.intro)
+> intro = (runTac Tactics.rename_user) >-> (runTac (Tactics.intro))
 
 > -- | Introduce an assumption (i.e. a lambda binding)
 > introName :: Name -- ^ Name for the assumption

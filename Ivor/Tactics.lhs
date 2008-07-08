@@ -515,7 +515,9 @@ Rename a binder
 
 > rename :: Name -> Tactic
 > rename n gam env (Ind (Bind x (B Hole rnin) sc))
->     = do renamed <- doRename n rnin
+>       -- better make sure we haven't used it already
+>     = do let n' = uniqify n (map fst env)
+>          renamed <- doRename n' rnin
 >          tacret $ Ind (Bind x (B Hole renamed) sc)
 >   where doRename n (Bind x b sc)
 >             = return (Bind n b (Sc (substName x (P n) sc)))

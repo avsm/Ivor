@@ -205,16 +205,27 @@ ordinary sort will do all the comparisons we need. Still, it's O(n^3) but
 n is unlikely ever to be very big. Let's rethink this if it proves a 
 bottleneck.
 
->        orderEnv [] = []
->        orderEnv (x:xs) = insertEnv x (orderEnv xs)
->        insertEnv x [] = [x]
->        insertEnv x (y:ys) = if (all (\e -> envLT x e) (y:ys))
->                                then y:(insertEnv x ys)
->                                else x:y:ys
->                              
->        envLT (n1,B _ t1) (n2,B _ t2)
->              | n2 `elem` (getNames (Sc t1)) = False
->              | otherwise = True
+> orderEnv [] = []
+> orderEnv (x:xs) = insertEnv x (orderEnv xs)
+> insertEnv x [] = [x]
+
+Insert here if the name at x does not appear later in any type.
+
+> insertEnv x (y:ys) = if (appearsIn x (y:ys))
+>                         then y:(insertEnv x ys)
+>                         else x:y:ys
+
+if (all (\e -> envLT x e) (y:ys))
+                            then y:(insertEnv x ys)
+                            else x:y:ys
+
+>    where                             
+>       appearsIn (n,_) env = any (n_in n) env
+>       n_in n (n2, B _ t) = n `elem` (getNames (Sc t))
+
+     envLT (n1,B _ t1) (n2,B _ t2)
+              | n2 `elem` (getNames (Sc t1)) = False
+              | otherwise = True -- not (n1 `elem` (getNames (Sc t2))) 
 
 
 > traceConstraints [] = ""
@@ -397,7 +408,7 @@ the expected type.
 >          put (next, infer, bindings, errs, n:mvs)
 >          -- Abstract it over the environment so that we have everything
 >          -- in scope we need.
->          tm <- abstractOver env n exp []
+>          tm <- abstractOver (orderEnv env) n exp []
 >          return (tm,Ind exp)
 > --              fail $ show (n, exp, bindings, env) ++ " -- Not implemented"
 >    where abstractOver [] mv exp args =

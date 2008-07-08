@@ -35,6 +35,7 @@
 >               -- * Examining the Context
 >               eval, whnf, evalnew, evalCtxt, getDef, defined, getPatternDef,
 >               getAllTypes, getAllDefs, getAllPatternDefs, getConstructors,
+>               getInductive, getType,
 >               Rule(..), getElimRule, nameType, getConstructorTag,
 >               getConstructorArity,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
@@ -783,11 +784,35 @@ Give a parseable but ugly representation of a term.
 >                         Just ((Fun _ tm),ty) -> return $ Term (tm,ty)
 >                         _ -> fail "Not a function name"
 
+> -- |Get the type of a definition in the context.
+> getType :: Monad m => Context -> Name -> m Term
+> getType (Ctxt st) n = case glookup n (defs st) of
+>                         Just (_,ty) -> return $ Term (ty,Ind TTCore.Star)
+>                         _ -> fail "Not a defined name"
+
 > -- |Check whether a name is defined
 > defined :: Context -> Name -> Bool
 > defined (Ctxt st) n = case glookup n (defs st) of
 >                          Just _ -> True
 >                          _ -> False
+
+> -- | Return the data type with the given name. Note that this knows nothing
+> -- about the difference between parameters and indices; that information
+> -- is discarded after the elimination rule is constructed.
+> getInductive :: Monad m => Context -> Name -> m Inductive
+> getInductive (Ctxt st) n 
+>     = case glookup n (defs st) of
+>         Just (TCon _ (Elims _ _ cons), ty) ->
+>             -- reconstruct the 'Inductive' from types of ty and cons
+>             return (Inductive n [] (getIndices (view (Term (ty, Ind TTCore.Star))))
+>                                    (getTyType (view (Term (ty, Ind TTCore.Star))))
+>                                    (getConTypes cons))
+>         _ -> fail "Not an inductive family"
+>   where getIndices v = getArgTypes v
+>         getTyType v = VTerm.getReturnType v
+>         getConTypes [] = []
+>         getConTypes (c:cs) = case getType (Ctxt st) c of
+>                                Just ty -> (c,view ty):(getConTypes cs)
 
 > -- |Lookup a pattern matching definition in the context. Return the
 > -- type and the pattern definition.

@@ -17,7 +17,10 @@
 >                        -- * Terms
 >                        Term(..), ViewTerm(..), apply,
 >                        view, viewType, ViewConst, typeof, 
->                        freeIn, namesIn, occursIn, subst, getApp, dbgshow,
+>                        freeIn, namesIn, occursIn, subst, getApp, 
+>                        Ivor.ViewTerm.getFnArgs,
+>                        getArgTypes, Ivor.ViewTerm.getReturnType,
+>                        dbgshow,
 >                        -- * Inductive types
 >                        Inductive(..)) 
 >    where
@@ -256,6 +259,21 @@
 > getApp :: ViewTerm -> ViewTerm
 > getApp (Ivor.ViewTerm.App f a) = getApp f
 > getApp x = x
+
+> -- | Get the arguments from a function application.
+> getFnArgs :: ViewTerm -> [ViewTerm]
+> getFnArgs (Ivor.ViewTerm.App f a) = Ivor.ViewTerm.getFnArgs f ++ [a]
+> getFnArgs x = []
+
+> -- | Get the argument names and types from a function type
+> getArgTypes :: ViewTerm -> [(Name, ViewTerm)]
+> getArgTypes (Ivor.ViewTerm.Forall n ty sc) = (n,ty):(getArgTypes sc)
+> getArgTypes x = []
+
+> -- | Get the return type from a function type
+> getReturnType :: ViewTerm -> ViewTerm
+> getReturnType (Ivor.ViewTerm.Forall n ty sc) = Ivor.ViewTerm.getReturnType sc
+> getReturnType x = x
 
 > dbgshow (UN n) = "UN " ++ show n
 > dbgshow (MN (n,i)) = "MN [" ++ show n ++ "," ++ show i ++ "]"

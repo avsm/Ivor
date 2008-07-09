@@ -50,7 +50,7 @@ and upload it.
 >     shell $ "gpg -b " ++ rootname ++ "/Jones/jones"
 >     shell $ "scp "++rootname++".tgz " ++ rootname ++"/Jones/jones " 
 >                   ++rootname++".tgz.sig " ++ rootname ++ "/Jones/jones.sig " ++ dest
->     shell $ "scp "++rootname++"/dist/doc/html/* "++dest++"doc"
+>     shell $ "scp "++rootname++"/dist/doc/html/ivor/* "++dest++"doc"
 >     shell $ "rm -rf " ++ rootname
 
 > getVer [] = "none"

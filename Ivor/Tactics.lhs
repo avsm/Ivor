@@ -637,7 +637,7 @@ Boolean flag (flip) is True if symmetry should be applied first.
 >          claimname = mkns x (UN "q")
 >          getTypes (App (App (App (App eq x) _) a) b) = return (x,a,b)
 >          getTypes (App (App (App eq x) a) b) = return (x,a,b)
->          getTypes _ = fail "Rule is not of equality type"
+>          getTypes t = fail $ "Rule is not of equality type: " ++ show t
 >          mkns (UN a) (UN b) = UN (a++"_"++b)
 > replace _ _ _ _ _ _ _ (Ind (Bind x b sc)) = fail $ "replace: " ++ show x ++ " Not a hole"
 > replace _ _ _ _ _ _ _ _ = fail "replace: Not a binder, can't happen"

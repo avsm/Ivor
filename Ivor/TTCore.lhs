@@ -304,12 +304,14 @@ we get a duff term when we go back to the indexed version.
 
 > makePs :: TT Name -> TT Name
 > makePs t = let t' = evalState (uniqifyAllState t) [] in
->                 vapp (\ (ctx,i) -> P (traceIndex ctx i "makePsEnv")) t'
+>                 vapp (\ (ctx,i) -> P (traceIndex ctx i ("makePs " ++ 
+>                                                         debugTT t))) t'
 >                            --if (i<length ctx) then P (ctx!!i)
 >                              --           else V i) t'
 
 > makePsEnv env t = let t' = evalState (uniqifyAllState t) env in
->                       vapp (\ (ctx,i) -> P (traceIndex ctx i "makePsEnv")) t'
+>                       vapp (\ (ctx,i) -> P (traceIndex ctx i 
+>                                             ("makePsEnv" ++ debugTT t))) t'
 
 
 > uniqifyAllState :: TT Name -> State [Name] (TT Name)

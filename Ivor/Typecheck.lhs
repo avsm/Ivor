@@ -360,7 +360,7 @@ and we don't convert names to de Bruijn indices
 >          (Just (Ind (Bind sn sb (Sc st)))) -> Just $
 >             normaliseEnv ((sn,sb):env) gamma (Ind st)
 >          _ -> fail (show exp)
->     (Ind scv, Ind sct) <- tcfixup ((n,gb):env) lvl sc scexp
+>     (Ind scv, Ind sct) <- tcfixup ((n,gb):env) lvl sc Nothing -- scexp
 >     --discharge gamma n gb (Sc scv) (Sc sct)
 >     discharge gamma n gb (pToV n scv) (pToV n sct)
 >  tc env lvl l@(RLabel t comp) _ = do

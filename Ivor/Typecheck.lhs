@@ -111,7 +111,7 @@ constraints and applying it to the term and type.
 >                                    ++ (map (\x -> (False,x)) (reverse cs))
 >          let tm' = papp subst tm
 >          let ty' = papp subst ty
->          return {- $ trace (show nms ++ "\n" ++ show (tm',ty')) -} (Ind tm',Ind ty')
+>          return (Ind tm',Ind ty')
 
 >    where mkSubst xs = mkSubst' (P,[]) xs
 >          mkSubst' acc [] = return acc

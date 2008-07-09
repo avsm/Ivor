@@ -279,7 +279,6 @@
 > dbgshow (MN (n,i)) = "MN [" ++ show n ++ "," ++ show i ++ "]"
 
 > -- |Substitute a name n with a value v in a term f 
-> -- (ie implement f[v/n]
 > subst :: Name -> ViewTerm -> ViewTerm -> ViewTerm
 > subst n v nm@(Name _ p) | p == n = v
 >                         | otherwise = nm

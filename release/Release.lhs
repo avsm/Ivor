@@ -11,6 +11,7 @@ and upload it.
 > import System.Process
 > import Distribution.PackageDescription
 > import Distribution.Package
+> import Distribution.Verbosity
 > import Data.Version
 
 > repo = "http://www-fp.dcs.st-and.ac.uk/~eb/darcs/Ivor/"
@@ -30,7 +31,8 @@ and upload it.
 > release :: String -> IO ()
 > release dest = do
 >     shell $ "darcs get --partial " ++ repo
->     pkg <- readPackageDescription "Ivor/ivor.cabal"
+>     gpkg <- readPackageDescription verbose "Ivor/ivor.cabal"
+>     let pkg = flattenPackageDescription gpkg
 >     let pkgver = pkgVersion (package pkg)
 >     let ver = getVer (versionBranch pkgver)
 >     putStrLn $ "Making a release of Ivor version " ++ ver

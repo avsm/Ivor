@@ -138,7 +138,7 @@ Remove a name from the middle of the context - should only be valid
 if it's a partial definition or an axiom which is about to be replaced.
 
 > remove :: (Ord n, Eq n) => n -> Gamma n -> Gamma n
-> remove n (Gam xs) = Gam $ Map.delete n xs where
+> remove n (Gam xs) = Gam $ Map.delete n xs
 
 Insert a name into the context. If the name is already there, this
 is an error *unless* the old definition was 'Undefined', in which case

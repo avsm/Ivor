@@ -373,6 +373,7 @@ Do the actual evaluation
 >    = do newvals <- pmatch pat val vals
 >         newvals <- checkdups newvals
 >         pm gam g ps vs ret newvals
+> pm _ _ _ _ _ _ = Nothing
 
 > checkdups v = Just v
 

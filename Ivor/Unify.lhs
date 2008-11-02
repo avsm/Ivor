@@ -73,7 +73,7 @@ Collect names which do unify, and ignore errors
 > unifynferr :: Monad m =>
 >               Bool -> -- Ignore errors
 >               Env Name -> Indexed Name -> Indexed Name -> m Unified
-> unifynferr ignore env (Ind x) (Ind y)
+> unifynferr ignore env topx@(Ind x) topy@(Ind y)
 >                = do acc <- un env env x y []
 >                     if ignore then return () else checkAcc acc
 >                     return (acc \\ sentinel)
@@ -114,7 +114,7 @@ Collect names which do unify, and ignore errors
 >          un envl envr x y acc
 >                     | x == y || ignore = return acc
 >                     | otherwise = fail $ "Can't unify " ++ show x ++
->                                          " and " ++ show y -- ++ " 1"
+>                                          " and " ++ show y ++ " in " ++ show (topx,topy)
 >          unb envl envr (B b ty) (B b' ty') acc =
 >              do acc' <- unbb envl envr b b' acc
 >                 un envl envr ty ty' acc'

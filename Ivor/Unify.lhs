@@ -96,7 +96,7 @@ Collect names which do unify, and ignore errors
 >                   do acc' <- un envl envr f f' acc
 >                      un envl envr s s' acc'
 >              | otherwise = if ignore then return acc
->                               else fail $ "Can't unify "++show x++" and "++show y -- ++ " 5"
+>                               else fail $ "Can't unify "++show x++" and "++show y
 >             where funify (P x) (P y)
 >                       | x==y = True
 >                       | otherwise = hole envl x || hole envl y
@@ -125,7 +125,7 @@ Collect names which do unify, and ignore errors
 >          unbb envl envr (Guess v) (Guess v') acc = un envl envr v v' acc
 >          unbb envl envr x y acc
 >                   = if ignore then return acc
->                        else fail $ "Can't unify "++show x++" and "++show y -- ++ " 2"
+>                        else fail $ "Can't unify "++show x++" and "++show y
 
 >          unst envl envr (Quote x) (Quote y) acc = un envl envr x y acc
 >          unst envl envr (Code x) (Code y) acc = un envl envr x y acc
@@ -134,7 +134,7 @@ Collect names which do unify, and ignore errors
 >          unst envl envr x y acc =
 >                   if ignore then return acc
 >                       else fail $ "Can't unify " ++ show (Stage x) ++
->                                " and " ++ show (Stage y) -- ++ " 3"
+>                                " and " ++ show (Stage y)
 
 >          hole env x | (Just (B Hole ty)) <- lookup x env = True
 >                     | otherwise = isInferred x
@@ -147,7 +147,7 @@ Collect names which do unify, and ignore errors
 >                  = if (ueq tm tm')  -- Take account of names! == no good.
 >                       then checkAcc xs
 >                       else fail $ "Can't unify " ++ show tm ++
->                                   " and " ++ show tm' -- ++ " 4"
+>                                   " and " ++ show tm'
 >              | otherwise = checkAcc xs
 
 >          loc x xs = loc' 0 x xs

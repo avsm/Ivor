@@ -185,7 +185,7 @@ Return a list of the functions we need to define to complete the definition.
 >       then return (v1',t1',v2',t2',e'', [])
 >       else do let (Ind v2tt) = v2' 
 >               let (v2'', newdefs) = updateMetas v2tt
->               return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, (normalise gam (Ind y)))) newdefs)
+>               trace (show newdefs) $ return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, (normalise gam (Ind y)))) newdefs)
 
                if (null newdefs) then 
                   else trace (traceConstraints bs') $ return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, Ind y)) newdefs)
@@ -409,12 +409,15 @@ the expected type.
 >          -- Abstract it over the environment so that we have everything
 >          -- in scope we need.
 >          tm <- abstractOver (orderEnv env) n exp []
->          return (tm,Ind exp)
+>          trace (show tm ++ " : " ++ show exp) $ return (tm,Ind exp)
 > --              fail $ show (n, exp, bindings, env) ++ " -- Not implemented"
 >    where abstractOver [] mv exp args =
 >              return (Ind (appArgs (Meta mv exp) args))
 >          abstractOver ((n,B _ t):ns) mv exp args =
->              abstractOver ns mv (Bind n (B Pi t) (Sc exp)) ((P n):args)
+>              abstractOver ns mv (Bind n (B Pi t) (pToV n exp)) ((P n):args)
+
+          mkn (UN n) = MN (n,0)
+          mkn (MN (n,x)) = MN (n,x+1)
 
 >  tc env lvl (RMeta n) Nothing 
 >         -- just invent a name for it and see what inference gives us

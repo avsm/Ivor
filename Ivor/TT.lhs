@@ -35,7 +35,7 @@
 >               -- * Examining the Context
 >               eval, whnf, evalnew, evalCtxt, getDef, defined, getPatternDef,
 >               getAllTypes, getAllDefs, getAllPatternDefs, getConstructors,
->               getInductive, getType,
+>               getInductive, getAllInductives, getType,
 >               Rule(..), getElimRule, nameType, getConstructorTag,
 >               getConstructorArity,
 >               Ivor.TT.freeze,Ivor.TT.thaw,
@@ -849,6 +849,15 @@ Give a parseable but ugly representation of a term.
 >         getPD (x:xs) = case (getPatternDef ctxt x) of
 >                          Just d -> (x,d):(getPD xs)
 >                          _ -> getPD xs
+
+> -- |Get all the inductive type definitions in the context.
+> getAllInductives :: Context -> [(Name,Inductive)]
+> getAllInductives ctxt 
+>        = getI (map fst (getAllTypes ctxt))
+>   where getI [] = []
+>         getI (x:xs) = case (getInductive ctxt x) of
+>                          Just d -> (x,d):(getI xs)
+>                          _ -> getI xs
 
 > getAllDefs :: Context -> [(Name, Term)]
 > getAllDefs ctxt = let names = map fst (getAllTypes ctxt) in

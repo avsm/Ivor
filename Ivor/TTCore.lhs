@@ -483,7 +483,7 @@ Return all the names used in a scope
 >     p' (P x) = [x]
 >     p' (App f' a) = (p' f')++(p' a)
 >     p' (Bind n b (Sc sc))
->      | scnames <- p' sc = (scnames \\ [n]) ++ pb' b
+>      | scnames <- p' sc = ((nub scnames) \\ [n]) ++ pb' b
 >     p' (Proj _ i x) = p' x
 >     p' (Label t (Comp n cs)) = p' t ++ concat (map p' cs)
 >     p' (Call (Comp n cs) t) = concat (map p' cs) ++ p' t

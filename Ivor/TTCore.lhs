@@ -478,7 +478,7 @@ a complete definition.
 
 Return all the names used in a scope
 
-> getNames :: Eq n => Scope (TT n) -> [n]
+> getNames :: (Show n, Eq n) => Scope (TT n) -> [n]
 > getNames (Sc x) = nub $ p' x where
 >     p' (P x) = [x]
 >     p' (App f' a) = (p' f')++(p' a)

@@ -79,7 +79,7 @@ check that there is the right number (num).
 
 
 > -- | Try to solve a goal @A@ by evaluating a term of type @Maybe A@. If the
-> -- answer is @just a@, fill in the goal with the proof term @a@.
+> -- answer is @Just a@, fill in the goal with the proof term @a@.
 > isItJust :: IsTerm a => a -> Tactic
 > isItJust tm g ctxt = do 
 >     gd <- goalData ctxt False g 
@@ -90,9 +90,9 @@ check that there is the right number (num).
 >     case ty of
 >        (App (Name _ m) a) | m == (name "Maybe") 
 >           -> do case prf of
->                  (App (Name _ n) _) | n == (name "nothing")
+>                  (App (Name _ n) _) | n == (name "Nothing")
 >                      -> fail "No solution found"
->                  (App (App (Name _ j) _) p) | j == (name "just")
+>                  (App (App (Name _ j) _) p) | j == (name "Just")
 >                      -> fill p g ctxt
 >                  tm -> fail $ "Evaluated to " ++ show tm
 >        _ -> fail $ "Type of decision procedure must be ++ " ++ 

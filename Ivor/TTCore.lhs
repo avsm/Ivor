@@ -309,6 +309,12 @@ we get a duff term when we go back to the indexed version.
 >                            --if (i<length ctx) then P (ctx!!i)
 >                              --           else V i) t'
 
+> makePsUniq :: TT Name -> TT Name
+> makePsUniq t = vapp (\ (ctx,i) -> P (traceIndex ctx i ("makePs " ++ 
+>                                                        debugTT t))) t
+>                            --if (i<length ctx) then P (ctx!!i)
+>                              --           else V i) t'
+
 > makePsEnv env t = let t' = evalState (uniqifyAllState t) env in
 >                       vapp (\ (ctx,i) -> P (traceIndex ctx i 
 >                                             ("makePsEnv" ++ debugTT t))) t'

@@ -51,6 +51,7 @@
 > -- is for. 
 > data NameType = Bound | Free | DataCon | TypeCon | ElimOp 
 >               | Unknown -- ^ Use for sending to typechecker.
+>   deriving Show
 
 > -- | Construct a term representing a variable
 > mkVar :: String -- ^ Variable name
@@ -277,6 +278,26 @@
 
 > dbgshow (UN n) = "UN " ++ show n
 > dbgshow (MN (n,i)) = "MN [" ++ show n ++ "," ++ show i ++ "]"
+
+> -- | Match the second argument against the first, returning a list of
+> -- the names in the first paired with their matches in the second. Returns
+> -- Nothing if there is a match failure. There is no searching under binders.
+> match :: ViewTerm -> ViewTerm -> Maybe [(Name, ViewTerm)]
+> match t1 t2 = do acc <- m' t1 t2 []
+>                  checkDups acc [] where
+>   m' (Name _ n) t acc = return ((n,t):acc)
+>   m' (Ivor.ViewTerm.App f a) (Ivor.ViewTerm.App f' a') acc 
+>       = do acc' <- m' f f' acc
+>            m' a a' acc'
+>   m' x y acc | x == y = return acc
+>              | otherwise = fail $"Mismatch " ++ show x ++ " and " ++ show y
+
+>   checkDups [] acc = return acc
+>   checkDups ((x,t):xs) acc 
+>      = case lookup x xs of
+>          Just t' -> if t == t' then checkDups xs acc
+>                                else fail $ "Mismatch on " ++ show x
+>          Nothing -> checkDups xs ((x,t):acc)
 
 > -- |Substitute a name n with a value v in a term f 
 > subst :: Name -> ViewTerm -> ViewTerm -> ViewTerm

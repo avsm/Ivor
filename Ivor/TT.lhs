@@ -267,7 +267,7 @@
 >         let ndefs = defs st
 >         inty <- raw ty
 >         let (Patterns clauses) = pats
->         (pmdef, fty, newnames) 
+>         (pmdef, fty, newnames, tot) 
 >                <- checkDef ndefs n inty (map mkRawClause clauses)
 >                            (not (elem Ivor.TT.Partial opts))
 >                            (not (elem GenRec opts))
@@ -281,7 +281,7 @@
 >                                                  extend g (n, G Unreducible t 0))
 >                                               ndefs newnames
 >                              return (ngam, vnew)
->         newdefs <- gInsert n (G (PatternDef pmdef) fty defplicit) ndefs'
+>         newdefs <- gInsert n (G (PatternDef pmdef tot) fty defplicit) ndefs'
 >         return (Ctxt st { defs = newdefs }, vnewnames)
 
 > -- |Add a new definition, with its type to the global state.
@@ -819,7 +819,7 @@ Give a parseable but ugly representation of a term.
 > getPatternDef :: Monad m => Context -> Name -> m (ViewTerm, Patterns)
 > getPatternDef (Ctxt st) n
 >     = case glookup n (defs st) of
->           Just ((PatternDef pmf),ty) ->
+>           Just ((PatternDef pmf _),ty) ->
 >               return $ (view (Term (ty, Ind TTCore.Star)), 
 >                         Patterns (map mkPat (getPats pmf)))
 >           Just ((Fun _ ind), ty) ->

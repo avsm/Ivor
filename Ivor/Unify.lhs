@@ -114,7 +114,7 @@ Collect names which do unify, and ignore errors
 >          un envl envr x y acc
 >                     | x == y || ignore = return acc
 >                     | otherwise = fail $ "Can't unify " ++ show x ++
->                                          " and " ++ show y ++ " in " ++ show (topx,topy)
+>                                          " and " ++ show y -- ++ " in " ++ show (topx,topy)
 >          unb envl envr (B b ty) (B b' ty') acc =
 >              do acc' <- unbb envl envr b b' acc
 >                 un envl envr ty ty' acc'

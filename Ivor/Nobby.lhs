@@ -24,7 +24,7 @@ to do with it, when the time comes.
 > data Global n
 >     = Fun [FunOptions] (Indexed n)    -- User defined function
 >     | Partial (Indexed n) [n] -- Unfinished definition
->     | PatternDef (PMFun n) -- Pattern matching definition
+>     | PatternDef (PMFun n) Bool -- Pattern matching definition, totality
 >     | ElimRule ElimRule  -- Elimination Rule
 >     | PrimOp PrimOp EvPrim     -- Primitive function
 >     | DCon Int Int       -- Data Constructor, tag and arity
@@ -37,7 +37,7 @@ to do with it, when the time comes.
 >                        constructors :: [n] }
 >              | NoConstructorsYet
 
-> data FunOptions = Frozen | Recursive
+> data FunOptions = Frozen | Recursive | Total
 >   deriving Eq
 
 > instance Show n => Show (Global n) where
@@ -240,11 +240,11 @@ Do the actual evaluation
 >           Nothing -> evalP (lookupval n gamma)
 >    where evalP (Just Unreducible) = (MB (BP n,pty n) Empty)
 >          evalP (Just Undefined) = (MB (BP n, pty n) Empty)
->          evalP (Just (PatternDef p@(PMFun 0 pats))) =
+>          evalP (Just (PatternDef p@(PMFun 0 pats) _)) =
 >              case patmatch gamma g pats [] of
 >                 Nothing ->  (MB (BPatDef p n, pty n) Empty)
 >                 Just v -> v
->          evalP (Just (PatternDef p)) = (MB (BPatDef p n, pty n) Empty)
+>          evalP (Just (PatternDef p _)) = (MB (BPatDef p n, pty n) Empty)
 >          evalP (Just (Partial (Ind v) _)) = (MB (BP n, pty n) Empty)
 >          evalP (Just (PrimOp f _)) = (MB (BPrimOp f n, pty n) Empty)
 >          evalP (Just (Fun opts (Ind v)))

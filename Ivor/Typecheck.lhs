@@ -106,9 +106,9 @@ constraints and applying it to the term and type.
 >           -- time do them. Because we don't know what order we can solve
 >           -- constraints in and they might depend on each other...
 >       do let cs = nub constraints
->          (subst, nms) <- {-# SCC "name" #-}
->                          mkSubst $ (map (\x -> (True,x)) cs)
->                                    ++ (map (\x -> (False,x)) (reverse cs))
+>          (subst, nms) <-
+>                          mkSubst $ (map (\x -> (True,x)) cs) ++
+>                                    (map (\x -> (False,x)) (reverse cs))
 >          let tm' = papp subst tm
 >          let ty' = papp subst ty
 >          return (Ind tm',Ind ty')
@@ -123,7 +123,7 @@ constraints and applying it to the term and type.
 >             = do -- (s',nms) <- mkSubst xs
 >                  let x' = papp s' x
 >                  let (Ind y') = normalise gam (Ind (papp s' y))
->                  uns <- {-# SCC "substUnify" #-}
+>                  uns <- 
 >                         case unifyenvErr ok gam env (Ind x') (Ind y') of
 >                           Success x' -> return x'
 >                           Failure err -> fail err
@@ -174,13 +174,13 @@ Return a list of the functions we need to define to complete the definition.
 >    let realNames = mkNames next
 >    e' <- renameB gam realNames (renameBinders e)
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
->    (v1''@(Ind vtm),t1'') <- {-# SCC "convert1" #-}doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
+>    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
 >    -- Drop names out of e' that don't appear in v1'' as a result of the
 >    -- unification.
 >    let namesbound = getNames (Sc vtm)
 >    let ein = orderEnv (filter (\ (n, ty) -> n `elem` namesbound) e')
->    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} {-# SCC "pairLvlCheck" #-} lvlcheck 0 inf next gam ein tm2 (Just t1')
->    (v2',t2') <- {-# SCC "convert2" #-} doConversion tm2 gam bs' v2 t2 -- (normalise gam t2) 
+>    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam ein tm2 (Just t1')
+>    (v2',t2') <- doConversion tm2 gam bs' v2 t2 -- (normalise gam t2) 
 >    if (null metas) 
 >       then return (v1',t1',v2',t2',e'', [])
 >       else do let (Ind v2tt) = v2' 
@@ -291,7 +291,7 @@ typechecker...
 >    where mkTT (Just (i, B _ t)) _ = return (Ind (P n), Ind t)
 >          mkTT Nothing (Just ((Fun _ _),t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just ((Partial _ _),t)) = return (Ind (P n), t)
->          mkTT Nothing (Just ((PatternDef _),t)) = return (Ind (P n), t)
+>          mkTT Nothing (Just ((PatternDef _ _),t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just (Unreducible,t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just (Undefined,t)) = return (Ind (P n), t)
 >          mkTT Nothing (Just ((ElimRule _),t)) = return (Ind (Elim n), t)

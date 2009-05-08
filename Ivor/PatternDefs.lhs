@@ -16,11 +16,12 @@ Use the iota schemes from Datatype to represent pattern matching definitions.
 
 Return the definition and its type, as well as any other names which need
 to be defined to complete the definition.
+Also return whether the function is definitely total.
 
 > checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> 
 >             Bool -> -- Check for coverage
 >             Bool -> -- Check for well-foundedness
->             m (PMFun Name, Indexed Name, [(Name, Indexed Name)])
+>             m (PMFun Name, Indexed Name, [(Name, Indexed Name)], Bool)
 > checkDef gam fn tyin pats cover wellfounded = do
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
@@ -32,9 +33,15 @@ to be defined to complete the definition.
 >   checkNotExists fn gam
 >   gam' <- gInsert fn (G Undefined ty defplicit) gam
 >   clauses' <- validClauses gam' fn ty clauses'
->   (pmdef, newdefs) <- matchClauses gam' fn pats tyin cover clauses'
->   when wellfounded $ checkWellFounded gam fn [0..arity-1] pmdef
->   return (PMFun arity pmdef, ty, newdefs)
+>   (pmdef, newdefs, covers) <- matchClauses gam' fn pats tyin cover clauses'
+>   wf <- if wellfounded then
+>             do checkWellFounded gam fn [0..arity-1] pmdef
+>                return True
+>            else case checkWellFounded gam fn [0..arity-1] pmdef of
+>                   Nothing -> return False
+>                   _ -> return True
+>   let total = wf && covers
+>   return (PMFun arity pmdef, ty, newdefs, total)
 >     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
 >                                 Just _ -> fail $ show n ++ " already defined"
@@ -167,12 +174,17 @@ names bound in patterns) then type check the right hand side.
 > matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw ->
 >                 Bool -> -- Check coverage
 >                 [(Indexed Name, Indexed Name)] -> 
->                 m ([PMDef Name], [(Name, Indexed Name)])
+>                 m ([PMDef Name], [(Name, Indexed Name)], Bool)
 > matchClauses gam fn pats tyin cover gen = do
 >    let raws = zip (map mkRaw pats) (map getRet pats)
 >    (checkpats, newdefs) <- mytypechecks gam raws [] []
->    when cover $ checkCoverage (map fst checkpats) (map fst gen)
->    return $ (map (mkScheme gam) checkpats, newdefs)
+>    cv <- if cover then 
+>              do checkCoverage (map fst checkpats) (map fst gen)
+>                 return True
+>              else case checkCoverage (map fst checkpats) (map fst gen) of
+>                 Nothing -> return False
+>                 _ -> return True
+>    return $ (map (mkScheme gam) checkpats, newdefs, cv)
 
     where mkRaw (RSch pats r) = mkPBind pats tyin r
           mkPBind [] _ r = r

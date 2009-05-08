@@ -1,5 +1,5 @@
 Name:		ivor
-Version:	0.1.7
+Version:	0.1.8
 Author:		Edwin Brady
 License:	BSD3
 License-file:	LICENSE
@@ -10,7 +10,7 @@ Stability:      experimental
 Build-depends:	base, haskell98, parsec, mtl, directory, containers
 Extensions:	MultiParamTypeClasses, FunctionalDependencies,
 		ExistentialQuantification, OverlappingInstances
-Category:       Theorem provers
+Category:       Theorem provers, Dependent Types
 Synopsis:       Theorem proving library based on dependent type theory
 Description:    Ivor is a type theory based theorem prover, with a
                 Haskell API, designed for easy extending and embedding

@@ -4,7 +4,7 @@ DB = --user
 PREFIX = $(HOME)
 
 # Set this to -p for profiling libraries too
-PROFILE =
+PROFILE = 
 
 CABALOPTS = -O 
 
@@ -27,7 +27,7 @@ doc:
 test:
 	make -C tests
 
-sdist:
+cabal-package:
 	runhaskell Setup.lhs sdist
 
 jones: .PHONY package install

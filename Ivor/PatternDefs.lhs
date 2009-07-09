@@ -199,9 +199,9 @@ Each clause may generate auxiliary definitions, so return all definitons created
 
 >   where mkRaw (RSch pats r) = mkapp (Var fn) pats
 >         getRet (RSch pats r) = r
->         mytypechecks gam [] acc defs auxdefs cov = return (reverse acc, defs, auxdefs, cov)
+>         mytypechecks gam [] acc defs auxdefs cov = return (reverse acc, auxdefs, defs, cov)
 >         mytypechecks gam (c:cs) acc defs auxdefs cov =
->             do ((cl, cr, newdefs), aux', covd) <- mytypecheck gam c (length cs)
+>             do ((cl, cr, _), newdefs, aux', covd) <- mytypecheck gam c (length cs)
 >                mytypechecks gam cs ((cl,cr):acc) (defs++newdefs) (auxdefs++aux') (cov && covd)
 >         mytypecheck gam (clause, (RWRet ret)) i = 
 >             do (tm@(Ind tmtt), pty,
@@ -215,12 +215,11 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                let namesbound = getNames (Sc tmtt)
 >                checkAllBound namesret namesbound (Ind rtmtt') tmtt
 >                -- trace (show (unified, rtmtt, tm, rtmtt')) $ 
->                return ((tm, Ind rtmtt', newdefs), [], True)
+>                return ((tm, Ind rtmtt', newdefs), [], newdefs, True)
 >         mytypecheck gam (clause, (RWith scr pats)) i =
 >             do -- Get the type of scrutinee, construct the type of the auxiliary definition
->                (tm@(Ind clausett), clausety, _, scrty@(Ind stt), env) <- checkAndBindWith gam clause scr
+>                (tm@(Ind clausett), clausety, _, scrty@(Ind stt), env) <- checkAndBindWith gam clause scr fn
 >                let args = getRawArgs clause
->                -- (_, scrty, env') <- trace ("SCRCHK " ++ show (scr, clausett, env)) $ checkAndBind gam env scr Nothing
 >                let restTyin = addLastArg tyin (forget scrty)
 >                margs <- getMatches tm tm
 >                let margNames = nub (map fst margs)
@@ -236,9 +235,9 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                let ret = rawApp (Var newname) ((map Var (map fst newargs)) ++ [scr])
 >                let gam' = insertGam newname (G Undefined newfnTy 0) gam
 >                newpdef <- mapM (newp tm newargs 1) (zip newpats pats)
->                (chk, auxdefs, _) <- mytypecheck gam' (clause, (RWRet ret)) i
->                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover
->                return (chk, auxdefs++auxdefs', covers)
+>                (chk, auxdefs, _, _) <- mytypecheck gam' (clause, (RWRet ret)) i
+>                (auxdefs', newdefs, covers) <- trace (show (newname, newpdef)) $ checkDef gam' newname (forget newfnTy) newpdef False cover
+>                return (chk, auxdefs++auxdefs', newdefs, covers)
 
 >         addLastArg (RBind n (B Pi arg) x) ty = RBind n (B Pi arg) (addLastArg x ty)
 >         addLastArg x ty = RBind (UN "X") (B Pi ty) x

@@ -160,9 +160,9 @@ constraints and applying it to the term and type.
 
 Check a pattern and an intermediate computation together
 
-> checkAndBindWith :: Monad m => Gamma Name -> Raw -> Raw ->
+> checkAndBindWith :: Monad m => Gamma Name -> Raw -> Raw -> Name ->
 >                     m (Indexed Name, Indexed Name, Indexed Name, Indexed Name, Env Name)
-> checkAndBindWith gam tm1 tm2 = do
+> checkAndBindWith gam tm1 tm2 root = do
 >    ((v1,t1), (next, inf, e, bs,_)) <- lvlcheck 0 True 0 gam [] tm1 Nothing
 >    -- rename all the 'inferred' things to another generated name,
 >    -- so that they actually get properly checked on the rhs

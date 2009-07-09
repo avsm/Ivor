@@ -1,4 +1,4 @@
-> {-# OPTIONS_GHC -fglasgow-exts #-}
+> {-# OPTIONS_GHC -fglasgow-exts -XIncoherentInstances #-}
 
 > module Ivor.TTCore where
 
@@ -142,6 +142,9 @@ This keeps both namespaces separate.
 >     = UN String
 >     | MN (String,Int)
 >   deriving (Ord, Eq)
+
+> instance Typeable Name where
+>     typeOf n = mkTyConApp (mkTyCon "Name") []
 
 Data declarations and pattern matching
 
@@ -755,7 +758,50 @@ Apply a function to a list of arguments
 > instance Show n => Forget (Levelled n) Raw where
 >     forget (Lev t) = forget t
 
-> instance Show n => Forget (TT n) Raw where
+> instance (Show Name) => Forget (TT Name) Raw where
+>     forget t = forgetTT (vapp showV t)
+>      where
+>        showV (ctx,i) | i < length ctx = P (ctx!!i)
+>	               | otherwise = V i
+>        forgetTT (P x) = case (cast x) of
+>                           Just (MN ("INFER",i)) -> RInfer
+>                           _ -> Var $ UN (show x)
+>        forgetTT (V i) = RAnnot $ "v" ++ (show i)
+>        forgetTT (Con t x i) = Var $ UN (show x)
+>        forgetTT (TyCon x i) = Var $ UN (show x)
+>        forgetTT (Meta n i) = RMeta (UN (show n ++ " : " ++ show i))
+>        forgetTT (Elim x) = Var $ UN (show x)
+>        forgetTT (App f a) = RApp (forgetTT f) (forgetTT a)
+>        forgetTT (Bind n (B Lambda t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B Lambda (forget t)) (forget sc))
+>        forgetTT (Bind n (B Pi t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B Pi (forget t)) (forget sc))
+>        forgetTT (Bind n (B MatchAny t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B MatchAny (forget t)) (forget sc))
+>        forgetTT (Bind n (B (Let v) t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B (Let (forget v)) (forget t))
+>                      (forget sc))
+>        forgetTT (Bind n (B Hole t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B Hole (forget t)) (forget sc))
+>        forgetTT (Bind n (B (Guess v) t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B (Guess (forget v)) (forget t))
+>                      (forget sc))
+>        forgetTT (Bind n (B (Pattern v) t) (Sc sc)) =
+>                    (RBind (UN (show n)) (B (Pattern (forget v)) (forget t))
+>                      (forget sc))
+>        forgetTT (Proj n i t) = RAnnot $ (show t)++"!"++(show i)++":"++show n
+>        forgetTT (Label t (Comp n cs)) = RLabel (forgetTT t)
+>                                          (RComp (UN $ show n)
+>                                             (map forgetTT cs))
+>        forgetTT (Call (Comp n cs) t) = RCall (RComp (UN $ show n)
+>                                               (map forgetTT cs))
+>                                                 (forgetTT t)
+>        forgetTT (Return t) = RReturn (forgetTT t)
+>        forgetTT (Stage t) = RStage (forget t)
+>        forgetTT (Const x) = RConst x
+>        forgetTT Star = RStar
+
+> instance (Show n) => Forget (TT n) Raw where
 >     forget t = forgetTT (vapp showV t)
 >      where
 >        showV (ctx,i) | i < length ctx = P (ctx!!i)

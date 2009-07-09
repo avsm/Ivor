@@ -49,8 +49,8 @@ the target, methods and the motives are unique.
 >              = (mkScheme rec n ername ps c cty motive mns m):(mks cs ms mns)
 
 > mkScheme rec n ername ps c cty motive mns meth 
->     = RSch (mkIArgs ps c cty motive mns) 
->            (mkIRet rec n ername meth motive mns ps cty)
+>     = RSch (mkIArgs ps c cty motive mns)
+>            (RWRet (mkIRet rec n ername meth motive mns ps cty))
 
 > mkIArgs ps c cty motive mns = getappargs (getrettype cty) ++
 >                               [mkapp (Var c) (map Var (getargnames cty))] ++

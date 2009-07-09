@@ -145,17 +145,16 @@ This keeps both namespaces separate.
 
 Data declarations and pattern matching
 
- data RawWith = RWith [Raw] 
-              | RWPatt [Raw]
-              | RWNone
-   deriving Show
+> data RawWith = RWith Raw [RawScheme] -- match with an extra arg, add new schemes
+>              | RWRet Raw
+>   deriving Show
 
  data With = With [Indexed n]
            | WPatt [Pattern n]
            | WNone
    deriving Show
 
-> data RawScheme = RSch [Raw] {- RawWith -} Raw
+> data RawScheme = RSch [Raw] RawWith
 >   deriving Show
 
 > data Scheme n = Sch [Pattern n] {- With -} (Indexed n)
@@ -570,6 +569,10 @@ Get the arguments of an application
 > getArgs :: TT Name -> [TT Name]
 > getArgs (App f a) = getArgs f ++ [a]
 > getArgs _ = []
+
+> getRawArgs :: Raw -> [Raw]
+> getRawArgs (RApp f a) = getRawArgs f ++ [a]
+> getRawArgs _ = []
 
 Get the function being applied in an application
 

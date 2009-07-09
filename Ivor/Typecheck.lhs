@@ -1,7 +1,7 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
 > module Ivor.Typecheck(typecheck, tcClaim,
->                       check, checkAndBind, checkAndBindPair,
+>                       check, checkAndBind, checkAndBindWith, checkAndBindPair,
 >                       convert,
 >                       checkConv, checkConvEnv, pToV, pToV2,
 >                       verify, Gamma) where
@@ -153,10 +153,42 @@ constraints and applying it to the term and type.
 >                 Maybe (Indexed Name) -> 
 >                 m (Indexed Name, Indexed Name, Env Name)
 > checkAndBind gam env tm mty = do
->    ((v,t), (_,_,e,convs,_)) <- lvlcheck 0 True 0 gam env tm mty
->    (v',ty') <- doConversion tm gam convs v t
->    return (v',ty',e)
+>    ((v,t), (next,inf,e,convs,_)) <- lvlcheck 0 True 0 gam env tm mty
+>    (v'@(Ind vtm),t') <- doConversion tm gam convs v t -- (normalise gam t1') 
+>    return (v',t',e)
 
+
+Check a pattern and an intermediate computation together
+
+> checkAndBindWith :: Monad m => Gamma Name -> Raw -> Raw ->
+>                     m (Indexed Name, Indexed Name, Indexed Name, Indexed Name, Env Name)
+> checkAndBindWith gam tm1 tm2 = do
+>    ((v1,t1), (next, inf, e, bs,_)) <- lvlcheck 0 True 0 gam [] tm1 Nothing
+>    -- rename all the 'inferred' things to another generated name,
+>    -- so that they actually get properly checked on the rhs
+>    let realNames = mkNames next
+>    e' <- renameB gam realNames (renameBinders e)
+>    (v1', t1') <- fixupGam gam realNames (v1, t1)
+>    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
+>    -- Drop names out of e' that don't appear in v1'' as a result of the
+>    -- unification.
+>    let namesbound = getNames (Sc vtm)
+>    let ein = orderEnv (filter (\ (n, ty) -> n `elem` namesbound) e')
+>    ((v2,t2), (_, _, e'', bs',metas)) <- lvlcheck 0 inf next gam ein tm2 Nothing
+>    (v2',t2') <- doConversion tm2 gam bs' v2 t2 -- (normalise gam t2) 
+>    let retEnv = reverse (ein ++ e'')
+>    if (null metas) 
+>       then return (v1',t1',v2',t2',retEnv)
+>       else fail "Can't have metavariables here"
+
+>  where mkNames 0 = []
+>        mkNames n
+>           = ([],Ind (P (MN ("INFER",n-1))), 
+>                 Ind (P (MN ("T",n-1))), "renaming"):(mkNames (n-1))
+>        renameBinders [] = []
+>        renameBinders (((MN ("INFER",n)),b):bs) 
+>                         = ((MN ("T",n),b):(renameBinders bs))
+>        renameBinders (b:bs) = b:renameBinders bs
 
 Check two things together, with the same environment and variable inference,
 and with the same expected type.
@@ -181,11 +213,12 @@ Return a list of the functions we need to define to complete the definition.
 >    let ein = orderEnv (filter (\ (n, ty) -> n `elem` namesbound) e')
 >    ((v2,t2), (_, _, e'', bs',metas)) <- {- trace ("Checking " ++ show tm2 ++ " has type " ++ show t1') $ -} lvlcheck 0 inf next gam ein tm2 (Just t1')
 >    (v2',t2') <- doConversion tm2 gam bs' v2 t2 -- (normalise gam t2) 
+>    let retEnv = reverse (ein ++ e'')
 >    if (null metas) 
->       then return (v1',t1',v2',t2',e'', [])
+>       then return (v1',t1',v2',t2',retEnv, [])
 >       else do let (Ind v2tt) = v2' 
 >               let (v2'', newdefs) = updateMetas v2tt
->               return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, (normalise gam (Ind y)))) newdefs)
+>               return (v1',t1',Ind v2'',t2',retEnv, map (\ (x,y) -> (x, (normalise gam (Ind y)))) newdefs)
 
                if (null newdefs) then 
                   else trace (traceConstraints bs') $ return (v1',t1',Ind v2'',t2',e'', map (\ (x,y) -> (x, Ind y)) newdefs)

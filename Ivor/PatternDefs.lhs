@@ -14,14 +14,15 @@
 
 Use the iota schemes from Datatype to represent pattern matching definitions.
 
-Return the definition and its type, as well as any other names which need
+Return the definition, and auxiliary definitions,
+and their types, as well as any other names which need
 to be defined to complete the definition.
 Also return whether the function is definitely total.
 
 > checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> 
 >             Bool -> -- Check for coverage
 >             Bool -> -- Check for well-foundedness
->             m (PMFun Name, Indexed Name, [(Name, Indexed Name)], Bool)
+>             m ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
 > checkDef gam fn tyin pats cover wellfounded = do
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
@@ -33,15 +34,16 @@ Also return whether the function is definitely total.
 >   checkNotExists fn gam
 >   gam' <- gInsert fn (G Undefined ty defplicit) gam
 >   clauses' <- validClauses gam' fn ty clauses'
->   (pmdef, newdefs, covers) <- matchClauses gam' fn pats tyin cover clauses'
->   wf <- if wellfounded then
+>   (pmdefs, newdefs, covers) <- matchClauses gam' fn pats tyin ty cover clauses'
+>   wf <- return True 
+>         {- if wellfounded then
 >             do checkWellFounded gam fn [0..arity-1] pmdef
 >                return True
 >            else case checkWellFounded gam fn [0..arity-1] pmdef of
 >                   Nothing -> return False
->                   _ -> return True
+>                   _ -> return True -}
 >   let total = wf && covers
->   return (PMFun arity pmdef, ty, newdefs, total)
+>   return (pmdefs, newdefs, total)
 >     where checkNotExists n gam = case lookupval n gam of
 >                                 Just Undefined -> return ()
 >                                 Just _ -> fail $ show n ++ " already defined"
@@ -171,20 +173,24 @@ For each Raw clause, try to match it against a generated and checked clause.
 Match up the inferred arguments to the names (so getting the types of the
 names bound in patterns) then type check the right hand side.
 
-> matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw ->
+Each clause may generate auxiliary definitions, so return all definitons created.
+
+> matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw -> Indexed Name -> 
 >                 Bool -> -- Check coverage
 >                 [(Indexed Name, Indexed Name)] -> 
->                 m ([PMDef Name], [(Name, Indexed Name)], Bool)
-> matchClauses gam fn pats tyin cover gen = do
+>                 m ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
+> matchClauses gam fn pats tyin ty@(Ind ty') cover gen = do
 >    let raws = zip (map mkRaw pats) (map getRet pats)
->    (checkpats, newdefs) <- mytypechecks gam raws [] []
+>    (checkpats, newdefs, aux, covers) <- mytypechecks gam raws [] [] [] True
 >    cv <- if cover then 
 >              do checkCoverage (map fst checkpats) (map fst gen)
 >                 return True
 >              else case checkCoverage (map fst checkpats) (map fst gen) of
 >                 Nothing -> return False
 >                 _ -> return True
->    return $ (map (mkScheme gam) checkpats, newdefs, cv)
+>    let pmdef = map (mkScheme gam) checkpats
+>    let arity = length (getExpected ty')
+>    return $ ((fn, PMFun arity pmdef, ty) : aux , newdefs, cv && covers)
 
     where mkRaw (RSch pats r) = mkPBind pats tyin r
           mkPBind [] _ r = r
@@ -193,14 +199,13 @@ names bound in patterns) then type check the right hand side.
 
 >   where mkRaw (RSch pats r) = mkapp (Var fn) pats
 >         getRet (RSch pats r) = r
->         mytypechecks gam [] acc defs = return (reverse acc, defs)
->         mytypechecks gam (c:cs) acc defs
->             = do (cl, cr, newdefs) <- mytypecheck gam c
->                  mytypechecks gam cs ((cl,cr):acc) (defs++newdefs)
->         mytypecheck gam (clause, ret) = 
+>         mytypechecks gam [] acc defs auxdefs cov = return (reverse acc, defs, auxdefs, cov)
+>         mytypechecks gam (c:cs) acc defs auxdefs cov =
+>             do ((cl, cr, newdefs), aux', covd) <- mytypecheck gam c (length cs)
+>                mytypechecks gam cs ((cl,cr):acc) (defs++newdefs) (auxdefs++aux') (cov && covd)
+>         mytypecheck gam (clause, (RWRet ret)) i = 
 >             do (tm@(Ind tmtt), pty,
->                 rtm@(Ind rtmtt), rty, env, newdefs) <-
->                   checkAndBindPair gam clause ret
+>                 rtm@(Ind rtmtt), rty, env, newdefs) <- checkAndBindPair gam clause ret
 >                unified <- unifyenv gam env pty rty
 >                let gam' = foldl (\g (n,t) -> extend g (n,G Undefined t 0))
 >                                   gam newdefs
@@ -209,7 +214,63 @@ names bound in patterns) then type check the right hand side.
 >                let namesret = filter (notGlobal gam') $ getNames (Sc rtmtt')
 >                let namesbound = getNames (Sc tmtt)
 >                checkAllBound namesret namesbound (Ind rtmtt') tmtt
->                return (tm, Ind rtmtt', newdefs)
+>                -- trace (show (unified, rtmtt, tm, rtmtt')) $ 
+>                return ((tm, Ind rtmtt', newdefs), [], True)
+>         mytypecheck gam (clause, (RWith scr pats)) i =
+>             do -- Get the type of scrutinee, construct the type of the auxiliary definition
+>                (tm@(Ind clausett), clausety, _, scrty@(Ind stt), env) <- checkAndBindWith gam clause scr
+>                let args = getRawArgs clause
+>                -- (_, scrty, env') <- trace ("SCRCHK " ++ show (scr, clausett, env)) $ checkAndBind gam env scr Nothing
+>                let restTyin = addLastArg tyin (forget scrty)
+>                margs <- getMatches tm tm
+>                let margNames = nub (map fst margs)
+>                let newargs = filter (\ (x,ty) -> x `elem` margNames) env
+>                newpats <- mapM (getNewPat tm 1) pats
+>                let newfntyin = mkNewTy (newargs ++ [(UN "__scr", B Pi stt)]) clausety
+>                (newfnTy, _) <- check gam env (forget newfntyin) (Just (Ind Star))
+>                -- Make a name for the new function, clauses in 'pats' need the new name,
+>                -- and form a definition of type restTy
+>                let newname = mkNewName fn i
+>                -- TODO: All pats have to match against args ++ [_]
+>                -- Final clause returns newname applied to args++scrutinee
+>                let ret = rawApp (Var newname) ((map Var (map fst newargs)) ++ [scr])
+>                let gam' = insertGam newname (G Undefined newfnTy 0) gam
+>                newpdef <- mapM (newp tm newargs 1) (zip newpats pats)
+>                (chk, auxdefs, _) <- mytypecheck gam' (clause, (RWRet ret)) i
+>                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover
+>                return (chk, auxdefs++auxdefs', covers)
+
+>         addLastArg (RBind n (B Pi arg) x) ty = RBind n (B Pi arg) (addLastArg x ty)
+>         addLastArg x ty = RBind (UN "X") (B Pi ty) x
+>         rawApp f [] = f
+>         rawApp f (a:as) = rawApp (RApp f a) as
+
+>         mkNewName (UN n) i = UN ("W__"++ n ++ "__" ++ show i) -- MN (n, i)
+>         mkNewName (MN (n,j)) i = MN (n, (j + i + 255))
+
+>         mkNewTy [] (Ind t) = t
+>         mkNewTy ((x,b):ts) t = Bind x b (Sc (mkNewTy ts t))
+
+>         getNewPat proto i (RSch args ret) = do
+>             let pargs = rawApp (Var fn) (take (length args - i) args)
+>             (argv, argt, _) <- checkAndBind gam [] pargs Nothing
+>             getMatches argv proto
+
+>         newp proto newargs i (newps, RSch args ret) = do
+>             ret' <- newpRet ret
+>             return $ RSch ((getAuxPats (map fst newargs) newps)++(lastn i args)) ret'
+>                 where newpRet (RWith v schs) = 
+>                          do newpats <- mapM (getNewPat proto (i+1)) schs
+>                             newpdef <- mapM (newp proto newargs (i+1)) (zip newpats schs)
+>                             return (RWith v newpdef)
+>                       newpRet r = return r
+
+>         lastn i xs = reverse $ take i (reverse xs)
+
+>         getAuxPats [] n = []
+>         getAuxPats (x:xs) n = case lookup x n of
+>                                 (Just t) -> (forget t):(getAuxPats xs n)
+
 >         notGlobal gam n = case lookupval n gam of
 >                               Nothing -> True
 >                               _ -> False
@@ -251,14 +312,18 @@ fails, reporting which case isn't matched, if patterns don't cover.
 >     | length (filter (matches c) pats) > 0 = checkCoverage pats cs
 >     | otherwise = fail $ "Missing clause: " ++ show c
 
-> matches (Ind p) (Ind t) = matches' p t
-> matches' (App f a) (App f' a') = matches' f f' && matches' a a'
-> matches' (Con _ x _) (Con _ y _) | x == y = True
-> matches' (TyCon x _) (TyCon y _) | x == y = True
-> matches' (P x) (P y) | x == y = True
-> matches' (P (MN ("INFER",_))) _ = True
-> matches' _ (P _) = True
-> matches' x y = x == y
+> matches p t = getMatches p t /= Nothing
+
+> getMatches (Ind p) (Ind t) = matches' p t
+> matches' (App f a) (App f' a') = do fm <- matches' f f'
+>                                     am <- matches' a a'
+>                                     return $ (fm ++ am)
+> matches' (Con _ x _) (Con _ y _) | x == y = return []
+> matches' (TyCon x _) (TyCon y _) | x == y = return []
+> matches' (P x) (P y) | x == y = return [(y, P x)]
+> matches' t (P n) = return [(n,t)]
+> matches' (P nm@(MN ("INFER",_))) t = return []
+> matches' x y = if x == y then return [] else fail "No match"
 
 
 > expandClause :: Monad m => Gamma Name -> RawScheme -> m [RawScheme]

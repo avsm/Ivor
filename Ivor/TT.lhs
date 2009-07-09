@@ -218,6 +218,11 @@
 >                         arguments :: [ViewTerm],
 >                         returnval :: ViewTerm
 >                        }
+>              | PWithClause {
+>                         arguments :: [ViewTerm],
+>                         scrutinee :: ViewTerm,
+>                         patterns :: Patterns
+>                            }
 >    deriving Show
 
 > data Patterns = Patterns [PClause]
@@ -225,8 +230,9 @@
 
 > mkRawClause :: PClause -> RawScheme
 > mkRawClause (PClause args ret) =
->     RSch (map forget args) (forget ret)
-
+>     RSch (map forget args) (RWRet (forget ret))
+> mkRawClause (PWithClause args scr (Patterns rest)) = 
+>     RSch (map forget args) (RWith (forget scr) (map mkRawClause rest))
 
 > -- ^ Convert a term to matchable pattern form; i.e. the only names allowed
 > -- are variables and constructors. Any arbitrary function application is
@@ -267,7 +273,7 @@
 >         let ndefs = defs st
 >         inty <- raw ty
 >         let (Patterns clauses) = pats
->         (pmdef, fty, newnames, tot) 
+>         (pmdefs, newnames, tot) 
 >                <- checkDef ndefs n inty (map mkRawClause clauses)
 >                            (not (elem Ivor.TT.Partial opts))
 >                            (not (elem GenRec opts))
@@ -281,8 +287,12 @@
 >                                                  extend g (n, G Unreducible t 0))
 >                                               ndefs newnames
 >                              return (ngam, vnew)
->         newdefs <- gInsert n (G (PatternDef pmdef tot) fty defplicit) ndefs'
+>         newdefs <- insertAll pmdefs ndefs' tot
 >         return (Ctxt st { defs = newdefs }, vnewnames)
+>   where insertAll [] gam tot = return gam
+>         insertAll ((nm, def, ty):xs) gam tot = 
+>             do gam' <- gInsert nm (G (PatternDef def tot) ty defplicit) gam
+>                insertAll xs gam' tot
 
 > -- |Add a new definition, with its type to the global state.
 > -- These definitions can be recursive, so use with care.
@@ -400,7 +410,7 @@ do let olddefs = defs st
 >                     mrefl <- raw "meth_refl"
 >                     arg <- raw $ refl ++ " A a"
 >                     ret <- raw "meth_refl"
->                     return $ RSch [aty,a,b,arg,phi,mrefl] ret
+>                     return $ RSch [aty,a,b,arg,phi,mrefl] (RWRet ret)
 
 > -- | Declare a name which is to be defined later
 > declare :: (IsTerm a, Monad m) => Context -> Name -> a -> m Context
@@ -912,7 +922,7 @@ Examine pattern matching elimination rules
 >             elim <- lookupM rule (eliminators st)
 >             return $ Patterns $ map mkRed (fst $ snd elim)
 >       Nothing -> fail $ (show nm) ++ " is not a type constructor"
->  where mkRed (RSch pats ret) = PClause (map viewRaw pats) (viewRaw ret)
+>  where mkRed (RSch pats (RWRet ret)) = PClause (map viewRaw pats) (viewRaw ret)
 >         -- a reduction will only have variables and applications
 >        viewRaw (Var n) = Name Free n
 >        viewRaw (RApp f a) = VTerm.App (viewRaw f) (viewRaw a)

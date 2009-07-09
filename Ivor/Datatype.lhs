@@ -61,8 +61,8 @@ the context and an executable elimination rule.
 >	 (ev, _) <- typecheck gamma'' erty
 >	 (cv, _) <- typecheck gamma'' crty
 >	 -- let gamma''' = extend gamma'' (er,G (ElimRule dummyRule) ev defplicit)
->        (esch, _, _, _) <- checkDef gamma'' er erty eschemes False False
->        (csch, _, _, _) <- checkDef gamma'' cr crty cschemes False False
+>        ([(_, esch, _)], _, _) <- checkDef gamma'' er erty eschemes False False
+>        ([(_, csch, _)], _, _) <- checkDef gamma'' cr crty cschemes False False
 >	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv defplicit) consv numps
 >                    (er,ev) (cr,cv) (Just esch) (Just csch) eschemes cschemes)
 
@@ -98,7 +98,7 @@ then pattern variables are retrieved by projection with Proj in typechecked t.
 
 > checkScheme :: Monad m =>
 >	          Gamma Name -> Name -> RawScheme -> m (Scheme Name)
-> checkScheme gamma n (RSch pats ret) = 
+> checkScheme gamma n (RSch pats (RWRet ret)) = 
 >     do let ps = map (mkPat gamma) pats
 >	 let rhsvars = getPatVars gamma ps
 >        let rhs = substVars gamma n rhsvars ret

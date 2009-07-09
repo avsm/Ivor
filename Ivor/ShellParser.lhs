@@ -126,9 +126,20 @@ which runs it.
 >     = do name <- identifier;
 >          when (name /= nm) $ fail $ show nm ++ " & " ++ show name ++ " do not match"
 >          args <- many (pNoApp ext)
->          lchar '=' ;
->          ret <- pTerm ext
->          return $ PClause args ret
+>          try (pclauseret args ext) <|> pclausewith nm args ext
+
+> pclauseret :: [ViewTerm] -> Maybe (Parser ViewTerm) -> Parser PClause
+> pclauseret args ext = do lchar '='
+>                          ret <- pTerm ext
+>                          return $ PClause args ret
+
+> pclausewith :: String -> [ViewTerm] -> Maybe (Parser ViewTerm) -> Parser PClause
+> pclausewith nm args ext = do lchar '|'
+>                              scr <- pTerm ext
+>                              lchar '{'
+>                              pats <- ppatterns nm ext
+>                              lchar '}'
+>                              return $ PWithClause args scr pats
 
 > ppatterns :: String -> Maybe (Parser ViewTerm) -> Parser Patterns
 > ppatterns name ext

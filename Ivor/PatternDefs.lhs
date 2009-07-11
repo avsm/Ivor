@@ -322,7 +322,7 @@ fails, reporting which case isn't matched, if patterns don't cover.
 > matches' (P x) (P y) | x == y = return [(y, P x)]
 > matches' t (P n) = return [(n,t)]
 > matches' (P nm@(MN ("INFER",_))) t = return []
-> matches' x y = if x == y then return [] else fail "No match"
+> matches' x y = if x == y then return [] else fail "With pattern does not match parent"
 
 
 > expandClause :: Monad m => Gamma Name -> RawScheme -> m [RawScheme]

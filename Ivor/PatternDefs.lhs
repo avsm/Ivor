@@ -236,7 +236,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                let gam' = insertGam newname (G Undefined newfnTy 0) gam
 >                newpdef <- mapM (newp tm newargs 1) (zip newpats pats)
 >                (chk, auxdefs, _, _) <- mytypecheck gam' (clause, (RWRet ret)) i
->                (auxdefs', newdefs, covers) <- trace (show (newname, newpdef)) $ checkDef gam' newname (forget newfnTy) newpdef False cover
+>                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover
 >                return (chk, auxdefs++auxdefs', newdefs, covers)
 
 >         addLastArg (RBind n (B Pi arg) x) ty = RBind n (B Pi arg) (addLastArg x ty)

@@ -6,8 +6,9 @@
 > import Control.Monad.Error
 
 > data IError = ICantUnify (Indexed Name) (Indexed Name)
+>             | INotConvertible (Indexed Name) (Indexed Name)
 >             | IMessage String
->   deriving Show
+>   deriving (Show, Eq)
 
 > instance Error IError where
 >     noMsg = IMessage "Ivor Error"

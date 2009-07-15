@@ -4,6 +4,7 @@
 
 > import Ivor.Nobby
 > import Ivor.TTCore
+> import Ivor.Errors
 
 > import Data.List
 
@@ -16,24 +17,20 @@
 Unify on named terms, but normalise using de Bruijn indices.
 (I hope this doesn't get too confusing...)
 
-> unify :: Monad m =>
->          Gamma Name -> Indexed Name -> Indexed Name -> m Unified
+> unify :: Gamma Name -> Indexed Name -> Indexed Name -> IvorM Unified
 > unify gam x y = unifyenv gam [] (finalise x) (finalise y)
 
-> unifyenv :: Monad m =>
->             Gamma Name -> Env Name ->
->             Indexed Name -> Indexed Name -> m Unified
+> unifyenv :: Gamma Name -> Env Name ->
+>             Indexed Name -> Indexed Name -> IvorM Unified
 > unifyenv = unifyenvErr False
 
-> unifyenvCollect :: Monad m =>
->                    Gamma Name -> Env Name ->
->                    Indexed Name -> Indexed Name -> m Unified
+> unifyenvCollect :: Gamma Name -> Env Name ->
+>                    Indexed Name -> Indexed Name -> IvorM Unified
 > unifyenvCollect = unifyenvErr True
 
-> unifyenvErr :: Monad m =>
->                Bool -> -- Ignore errors
+> unifyenvErr :: Bool -> -- Ignore errors
 >                Gamma Name -> Env Name ->
->                Indexed Name -> Indexed Name -> m Unified
+>                Indexed Name -> Indexed Name -> IvorM Unified
 > -- For the sake of readability of the results, first attempt to unify
 > -- without reducing, and reduce if that doesn't work.
 > -- Also, there is no point reducing if we don't have to, and not calling
@@ -45,9 +42,9 @@ Unify on named terms, but normalise using de Bruijn indices.
 >                                    show (p (normalise (gam' gam) x))) $-}
 >     case unifynferr i env (p x)
 >                           (p y) of
->           (Just x) -> return x
->           Nothing -> unifynferr i env (p (normalise (gam' gam) x))
->                                       (p (normalise (gam' gam) y))
+>           (Right x) -> return x
+>           _ -> unifynferr i env (p (normalise (gam' gam) x))
+>                                 (p (normalise (gam' gam) y))
 >    where p (Ind t) = Ind (makePs t)
 >          gam' g = concatGam g (envToGamHACK env)
 
@@ -58,21 +55,18 @@ Make the local environment something that Nobby knows about. Very hacky...
 >     = insertGam n (G (Fun [] (Ind v)) (Ind ty) defplicit) (envToGamHACK xs)
 > envToGamHACK (_:xs) = envToGamHACK xs
 
-> unifynf :: Monad m =>
->            Env Name -> Indexed Name -> Indexed Name -> m Unified
+> unifynf :: Env Name -> Indexed Name -> Indexed Name -> IvorM Unified
 > unifynf = unifynferr True
 
 Collect names which do unify, and ignore errors
 
-> unifyCollect :: Monad m =>
->            Env Name -> Indexed Name -> Indexed Name -> m Unified
+> unifyCollect :: Env Name -> Indexed Name -> Indexed Name -> IvorM Unified
 > unifyCollect = unifynferr False
 
 > sentinel = [(MN ("HACK!!",0), P (MN ("HACK!!",0)))]
 
-> unifynferr :: Monad m =>
->               Bool -> -- Ignore errors
->               Env Name -> Indexed Name -> Indexed Name -> m Unified
+> unifynferr :: Bool -> -- Ignore errors
+>               Env Name -> Indexed Name -> Indexed Name -> IvorM Unified
 > unifynferr ignore env topx@(Ind x) topy@(Ind y)
 >                = do acc <- un env env x y []
 >                     if ignore then return () else checkAcc acc
@@ -96,7 +90,7 @@ Collect names which do unify, and ignore errors
 >                   do acc' <- un envl envr f f' acc
 >                      un envl envr s s' acc'
 >              | otherwise = if ignore then return acc
->                               else fail $ "Can't unify "++show x++" and "++show y
+>                               else ifail $ ICantUnify (Ind x) (Ind y)
 >             where funify (P x) (P y)
 >                       | x==y = True
 >                       | otherwise = hole envl x || hole envl y
@@ -113,8 +107,7 @@ Collect names which do unify, and ignore errors
 >          un envl envr (Stage x) (Stage y) acc = unst envl envr x y acc
 >          un envl envr x y acc
 >                     | x == y || ignore = return acc
->                     | otherwise = fail $ "Can't unify " ++ show x ++
->                                          " and " ++ show y -- ++ " in " ++ show (topx,topy)
+>                     | otherwise = ifail $ ICantUnify (Ind x) (Ind y)
 >          unb envl envr (B b ty) (B b' ty') acc =
 >              do acc' <- unbb envl envr b b' acc
 >                 un envl envr ty ty' acc'
@@ -125,7 +118,7 @@ Collect names which do unify, and ignore errors
 >          unbb envl envr (Guess v) (Guess v') acc = un envl envr v v' acc
 >          unbb envl envr x y acc
 >                   = if ignore then return acc
->                        else fail $ "Can't unify "++show x++" and "++show y
+>                        else fail $ "Can't unifer binders " ++ show x ++ " and " ++ show y
 
 >          unst envl envr (Quote x) (Quote y) acc = un envl envr x y acc
 >          unst envl envr (Code x) (Code y) acc = un envl envr x y acc
@@ -133,8 +126,7 @@ Collect names which do unify, and ignore errors
 >          unst envl envr (Escape x _) (Escape y _) acc = un envl envr x y acc
 >          unst envl envr x y acc =
 >                   if ignore then return acc
->                       else fail $ "Can't unify " ++ show (Stage x) ++
->                                " and " ++ show (Stage y)
+>                       else ifail $ ICantUnify (Ind (Stage x)) (Ind (Stage y))
 
 >          hole env x | (Just (B Hole ty)) <- lookup x env = True
 >                     | otherwise = isInferred x
@@ -146,8 +138,7 @@ Collect names which do unify, and ignore errors
 >              | (Just tm') <- lookup n xs
 >                  = if (ueq tm tm')  -- Take account of names! == no good.
 >                       then checkAcc xs
->                       else fail $ "Can't unify " ++ show tm ++
->                                   " and " ++ show tm'
+>                       else ifail $ ICantUnify (Ind tm) (Ind tm')
 >              | otherwise = checkAcc xs
 
 >          loc x xs = loc' 0 x xs
@@ -160,14 +151,14 @@ TMP HACK! ;)
 
 >          ueq :: TT Name -> TT Name -> Bool
 >          ueq x y = case unifyenv emptyGam [] (Ind x) (Ind y) of
->                   Just _ -> True
+>                   Right _ -> True
 >                   _ -> False
 
 Grr!
 
 > ueq :: Gamma Name -> TT Name -> TT Name -> Bool
 > ueq gam x y = case unifyenv gam [] (Ind x) (Ind y) of
->                   Just _ -> True
+>                   Right _ -> True
 >                   _ -> False
 
 

@@ -7,6 +7,7 @@
 > import Ivor.Nobby
 > import Ivor.Typecheck
 > import Ivor.Unify
+> import Ivor.Errors
 
 > import Debug.Trace
 > import Data.List
@@ -19,10 +20,10 @@ and their types, as well as any other names which need
 to be defined to complete the definition.
 Also return whether the function is definitely total.
 
-> checkDef :: Monad m => Gamma Name -> Name -> Raw -> [PMRaw] -> 
+> checkDef :: Gamma Name -> Name -> Raw -> [PMRaw] -> 
 >             Bool -> -- Check for coverage
 >             Bool -> -- Check for well-foundedness
->             m ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
+>             IvorM ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
 > checkDef gam fn tyin pats cover wellfounded = do
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
@@ -67,11 +68,10 @@ of which arguments are well-founded
 2) Alternatively, a definition is well founded if in every recursive call
 there are no increasing arguments and at least one decreasing argument.
 
-> checkWellFounded :: Monad m =>
->                     Gamma Name ->
+> checkWellFounded :: Gamma Name ->
 >                     Name -> -- recursive function name
 >                     [Int] -> -- set of well founded args
->                     [PMDef Name] -> m ()
+>                     [PMDef Name] -> IvorM ()
 > checkWellFounded gam fn args cs = case cwf1 fn args cs of
 >                                     Failure err -> cwf2 fn cs err
 >                                     Success v -> return ()
@@ -175,10 +175,10 @@ names bound in patterns) then type check the right hand side.
 
 Each clause may generate auxiliary definitions, so return all definitons created.
 
-> matchClauses :: Monad m => Gamma Name -> Name -> [PMRaw] -> Raw -> Indexed Name -> 
+> matchClauses :: Gamma Name -> Name -> [PMRaw] -> Raw -> Indexed Name -> 
 >                 Bool -> -- Check coverage
 >                 [(Indexed Name, Indexed Name)] -> 
->                 m ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
+>                 IvorM ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
 > matchClauses gam fn pats tyin ty@(Ind ty') cover gen = do
 >    let raws = zip (map mkRaw pats) (map getRet pats)
 >    (checkpats, newdefs, aux, covers) <- mytypechecks gam raws [] [] [] True
@@ -186,7 +186,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >              do checkCoverage (map fst checkpats) (map fst gen)
 >                 return True
 >              else case checkCoverage (map fst checkpats) (map fst gen) of
->                 Nothing -> return False
+>                 Left err -> return False
 >                 _ -> return True
 >    let pmdef = map (mkScheme gam) checkpats
 >    let arity = length (getExpected ty')
@@ -305,7 +305,7 @@ cases in the second argument. Each of the necessary cases in 'covering'
 must match one of 'pats'.
 fails, reporting which case isn't matched, if patterns don't cover.
 
-> checkCoverage :: Monad m => [Indexed Name] -> [Indexed Name] -> m ()
+> checkCoverage :: [Indexed Name] -> [Indexed Name] -> IvorM ()
 > checkCoverage pats [] = return ()
 > checkCoverage pats (c:cs)
 >     | length (filter (matches c) pats) > 0 = checkCoverage pats cs
@@ -325,15 +325,15 @@ fails, reporting which case isn't matched, if patterns don't cover.
 > matches' x y = if x == y then return [] else fail "With pattern does not match parent"
 
 
-> expandClause :: Monad m => Gamma Name -> RawScheme -> m [RawScheme]
+> expandClause :: Gamma Name -> RawScheme -> IvorM [RawScheme]
 > expandClause gam (RSch ps ret) = do
 >   expanded <- mapM (expandCon gam) ps
 >   return $ map (\p -> RSch p ret) (combine expanded)
 
 Remove the clauses which can't possibly be type correct.
 
-> validClauses :: Monad m => Gamma Name -> Name -> Indexed Name ->
->                 [RawScheme] -> m [(Indexed Name, Indexed Name)]
+> validClauses :: Gamma Name -> Name -> Indexed Name ->
+>                 [RawScheme] -> IvorM [(Indexed Name, Indexed Name)]
 > validClauses gam fn ty cs = do
 >     -- add fn:ty to the context as an axiom
 >     checkValid gam [] cs
@@ -341,8 +341,8 @@ Remove the clauses which can't possibly be type correct.
 >        checkValid gam acc ((RSch c r):cs)
 >           = do let app = mkapp (Var fn) c
 >                case typecheck gam app of
->                  Nothing -> checkValid gam acc cs
->                  Just (v,t) -> checkValid gam ((v,t):acc) cs
+>                  Right (v,t) -> checkValid gam ((v,t):acc) cs
+>                  _ -> checkValid gam acc cs
 
 
 Return true if the given pattern clause is the most specific in a list
@@ -374,7 +374,7 @@ Return true if the given pattern clause is the most specific in a list
 Given a raw term, recursively expand all of its arguments which are in
 constructor form
 
-> expandCon :: Monad m => Gamma Name -> Raw -> m [Raw]
+> expandCon :: Gamma Name -> Raw -> IvorM [Raw]
 > expandCon gam r = do
 >     let f = getappfun r
 >     let as = getappargs r

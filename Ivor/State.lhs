@@ -16,6 +16,7 @@
 > import Ivor.Tactics as Tactics
 > import Ivor.Display
 > import Ivor.Unify
+> import Ivor.Errors
 
 > import System.Environment
 > import Data.List
@@ -72,7 +73,7 @@ compiled terms, etc.
 
 Take a data type definition and add constructors and elim rule to the context.
 
-> doData :: Monad m => Bool -> IState -> Name -> RawDatatype -> m IState
+> doData :: Bool -> IState -> Name -> RawDatatype -> IvorM IState
 > doData elim st n r = do
 >            let ctxt = defs st
 >            dt <- if elim then checkType (defs st) r -- Make iota schemes
@@ -110,7 +111,7 @@ Take a data type definition and add constructors and elim rule to the context.
 >                               ctxt
 >            return newdefs
 
-> doMkData :: Monad m => Bool -> IState -> Datadecl -> m IState
+> doMkData :: Bool -> IState -> Datadecl -> IvorM IState
 > doMkData elim st (Datadecl n ps rawty cs) 
 >     = do (gty,_) <- checkIndices (defs st) ps [] rawty
 >          let ty = forget (normalise (defs st) gty)
@@ -129,7 +130,7 @@ Take a data type definition and add constructors and elim rule to the context.
 >        stripps 0 t = t
 >        stripps n (RBind _ _ sc) = stripps (n-1) sc
 
-> suspendProof :: Monad m => IState -> m IState
+> suspendProof :: IState -> IvorM IState
 > suspendProof st = do case proofstate st of
 >                        (Just prf) -> do
 >                          let olddefs = defs st
@@ -144,7 +145,7 @@ Take a data type definition and add constructors and elim rule to the context.
 >               return $ (x, G (Partial (Ind v) q) (finalise (Ind ty)) defplicit)
 > suspendFrom _ _ _ = fail "Not a suspendable proof"
 
-> resumeProof :: Monad m => IState -> Name -> m IState
+> resumeProof :: IState -> Name -> IvorM IState
 > resumeProof st n = case (proofstate st) of
 >      Nothing ->
 >          case glookup n (defs st) of
@@ -170,7 +171,7 @@ And an argument to the current proof (after any dependencies)
 e.g. adding z:C x to foo : (x:A)(y:B)Z = [x:A][y:B]H
  becomes foo : (x:A)(z:C x)(y:B) = [x:A][z:C x][y:B]H.
 
-> addArg :: Monad m => IState -> Name -> TT Name -> m IState
+> addArg :: IState -> Name -> TT Name -> IvorM IState
 > addArg st n ty =
 >     case proofstate st of
 >         Just (Ind (Bind n (B (Guess v) t) sc)) -> do

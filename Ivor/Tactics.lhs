@@ -7,6 +7,7 @@
 > import Ivor.Nobby
 > import Ivor.Gadgets
 > import Ivor.Unify
+> import Ivor.Errors
 
 > import Data.List
 > import Data.Maybe
@@ -27,10 +28,8 @@ new axiom to the context.
 >                   | HideGoal Name
 >    deriving (Show,Eq)
 
-> type Tactic = Monad m => Gamma Name ->
->                          Env Name ->
->                          Indexed Name ->
->                          m (Indexed Name, [TacticAction])
+> type Tactic = Gamma Name -> Env Name ->
+>               Indexed Name -> IvorM (Indexed Name, [TacticAction])
 
 > type HoleFn a = Gamma Name -> Env Name -> Indexed Name -> a
 
@@ -91,8 +90,8 @@ no guesses attached (False).
 
 Typecheck a term in the context of the given hole
 
-> holecheck :: Monad m => Name -> Gamma Name -> Indexed Name ->
->              Raw -> m (Indexed Name, Indexed Name)
+> holecheck :: Name -> Gamma Name -> Indexed Name ->
+>              Raw -> IvorM (Indexed Name, Indexed Name)
 > holecheck n gam state raw = case (findhole gam (Just n) state docheck) of
 >                                Nothing -> fail "No such hole binder"
 >                                (Just x) -> x
@@ -108,12 +107,12 @@ the term. Oh well.]
 
 FIXME: Why not use a state monad for the unified variables in rt?
 
-> runtactic :: Monad m => Gamma Name -> Name ->
->              Indexed Name -> Tactic -> m (Indexed Name, [TacticAction])
+> runtactic :: Gamma Name -> Name ->
+>              Indexed Name -> Tactic -> IvorM (Indexed Name, [TacticAction])
 > runtactic gam n t tac = runtacticEnv gam [] n t tac
 
-> runtacticEnv :: Monad m => Gamma Name -> Env Name -> Name ->
->                 Indexed Name -> Tactic -> m (Indexed Name, [TacticAction])
+> runtacticEnv :: Gamma Name -> Env Name -> Name ->
+>                 Indexed Name -> Tactic -> IvorM (Indexed Name, [TacticAction])
 > runtacticEnv gam env n (Ind s) tactic =
 >     do (tm, actions) <- (rt env s)
 >        return ((Ind (substNames (mapMaybe mkUnify actions) tm)), actions)
@@ -164,7 +163,7 @@ FIXME: Why not use a state monad for the unified variables in rt?
 
 Tactics by default don't need to return the other holes they solved.
 
-> tacret :: Monad m => Indexed Name -> m (Indexed Name, [TacticAction])
+> tacret :: Indexed Name -> IvorM (Indexed Name, [TacticAction])
 > tacret x = return (x,[])
 
 Sequence two tactics
@@ -179,8 +178,8 @@ Try to run a tactic, do nothing silently if it fails.
 > attempt :: Tactic -> Tactic
 > attempt tac gam env tm =
 >     case tac gam env tm of
->        Just (tm',act) -> return (tm',act)
->        Nothing -> tacret tm
+>        Right (tm',act) -> return (tm',act)
+>        _ -> tacret tm
 
 Create a new theorem ?x:S. x
 
@@ -198,7 +197,7 @@ Add a new claim to the current state
 > claim :: Name -> Raw -> Tactic -- ?Name:Type.
 > claim x s gam env (Ind t) =
 >     do (Ind sv, st) <- check gam (ptovenv env) s Nothing
->        checkConv gam st (Ind Star) "Type of claim must be *"
+>        checkConv gam st (Ind Star) (IMessage "Type of claim must be *")
 >        return $ (Ind (Bind x (B Hole (makePsEnv (map fst env) sv)) (Sc t)),
 >                      [NextGoal x])
 
@@ -238,8 +237,8 @@ Try filling the current goal with a term
 >        let fty = finalise (Ind ty)
 >        others <- -- trace ("unifying "++show gt++" and "++show ty') $
 >                  case unifyenv (emptyGam) (ptovenv env) fgt fty' of
->                     Nothing -> unifyenv gam (ptovenv env) fgt fty
->                     (Just x) -> return x
+>                     Left _ -> unifyenv gam (ptovenv env) fgt fty
+>                     (Right x) -> return x
 >        -- let newgt = substNames others gt
 >        -- let newgv = substNames others gv
 >        let newgv = gv
@@ -583,7 +582,7 @@ Replace a goal with an equivalent (convertible) goal.
 >     do (Ind goalv,Ind goalt) <- check gam (ptovenv env) goal Nothing
 >        let goalvin = makePsEnv (map fst env) goalv
 >        checkConvEnv env gam (Ind goalv) (finalise (Ind ty))
->                         "Not equivalent to the Goal"
+>                         (IMessage "Not equivalent to the Goal")
 >        tacret $ Ind (Bind x (B Hole goalvin) sc)
 > equiv _ _ _ (Ind (Bind x _ _)) = fail $ "equiv: " ++ show x ++ " Not a hole"
 > equiv _ _ _ _ = fail "equiv: Not a binder, can't happen"

@@ -11,6 +11,7 @@
 > import Ivor.Nobby
 > import Ivor.Unify
 > import Ivor.Constant
+> import Ivor.Errors
 
 > import Control.Monad.State
 > import Data.List
@@ -31,16 +32,14 @@ syntactic.
 
  convert g x y = trace ((show (normalise g x)) ++ " & " ++ (show (normalise g y))) $ (normalise g x)==(normalise g y)
 
-> checkConv :: Monad m => Gamma Name -> Indexed Name -> Indexed Name -> 
->              String -> m ()
+> checkConv :: Gamma Name -> Indexed Name -> Indexed Name -> IError -> IvorM ()
 > checkConv g x y err = if convert g x y then return ()
->	                 else fail err
+>	                 else ifail err
 
-> checkConvEnv :: Monad m => Env Name -> Gamma Name -> 
->                 Indexed Name -> Indexed Name -> 
->              String -> m ()
+> checkConvEnv :: Env Name -> Gamma Name -> Indexed Name -> Indexed Name -> 
+>                 IError -> IvorM ()
 > checkConvEnv env g x y err = if convertEnv env g x y then return ()
->                              else fail err
+>                              else ifail err
 
 
 *****
@@ -60,18 +59,18 @@ so....
 Top level typechecking function - takes a context and a raw term,
 returning a pair of a term and its type
 
-> typecheck :: Monad m => Gamma Name -> Raw -> m (Indexed Name,Indexed Name)
+> typecheck :: Gamma Name -> Raw -> IvorM (Indexed Name,Indexed Name)
 > typecheck gamma term = do t <- check gamma [] term Nothing
 >			    return t
 
-> typecheckAndBind :: Monad m => Gamma Name -> Raw -> 
->                     m (Indexed Name,Indexed Name, Env Name)
+> typecheckAndBind :: Gamma Name -> Raw -> 
+>                     IvorM (Indexed Name,Indexed Name, Env Name)
 > typecheckAndBind gamma term = checkAndBind gamma [] term Nothing
 
 Check a term, and return well typed terms with explicit names (i.e. no
 de Bruijn indices)
 
-> tcClaim :: Monad m => Gamma Name -> Raw -> m (Indexed Name,Indexed Name)
+> tcClaim :: Gamma Name -> Raw -> IvorM (Indexed Name,Indexed Name)
 > tcClaim gamma term = do (Ind t, Ind v) <- check gamma [] term Nothing
 >			    {-trace (show t) $-}
 >                         return (Ind (makePs t), Ind (makePs v))
@@ -86,7 +85,7 @@ type.
 >      Env Name, -- Extra bindings, if above is true
 >      -- conversion constraints; remember the environment at the time we tried
 >      -- also a string explaining where the constraint came from
->      [(Env Name, Indexed Name, Indexed Name, String)],
+>      [(Env Name, Indexed Name, Indexed Name, IError)],
 >      -- Metavariables we've introduce to define later
 >      [Name])
 
@@ -95,11 +94,10 @@ type.
 Finishes up type checking by making a substitution from all the conversion
 constraints and applying it to the term and type.
 
-> doConversion :: Monad m =>
->                 Raw -> Gamma Name ->
->                 [(Env Name, Indexed Name, Indexed Name,String)] ->
+> doConversion :: Raw -> Gamma Name ->
+>                 [(Env Name, Indexed Name, Indexed Name,IError)] ->
 >                 Indexed Name -> Indexed Name -> 
->                m (Indexed Name, Indexed Name)
+>                 IvorM (Indexed Name, Indexed Name)
 > doConversion raw gam constraints (Ind tm) (Ind ty) =
 >     -- trace ("Finishing checking " ++ show tm ++ " with " ++ show (length constraints) ++ " equations") $ 
 >           -- Unify twice; first time collect the substitutions, second
@@ -125,8 +123,8 @@ constraints and applying it to the term and type.
 >                  let (Ind y') = normalise gam (Ind (papp s' y))
 >                  uns <- 
 >                         case unifyenvErr ok gam env (Ind x') (Ind y') of
->                           Success x' -> return x'
->                           Failure err -> fail err
+>                           Right x' -> return x'
+>                           Left err -> ifail err
 
                          Failure err -> fail $ err ++"\n" ++ show nms ++"\n" ++ show constraints -- $ -} ++ " Can't convert "++show x'++" and "++show y' ++ "\n" ++ show constraints ++ "\n" ++ show nms
 
@@ -142,16 +140,16 @@ constraints and applying it to the term and type.
 >          delta n ty n' | n == n' = ty
 >                        | otherwise = P n'
 
-> check :: Monad m => Gamma Name -> Env Name -> Raw -> Maybe (Indexed Name) -> 
->          m (Indexed Name, Indexed Name)
+> check :: Gamma Name -> Env Name -> Raw -> Maybe (Indexed Name) -> 
+>          IvorM (Indexed Name, Indexed Name)
 > check gam env tm mty = do
 >   ((tm', ty'), (_,_,_,convs,_)) <- lvlcheck 0 False 0 gam env tm mty
 >   tm'' <- doConversion tm gam convs tm' ty'
 >   return tm''
 
-> checkAndBind :: Monad m => Gamma Name -> Env Name -> Raw -> 
+> checkAndBind :: Gamma Name -> Env Name -> Raw -> 
 >                 Maybe (Indexed Name) -> 
->                 m (Indexed Name, Indexed Name, Env Name)
+>                 IvorM (Indexed Name, Indexed Name, Env Name)
 > checkAndBind gam env tm mty = do
 >    ((v,t), (next,inf,e,convs,_)) <- lvlcheck 0 True 0 gam env tm mty
 >    (v'@(Ind vtm),t') <- doConversion tm gam convs v t -- (normalise gam t1') 
@@ -160,8 +158,8 @@ constraints and applying it to the term and type.
 
 Check a pattern and an intermediate computation together
 
-> checkAndBindWith :: Monad m => Gamma Name -> Raw -> Raw -> Name ->
->                     m (Indexed Name, Indexed Name, Indexed Name, Indexed Name, Env Name)
+> checkAndBindWith :: Gamma Name -> Raw -> Raw -> Name ->
+>                     IvorM (Indexed Name, Indexed Name, Indexed Name, Indexed Name, Env Name)
 > checkAndBindWith gam tm1 tm2 root = do
 >    ((v1,t1), (next, inf, e, bs,_)) <- lvlcheck 0 True 0 gam [] tm1 Nothing
 >    -- rename all the 'inferred' things to another generated name,
@@ -195,8 +193,8 @@ and with the same expected type.
 We need this for checking pattern clauses...
 Return a list of the functions we need to define to complete the definition.
 
-> checkAndBindPair :: Monad m => Gamma Name -> Raw -> Raw -> 
->                     m (Indexed Name, Indexed Name, 
+> checkAndBindPair :: Gamma Name -> Raw -> Raw -> 
+>                     IvorM (Indexed Name, Indexed Name, 
 >                        Indexed Name, Indexed Name, Env Name,
 >                        [(Name, Indexed Name)])
 > checkAndBindPair gam tm1 tm2 = do
@@ -226,7 +224,7 @@ Return a list of the functions we need to define to complete the definition.
 >  where mkNames 0 = []
 >        mkNames n
 >           = ([],Ind (P (MN ("INFER",n-1))), 
->                 Ind (P (MN ("T",n-1))), "renaming"):(mkNames (n-1))
+>                 Ind (P (MN ("T",n-1))), IMessage "renaming"):(mkNames (n-1))
 >        renameBinders [] = []
 >        renameBinders (((MN ("INFER",n)),b):bs) 
 >                         = ((MN ("T",n),b):(renameBinders bs))
@@ -266,10 +264,10 @@ if (all (\e -> envLT x e) (y:ys))
 
 > inferName n = (MN ("INFER", n))
 
-> lvlcheck :: Monad m => Level -> Bool -> Int -> 
+> lvlcheck :: Level -> Bool -> Int -> 
 >             Gamma Name -> Env Name -> Raw -> 
 >             Maybe (Indexed Name) -> 
->             m ((Indexed Name, Indexed Name), CheckState)
+>             IvorM ((Indexed Name, Indexed Name), CheckState)
 > lvlcheck lvl infer next gamma env tm exp 
 >     = do runStateT (tcfixupTop env lvl tm exp) (next, infer, [], [], []) 
 >  where
@@ -285,8 +283,8 @@ Do the typechecking, then unify all the inferred terms.
 >     if infer then (case exp of
 >              Nothing -> return ()
 >              Just expty -> checkConvSt env gamma expty tmty 
->                               $ "Expected type and inferred type do not match: " 
->                               ++ show expty ++ " and " ++ show tmty)
+>                               $ IMessage ("Expected type and inferred type do not match: " 
+>                               ++ show expty ++ " and " ++ show tmty))
 >       else return ()
 >     -- Then fill in any remained inferred values we got by knowing the
 >     -- expected type
@@ -312,13 +310,13 @@ generate, the stage we're at, and a list of conversion errors (which
 will later be unified).  Needs an explicit type to help out ghc's
 typechecker...
 
->  tc :: Monad m => Env Name -> Level -> Raw -> Maybe (Indexed Name) ->
->                   StateT CheckState m (Indexed Name, Indexed Name)
+>  tc :: Env Name -> Level -> Raw -> Maybe (Indexed Name) ->
+>        StateT CheckState IvorM (Indexed Name, Indexed Name)
 >  tc env lvl (Var n) exp = do
 >        (rv, rt) <- mkTT (lookupi n env 0) (glookup n gamma)
 >        case exp of
 >           Nothing -> return (rv,rt)
->           Just expt -> do checkConvSt env gamma rt expt $ "Type error"
+>           Just expt -> do checkConvSt env gamma rt expt $ (IMessage "Type error")
 >                           return (rv,rt)
 
 >    where mkTT (Just (i, B _ t)) _ = return (Ind (P n), Ind t)
@@ -357,11 +355,11 @@ typechecker...
 >          let sty = (normaliseEnv env emptyGam (Ind s))
 >          let tt = (Bind (MN ("x",0)) (B (Let av) at) (Sc t))
 >          let tmty = (normaliseEnv env emptyGam (Ind tt))
->          checkConvSt env gamma (Ind at) (Ind s) $ "Type error in application of " ++ show fv ++ " : " ++ show a ++ " : " ++ show at ++ ", expected type "++show sty ++ " " ++ show tmty
+>          checkConvSt env gamma (Ind at) (Ind s) $ IMessage ("Type error in application of " ++ show fv ++ " : " ++ show a ++ " : " ++ show at ++ ", expected type "++show sty ++ " " ++ show tmty)
 >          return (Ind (App fv av), tmty)
 >        (_, (Ind (Bind _ (B Pi s) (Sc t)))) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
->          checkConvSt env gamma (Ind at) (Ind s) $ "Type error: " ++ show a ++ " : " ++ show at ++ ", expected type "++show s -- ++" "++show env
+>          checkConvSt env gamma (Ind at) (Ind s) $ IMessage ("Type error: " ++ show a ++ " : " ++ show at ++ ", expected type "++show s) -- ++" "++show env
 >          let tt = (Bind (MN ("x",0)) (B (Let av) at) (Sc t))
 >          let tt' = (normaliseEnv env gamma (Ind tt))
 >          return (Ind (App fv av), (normaliseEnv env gamma (Ind tt)))
@@ -369,9 +367,9 @@ typechecker...
 >     return (rv,rt)
 >     case exp of
 >        Nothing -> return (rv,rt)
->        Just expt -> do checkConvSt env gamma rt expt $ "Type error"
+>        Just expt -> do checkConvSt env gamma rt expt (IMessage "Type error")
 >                        return (rv,rt)
->  tc env lvl (RConst x) _ = tcConst x
+>  tc env lvl (RConst x) _ = lift $ tcConst x
 >  tc env lvl RStar _ = return (Ind Star, Ind Star)
 
 Pattern bindings are a special case since they may bind several names,
@@ -416,7 +414,7 @@ and we don't convert names to de Bruijn indices
 >       (Ind (Label lt comp)) -> do
 >          (Ind tv, Ind tt) <- tcfixup env lvl t (Just (Ind lt))
 >          checkConvSt env gamma (Ind lt) (Ind tt) $ 
->             "Type error: " ++ show tt ++", expected type " ++ show lt
+>             IMessage ("Type error: " ++ show tt ++", expected type " ++ show lt)
 >          return (Ind (Return tv), Ind (Label tt comp))
 >       _ -> fail $ "return " ++ show t++ " should give a label, got " ++ show expnf
 >  tc env lvl (RReturn t) Nothing = fail $ "Need to know the type to return for "++show t
@@ -498,7 +496,7 @@ Insert inferred values into the term
 
 >  fixup e tm = fixupGam gamma e tm
 
->  tcConst :: (Monad m, Constant c) => c -> m (Indexed Name, Indexed Name)
+>  tcConst :: (Constant c) => c -> IvorM (Indexed Name, Indexed Name)
 >  tcConst c = return (Ind (Const c), Ind (constType c))
 
  tcConst Star = return (Ind (Const Star), Ind (Const Star)) --- *:* is a bit dodgy...
@@ -531,10 +529,8 @@ Insert inferred values into the term
 >     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
 >     (Ind vv,Ind vt) <- tcfixup env lvl v (Just (Ind tv))
 >     let ttnf = normaliseEnv env gamma (Ind tt)
->     checkConvEnv env gamma (Ind vt) (Ind tv) $ 
->        show vt ++ " and " ++ show tv ++ " are not convertible\n" ++ 
->             dbg (normaliseEnv env gamma (Ind vt)) ++ "\n" ++
->             dbg (normaliseEnv env gamma (Ind tv)) ++ "\n"
+>     lift $ checkConvEnv env gamma (Ind vt) (Ind tv) $ 
+>        (INotConvertible (Ind vt) (Ind tv))
 >     case ttnf of
 >       (Ind Star) -> return (B (Let vv) tv)
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
@@ -550,8 +546,7 @@ Insert inferred values into the term
 >     (Ind tv,Ind tt) <- tcfixup env lvl t Nothing
 >     (Ind vv,Ind vt) <- tcfixup env lvl v Nothing
 >     let ttnf = normaliseEnv env gamma (Ind tt)
->     checkConvEnv env gamma (Ind vt) (Ind tv) $ 
->        show vt ++ " and " ++ show tv ++ " are not convertible"
+>     lift $ checkConvEnv env gamma (Ind vt) (Ind tv) $ INotConvertible (Ind vt) (Ind tv)
 >     case ttnf of
 >       (Ind Star) -> return (B (Guess vv) tv)
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
@@ -619,8 +614,8 @@ extended environment.
 > fixupGam gamma [] tm = return tm
 > fixupGam gamma ((env,x,y,_):xs) (Ind tm, Ind ty) = do 
 >      uns <- case unifyenv gamma env y x of
->                 Success x' -> return x'
->                 Failure err -> return [] -- fail err -- $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
+>                 Right x' -> return x'
+>                 Left err -> return [] -- fail err -- $ "Can't convert "++show x++" and "++show y ++ " ("++show err++")"
 >      let tm' = fixupNames gamma uns tm
 >      let ty' = fixupNames gamma uns ty
 >      fixupGam gamma xs (Ind tm', Ind ty')
@@ -654,18 +649,16 @@ extended environment.
 > combinepats (Just (PVar n)) x = error "can't apply things to a variable"
 > combinepats (Just (PCon tag n ty args)) x = PCon tag n ty (args++[x])
 
- discharge :: Monad m =>
-              Gamma Name -> Name -> Binder (TT Name) -> 
-	       (Scope (TT Name)) -> (Scope (TT Name)) ->
-	       m (Indexed Name, Indexed Name)
-
+> discharge :: Gamma Name -> Name -> Binder (TT Name) -> 
+>	       (Scope (TT Name)) -> (Scope (TT Name)) ->
+>	       StateT CheckState IvorM (Indexed Name, Indexed Name)
 > discharge gamma n (B Lambda t) scv sct = do
 >    let lt = Bind n (B Pi t) sct
 >    let lv = Bind n (B Lambda t) scv
 >    return (Ind lv,Ind lt)
 > discharge gamma n (B Pi t) scv (Sc sct) = do
 >    checkConvSt [] gamma (Ind Star) (Ind sct) $ 
->       "The scope of a Pi binding must be a type"
+>       IMessage "The scope of a Pi binding must be a type"
 >    let lt = Star
 >    let lv = Bind n (B Pi t) scv
 >    return (Ind lv,Ind lt)
@@ -677,26 +670,26 @@ extended environment.
 >    let lt = sct -- already checked sct and t are convertible
 >    let lv = Bind n (B Hole t) scv
 >    -- A hole can't appear in the type of its scope, however.
->    checkNotHoley 0 sct
+>    lift $ checkNotHoley 0 sct
 >    return (Ind lv,Ind lt)
 > discharge gamma n (B (Guess v) t) scv (Sc sct) = do
 >    let lt = sct -- already checked sct and t are convertible
 >    let lv = Bind n (B (Guess v) t) scv
 >    -- A hole can't appear in the type of its scope, however.
->    checkNotHoley 0 sct
+>    lift $ checkNotHoley 0 sct
 >    return (Ind lv,Ind lt)
 > discharge gamma n (B (Pattern v) t) scv (Sc sct) = do
 >    let lt = sct -- already checked sct and t are convertible
 >    let lv = Bind n (B (Pattern v) t) scv
 >    -- A hole can't appear in the type of its scope, however.
->    checkNotHoley 0 sct
+>    lift $ checkNotHoley 0 sct
 >    return (Ind lv,Ind lt)
 > discharge gamma n (B MatchAny t) scv (Sc sct) = do
 >    let lt = sct
 >    let lv = Bind n (B MatchAny t) scv
 >    return (Ind lv,Ind lt)
 
-> checkNotHoley :: Monad m => Int -> TT n -> m ()
+> checkNotHoley :: Int -> TT n -> IvorM ()
 > checkNotHoley i (V v) | v == i = fail "You can't put a hole where a hole don't belong."
 > checkNotHoley i (App f a) = do checkNotHoley i f
 >                                checkNotHoley i a
@@ -733,11 +726,11 @@ extended environment.
 > pToV2 v p (Const x) = Sc (Const x)
 > pToV2 v p Star = Sc Star
 
-> checkR g t = (typecheck g t):: (Result (Indexed Name, Indexed Name)) 
+ checkR g t = (typecheck g t):: (Result (Indexed Name, Indexed Name)) 
 
 If we're paranoid - recheck a supposedly well-typed term. Might want to
 do this after finishing a proof.
 
-> verify :: Monad m => Gamma Name -> Indexed Name -> m ()
+> verify :: Gamma Name -> Indexed Name -> IvorM ()
 > verify gam tm = do (_,_) <- typecheck gam (forget tm)
 >                    return ()

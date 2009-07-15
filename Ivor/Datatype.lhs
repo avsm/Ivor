@@ -5,6 +5,7 @@
 > import Ivor.Typecheck
 > import Ivor.Nobby
 > import Ivor.PatternDefs
+> import Ivor.Errors
 
 > import Debug.Trace
 
@@ -52,7 +53,7 @@ checkType checks a raw data type, with its elimination rule and iota
 schemes, and returns a DataType, ready for compilation to entries in
 the context and an executable elimination rule.
 
-> checkType :: Monad m => Gamma Name -> RawDatatype -> m (Datatype Name)
+> checkType :: Gamma Name -> RawDatatype -> IvorM (Datatype Name)
 > checkType gamma (RData (ty,kind) cons numps (er,erty) (cr,crty) eschemes cschemes) = 
 >     do (kv, _) <- typecheck gamma kind
 >        let erdata = Elims er cr (map fst cons)
@@ -66,7 +67,7 @@ the context and an executable elimination rule.
 >	 return (Data (ty,G (TCon (arity gamma kv) erdata) kv defplicit) consv numps
 >                    (er,ev) (cr,cv) (Just esch) (Just csch) eschemes cschemes)
 
-> checkTypeNoElim :: Monad m => Gamma Name -> RawDatatype -> m (Datatype Name)
+> checkTypeNoElim :: Gamma Name -> RawDatatype -> IvorM (Datatype Name)
 > checkTypeNoElim gamma (RData (ty,kind) cons numps (er,erty) (cr,crty) eschemes cschemes) = 
 >     do (kv, _) <- typecheck gamma kind
 >        let erdata = Elims er cr (map fst cons)
@@ -96,8 +97,7 @@ foo p0 p1 ... pn = t
 we get V 0 = pn ... V n = p0
 then pattern variables are retrieved by projection with Proj in typechecked t.
 
-> checkScheme :: Monad m =>
->	          Gamma Name -> Name -> RawScheme -> m (Scheme Name)
+> checkScheme :: Gamma Name -> Name -> RawScheme -> IvorM (Scheme Name)
 > checkScheme gamma n (RSch pats (RWRet ret)) = 
 >     do let ps = map (mkPat gamma) pats
 >	 let rhsvars = getPatVars gamma ps

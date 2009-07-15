@@ -179,15 +179,17 @@
 > instance IsTerm Raw where
 >     check (Ctxt st) t = do
 >        case (typecheck (defs st) t) of
->           (Success (t, ty)) -> return $ Term (t,ty)
->           (Failure err) -> fail err
+>           (Right (t, ty)) -> return $ Term (t,ty)
+>           (Left err) -> tt $ ifail err
 >     raw t = return t
 
 > data TTError = CantUnify ViewTerm ViewTerm
+>              | NotConvertible ViewTerm ViewTerm
 >              | Message String
 
 > instance Show TTError where
 >     show (CantUnify t1 t2) = "Can't unify " ++ show t1 ++ " and " ++ show t2
+>     show (NotConvertible t1 t2) = show t1 ++ " and " ++ show t2 ++ " are not convertible"
 >     show (Message s) = s
 
 > instance Error TTError where
@@ -196,8 +198,8 @@
 
 > type TTM = Either TTError
 
-> ttfail :: TTError -> TTM a
-> ttfail = Left
+> ttfail :: String -> TTM a
+> ttfail s = Left (Message s)
 
 > tt :: IvorM a -> TTM a
 > tt (Left err) = Left (getError err)
@@ -205,6 +207,7 @@
 
 > getError :: IError -> TTError
 > getError (ICantUnify l r) = CantUnify (view (Term (l, Ind TTCore.Star))) (view (Term (r, Ind TTCore.Star)))
+> getError (INotConvertible l r) = NotConvertible (view (Term (l, Ind TTCore.Star))) (view (Term (r, Ind TTCore.Star)))
 > getError (IMessage s) = Message s
 
 > -- | Quickly convert a 'ViewTerm' into a real 'Term'.
@@ -226,7 +229,7 @@
 >             Failure err -> fail err
 
 > instance IsData Inductive where
->     addData' elim (Ctxt st) ind = do st' <- doMkData elim st (datadecl ind)
+>     addData' elim (Ctxt st) ind = do st' <- tt $ doMkData elim st (datadecl ind)
 >                                      return (Ctxt st')
 >       where
 >         datadecl (Inductive n ps inds cty cons) =
@@ -302,7 +305,7 @@
 >         inty <- raw ty
 >         let (Patterns clauses) = pats
 >         (pmdefs, newnames, tot) 
->                <- checkDef ndefs n inty (map mkRawClause clauses)
+>               <- tt $ checkDef ndefs n inty (map mkRawClause clauses)
 >                            (not (elem Ivor.TT.Partial opts))
 >                            (not (elem GenRec opts))
 >         (ndefs',vnewnames) 
@@ -334,7 +337,7 @@
 >         let ctxt = defs st
 >         term <- raw tm
 >         case (checkAndBind tmp [] term (Just inty)) of
->              (Success (v,t@(Ind sc),_)) -> do
+>              (Right (v,t@(Ind sc),_)) -> do
 >                 if (convert (defs st) inty t)
 >                     then (do
 >                       checkBound (getNames (Sc sc)) t
@@ -342,7 +345,7 @@
 >                               -- = Gam ((n,G (Fun [] v) t):ctxt)
 >                       return $ Ctxt st { defs = newdefs })
 >                     else (fail $ "The given type and inferred type do not match, inferred " ++ show t)
->              (Failure err) -> fail err
+>              (Left err) -> tt $ ifail err
 
 
 > -- |Add a new definition to the global state.
@@ -352,12 +355,12 @@
 >         v <- raw tm
 >         let ctxt = defs st
 >         case (typecheck ctxt v) of
->             (Success (v,t@(Ind sc))) -> do
+>             (Right (v,t@(Ind sc))) -> do
 >                 checkBound (getNames (Sc sc)) t
 >                 newdefs <- gInsert n (G (Fun [] v) t defplicit) ctxt
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
 >                 return $ Ctxt st { defs = newdefs }
->             (Failure err) -> fail err
+>             (Left err) -> tt $ ifail err
 
 > checkBound :: [Name] -> (Indexed Name) -> TTM ()
 > checkBound [] t = return ()
@@ -389,12 +392,12 @@ do let olddefs = defs st
 >          general <- raw $ "[P:*][meth_general:(p:P)P](meth_general (" ++ 
 >                            show n ++ " P meth_general))"
 >          case (typecheck tmp general) of
->              (Success (v,t)) -> do
+>              (Right (v,t)) -> do
 >                 -- let newdefs = Gam ((n,G (Fun [] v) t):ctxt)
 >                 newdefs <- gInsert n (G (Fun [] v) t defplicit) ctxt
 >                 let scs = lift n (levelise (normalise (emptyGam) v))
 >                 return $ Ctxt st { defs = newdefs }
->              (Failure err) -> fail $ "Can't happen (general): "++err
+>              (Left err) -> ttfail $ "Can't happen (general): "++ show err
 
 > -- | Add the heterogenous (\"John Major\") equality rule and its reduction
 > addEquality :: Context -> Name -- ^ Name to give equality type
@@ -409,7 +412,7 @@ do let olddefs = defs st
 >     rcrule <- eqElimType (show ty) (show con) "Case"
 >     rischeme <- eqElimSch (show con)
 >     let rdata = (RData rtycon [rdatacon] 2 rerule rcrule [rischeme] [rischeme])
->     st <- doData True st ty rdata
+>     st <- tt $ doData True st ty rdata
 >     return $ Ctxt st
 
 > -- eqElim : (A:*)(a:A)(b:A)(q:JMEq A A a a)
@@ -460,12 +463,12 @@ do let olddefs = defs st
 >        t <- raw tm
 >        let Gam ctxt = defs st
 >        case (typecheck (defs st) t) of
->           (Success (t, ty)) ->
->              do checkConv (defs st) ty (Ind TTCore.Star) "Not a type"
+>           (Right (t, ty)) ->
+>              do tt $ checkConv (defs st) ty (Ind TTCore.Star) (IMessage "Not a type")
 >                 -- let newdefs = Gam ((n, (G und (finalise t))):ctxt)
 >                 newdefs <- gInsert n (G und (finalise t) defplicit) (Gam ctxt)
 >                 return $ Ctxt st { defs = newdefs }
->           (Failure err) -> fail err
+>           (Left err) -> tt $ ifail err
 
 > -- | Add a new primitive type. This should be done in assocation with
 > -- creating an instance of 'ViewConst' for the type, and creating appropriate
@@ -639,7 +642,7 @@ intuitive)
 > theorem (Ctxt st) n tm = do
 >        checkNotExists n (defs st)
 >        rawtm <- raw tm
->        (tv,tt) <- tcClaim (defs st) rawtm
+>        (tv,tt) <- tt $ tcClaim (defs st) rawtm
 >        case (proofstate st) of
 >            Nothing -> do
 >                       let thm = Tactics.theorem n tv
@@ -658,7 +661,7 @@ intuitive)
 >        checkNotExists n (defs st)
 >        (Ctxt st') <- declare (Ctxt st) n tm
 >        rawtm <- raw tm
->        (tv,tt) <- tcClaim (defs st) rawtm
+>        (tv,tt) <- tt $ tcClaim (defs st) rawtm
 >        case (proofstate st) of
 >            Nothing -> do
 >                       let thm = Tactics.theorem n tv
@@ -673,8 +676,8 @@ intuitive)
 > -- to continue the proof.
 > suspend :: Context -> Context
 > suspend (Ctxt st) = case (suspendProof st) of
->                        (Just st') -> Ctxt st'
->                        Nothing -> Ctxt st
+>                        (Right st') -> Ctxt st'
+>                        _ -> Ctxt st
 
 > -- |Resume an unfinished proof, suspending the current one if necessary.
 > -- Fails if there is no such name. Can also be used to begin a
@@ -685,7 +688,7 @@ intuitive)
 > resume ctxt@(Ctxt st) n =
 >     case glookup n (defs st) of
 >         Just ((Ivor.Nobby.Partial _ _),_) -> do let (Ctxt st) = suspend ctxt
->                                                 st' <- resumeProof st n
+>                                                 st' <- tt$ resumeProof st n
 >                                                 return (Ctxt st')
 >         Just (Unreducible,ty) ->
 >             do let st' = st { defs = remove n (defs st) }
@@ -767,7 +770,7 @@ Give a parseable but ugly representation of a term.
 >                (Goal x) -> x
 >                DefaultGoal -> head (holequeue st)
 >        case (Tactics.findhole (defs st) (Just h) prf holeenv) of
->          (Just env) -> do t <- Ivor.Typecheck.check (defs st) env rawtm Nothing
+>          (Just env) -> do t <- tt $ Ivor.Typecheck.check (defs st) env rawtm Nothing
 >                           return $ Term t
 >          Nothing -> fail "No such goal"
 >  where holeenv :: Gamma Name -> Env Name -> Indexed Name -> Env Name
@@ -784,7 +787,7 @@ Give a parseable but ugly representation of a term.
 >                (Goal x) -> x
 >                DefaultGoal -> head (holequeue st)
 >        case (Tactics.findhole (defs st) (Just h) prf holeenv) of
->          (Just env) -> do (tm, ty) <- Ivor.Typecheck.check (defs st) env rawtm Nothing
+>          (Just env) -> do (tm, ty) <- tt $ Ivor.Typecheck.check (defs st) env rawtm Nothing
 >                           let tnorm = normaliseEnv env (defs st) tm
 >                           return $ Term (tnorm, ty)
 >          Nothing -> fail "No such goal"
@@ -809,8 +812,8 @@ Give a parseable but ugly representation of a term.
 >                (Goal x) -> x
 >                DefaultGoal -> head (holequeue st)
 >          case (Tactics.findhole (defs st) (Just h) prf holeenv) of
->                (Just env) -> case checkConvEnv env (defs st) av bv "" of
->                     Just _ -> return True
+>                (Just env) -> case checkConvEnv env (defs st) av bv (IMessage "") of
+>                     Right _ -> return True
 >                     _ -> return False
 >                Nothing -> fail "No such goal"
 >  where holeenv :: Gamma Name -> Env Name -> Indexed Name -> Env Name
@@ -1110,7 +1113,7 @@ Tactics
 > qedLift gam freeze
 >             (Ind (Bind x (B (TTCore.Let v) ty) (Sc (P n)))) | n == x =
 >     do let (Ind vnorm) = convNormalise (emptyGam) (finalise (Ind v))
->        verify gam (Ind v)
+>        tt $ verify gam (Ind v)
 >        return $ (x, G (Fun opts (Ind vnorm)) (finalise (Ind ty)) defplicit)
 >   where opts = if freeze then [Frozen] else []
 > qedLift _ _ tm = fail $ "Not a complete proof " ++ show tm
@@ -1213,7 +1216,7 @@ Convert an internal tactic into a publicly available tactic.
 >                     (Goal x) -> x
 >                     DefaultGoal -> head (holequeue st)
 >     let (Just prf) = proofstate st
->     (prf', act) <- Tactics.runtactic (defs st) hole prf tac
+>     (prf', act) <- tt $ Tactics.runtactic (defs st) hole prf tac
 >     let st' = addgoals act st
 >     return $ Ctxt st' { proofstate = Just prf',
 >                         --holequeue = jumpqueue hole
@@ -1418,7 +1421,7 @@ FIXME: Choose a sensible name here
 > addArg n ty g ctxt@(Ctxt st)
 >     = do rawty <- raw ty
 >          Term (Ind tm, _) <- checkCtxt ctxt g rawty
->          st' <- Ivor.State.addArg st n tm
+>          st' <- tt $ Ivor.State.addArg st n tm
 >          return $ Ctxt st'
 
 > -- | Replace a term in the goal according to an equality premise. Any

@@ -50,9 +50,8 @@
 > newShell ctxt = Shell Nothing "> " False ctxt "" [] [] [] Nothing []
 
 > -- | Update the context in a shell
-> updateShell :: Monad m =>
->                (Context -> m Context) -- ^ Function to update context
->                -> ShellState -> m ShellState
+> updateShell :: (Context -> TTM Context) -- ^ Function to update context
+>                -> ShellState -> TTM ShellState
 > updateShell fctxt (Shell r p f c resp tacs coms imp ext path)
 >     = do ctxt <- fctxt c
 >          return (Shell r p f ctxt resp tacs coms imp ext path)
@@ -96,7 +95,7 @@
  output st = hPutStr (outputstream st)
  outputLn st x = output st (x++"\n")
 
-> runCommand :: (Monad m) => Command -> ShellState -> m ShellState
+> runCommand :: Command -> ShellState -> TTM ShellState
 > runCommand (Def nm tm) st = do let (_, tm') = addImplicit (context st) tm
 >                                ctxt <- addDef (context st) (name nm) tm'
 >                                return st { context = ctxt }
@@ -148,9 +147,9 @@
 >                       return (respondLn st (show (whnf (context st) tm)))
 > runCommand (Print n) st = do
 >     case (getDef (context st) (name n)) of
->       Just tm -> return (respondLn st (show (view tm)))
+>       Right tm -> return (respondLn st (show (view tm)))
 >       _ -> case (getPatternDef (context st) (name n)) of
->             Just (_,pats) -> return (respondLn st (printPats pats))
+>             Right (_,pats) -> return (respondLn st (printPats pats))
 >             _ -> do tm <- check (context st) n
 >                     case view tm of
 >                         (Name TypeCon _) -> return (respondLn st "Type constructor")
@@ -297,9 +296,10 @@ function which doesn't need to be in the IO Monad.
 >     (resp, ctxt) <- fn arg (context st)
 >     let st' = st { context = ctxt, response = resp }
 >     return st'
-> process x st = processInput x st
+> process x st = do let (Right r) = processInput x st
+>                   return r
 
-> processInput :: Monad m => Result Input -> ShellState -> m ShellState
+> processInput :: Result Input -> ShellState -> TTM ShellState
 > processInput (Failure err) st = return $ respondLn st err
 > processInput (Success (Command cmd)) st = runCommand cmd st
 > processInput (Success (Tactic goal tac)) st
@@ -324,7 +324,7 @@ function which doesn't need to be in the IO Monad.
 >  where
 >   ctxt = context st
 >   showGoalState :: Goal -> String
->   showGoalState g = let (Just gd) = goalData ctxt True g
+>   showGoalState g = let (Right gd) = goalData ctxt True g
 >                         env = bindings gd
 >                         ty = goalType gd
 >                         nm = goalName gd in
@@ -365,7 +365,7 @@ function which doesn't need to be in the IO Monad.
 >        return st
 
 > -- | Send a command directly to a shell
-> sendCommand :: Monad m => String -> ShellState -> m ShellState
+> sendCommand :: String -> ShellState -> TTM ShellState
 > sendCommand str st = processInput
 >                        (parseInput (extensions st)
 >                                    (gettacs (usertactics st))
@@ -383,7 +383,7 @@ Special case for importFile. Grr.
 >                                    (map fst (usercommands st)) str) $
 >                          clearResponse st
 
-> gettacs :: [(String, String -> Goal -> Context -> IO Context)] -> [String]
+> gettacs :: [(String, String -> Goal -> Context -> TTM Context)] -> [String]
 > gettacs = map fst
 
 > -- | Get the install prefix of the library

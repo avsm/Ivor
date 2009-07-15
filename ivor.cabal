@@ -76,5 +76,5 @@ Other-modules:	Ivor.Nobby, Ivor.TTCore, Ivor.State,
 		Ivor.CodegenC, Ivor.Datatype, Ivor.Display,
 		Ivor.ICompile, Ivor.MakeData, Ivor.Unify,
 		Ivor.Grouper, Ivor.ShellParser, Ivor.Constant,
-		Ivor.RunTT, Ivor.Compiler, Ivor.Prefix,
+		Ivor.RunTT, Ivor.Compiler, Ivor.Prefix, Ivor.Errors,
 		Ivor.PatternDefs,  Ivor.ShellState, Ivor.Scopecheck

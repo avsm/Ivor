@@ -21,7 +21,7 @@
 > doEval st tm = case (parse (shellParseTerm st) "(test)" tm) of
 >                   Left err -> "Parse error: " ++ show err
 >                   Right vtm -> case check (getContext st) vtm of
->                       Left str -> "Type error: " ++ str
+>                       Left str -> "Type error: " ++ show str
 >                       Right v -> show $ view $ eval (getContext st) v
 
 > nat1 st = doEval st "plus (S (S O)) (S (S O))"

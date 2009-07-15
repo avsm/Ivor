@@ -23,7 +23,7 @@
 >                          context :: !Context,
 >                          -- | Get reply from last shell command
 >                          response :: String,
->                          usertactics :: forall m.Monad m => [(String, String -> Goal -> Context -> m Context)],
+>                          usertactics :: [(String, String -> Goal -> Context -> TTM Context)],
 >                          usercommands :: [(String, String -> Context -> IO (String, Context))],
 >                          imported :: [String],
 >                          extensions :: Maybe (Parser ViewTerm),

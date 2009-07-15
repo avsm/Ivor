@@ -58,7 +58,7 @@
 > -- | Add primitive types for Int, Float and String, and some
 > -- primitive operations [add,sub,mult,div][int,float] and concat.
 
-> addPrimitives :: Monad m => Context -> m Context
+> addPrimitives :: Context -> TTM Context
 > addPrimitives c = do c <- addPrimitive c (name "Int")
 >                      c <- addPrimitive c (name "Float")
 >                      c <- addPrimitive c (name "String")
@@ -127,7 +127,7 @@
 > parseInt = lexeme $ fmap read (many1 digit)
 
 > -- | Parse a term including primitives
-> parsePrimTerm :: Monad m => String -> m ViewTerm
+> parsePrimTerm :: String -> TTM ViewTerm
 > parsePrimTerm str
 >     = case parse (do t <- pTerm (Just parsePrimitives) ; eof ; return t) 
 >                  "(input)" str of

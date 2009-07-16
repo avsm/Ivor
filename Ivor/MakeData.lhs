@@ -29,8 +29,7 @@ the target, methods and the motives are unique.
 >         cischemes = mkSchemes False name (ruleName name "Case") 
 >                               params datacons motiveName methNames
 >         tycontype = mkCon params contype in
->         return $ -- (trace (show eischemes)) $  
->          RData (name,tycontype) datacons (length params)
+>         return $ RData (name,tycontype) datacons (length params)
 >                    (ruleName name "Elim", ecasetype) -- elim rule
 >                    (ruleName name "Case", ccasetype) -- case rule
 >                    eischemes -- elim rule iota schemes
@@ -62,6 +61,7 @@ the target, methods and the motives are unique.
 >            | isrec ty tyname && rec 
 >                = (Var n):(mkRecApp ername ty n motive mns):(mkArgs sc)
 >            | otherwise = (Var n):(mkArgs sc)
+>         mkArgs (RFileLoc f l t) = mkArgs t
 >         mkArgs _ = []
 >         mkRecApp en ty n motive mns = 
 >             mkapp (Var en) $ (getappargs ty)++(map Var (n:motive:mns))
@@ -91,6 +91,7 @@ the target, methods and the motives are unique.
 
 > bindIndices (RBind n (B Pi ty) sc) rest 
 >     = (RBind n (B Pi ty) (bindIndices sc rest))
+> bindIndices (RFileLoc f l t) rest = bindIndices t rest
 > bindIndices sc rest = rest
 
 > bindTarget x n ps ty rest 
@@ -111,6 +112,7 @@ the target, methods and the motives are unique.
 >            | isrec argtype tyname && rec
 >                = (RBind a (B Pi argtype) (mkrec a argtype sc))
 >            | otherwise = (RBind a (B Pi argtype) (methtype sc))
+>        methtype (RFileLoc _ _ t) = methtype t
 >        methtype sc = mkapp (Var p) $ (getindices sc)++
 >              [mkapp (Var n) (map Var ((map fst ps)++(getargnames ty)))]
 >        mkrec a argtype sc = (RBind (ih a) (B Pi (rectype a argtype p)) 

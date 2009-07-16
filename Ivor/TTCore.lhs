@@ -26,6 +26,7 @@ Raw terms are those read in directly from the user, and may be badly typed.
 >     | RCall RComputation Raw
 >     | RReturn Raw
 >     | RAnnot String -- Debugging hack
+>     | RFileLoc FilePath Int Raw -- For more helpful type error messages
 >     | RStage RStage
 
 > data RComputation = RComp Name [Raw]
@@ -575,6 +576,7 @@ Get the arguments of an application
 
 > getRawArgs :: Raw -> [Raw]
 > getRawArgs (RApp f a) = getRawArgs f ++ [a]
+> getRawArgs (RFileLoc f l t) = getRawArgs t
 > getRawArgs _ = []
 
 Get the function being applied in an application
@@ -661,6 +663,7 @@ Apply a function to a list of arguments
 >     (==) (RStage t) (RStage t') = t == t'
 >     (==) RInfer RInfer = True
 >     (==) (RMeta x) (RMeta x') = x == x'
+>     (==) (RFileLoc f l t) (RFileLoc _ _ t') = t == t'
 >     (==) _ _ = False
 
 > instance Eq n => Eq (TT n) where
@@ -738,7 +741,7 @@ Apply a function to a list of arguments
 >       fPrec _ (RStar) = "*"
 >       fPrec _ (RInfer) = "_"
 >       fPrec _ (RMeta n) = "?"++forget n
->       fPrec _ (RAnnot t) = t
+>       fPrec p (RFileLoc f l t) = fPrec p t
 >       bracket outer inner str | inner>outer = "("++str++")"
 >                               | otherwise = str
 
@@ -857,15 +860,19 @@ Some handy gadgets for Raw terms
 > mkapp f (x:xs) = mkapp (RApp f x) xs
 
 > getargnames (RBind n _ sc) = n:(getargnames sc)
+> getargnames (RFileLoc _ _ t) = getargnames t
 > getargnames _ = []
 
 > getappargs (RApp f a) = getappargs f ++ [a]
+> getappargs (RFileLoc _ _ t) = getappargs t
 > getappargs _ = []
 
 > getappfun (RApp f a) = getappfun f
+> getappfun (RFileLoc _ _ t) = getappfun t
 > getappfun x = x
 
 > getrettype (RBind n (B Pi _) sc) = getrettype sc
+> getrettype (RFileLoc _ _ t) = getrettype t
 > getrettype x = x
 
 > nameOccurs x (Var n) | x == n = True
@@ -878,6 +885,7 @@ Some handy gadgets for Raw terms
 > nameOccurs x (RCall comp r)  = nameOccurs x r || occComp x comp
 > nameOccurs x (RReturn r) = nameOccurs x r
 > nameOccurs x (RStage s) = occStage x s
+> nameOccurs x (RFileLoc f l t) = nameOccurs x t
 > nameOccurs x _ = False
 
 > occComp x (RComp _ rs) = or $ map (nameOccurs x) rs
@@ -888,6 +896,9 @@ Some handy gadgets for Raw terms
 > occStage x (REval r) = nameOccurs x r
 > occStage x (REscape r) = nameOccurs x r
 
+> fileLine (RFileLoc f l t) = Just (f,l)
+> fileLine (RBind n b sc) = fileLine sc
+> fileLine _ = Nothing
 
 > debugTT t = show (forgetTT (vapp showV t))
 >      where

@@ -8,6 +8,8 @@
 > data IError = ICantUnify (Indexed Name) (Indexed Name)
 >             | INotConvertible (Indexed Name) (Indexed Name)
 >             | IMessage String
+>             | IUnbound (Indexed Name) (Indexed Name) (Indexed Name) (Indexed Name) [Name]
+>             | IContext String IError
 >   deriving (Show, Eq)
 
 > instance Error IError where

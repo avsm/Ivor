@@ -116,8 +116,10 @@ Make a pattern from a raw term. Anything weird, just make it a "PTerm".
 > mkPat gam (RApp f a) = pat' (unwind f a)
 >   where unwind (RApp f s) a = let (f',as) = unwind f s in
 >				    (f',(mkPat gam a):as)
+>         unwind (RFileLoc _ _ t) a = unwind t a
 >	  unwind t a = (t, [mkPat gam a])
 >         pat' (Var n, as) = mkPatV n (lookupval n gam) (reverse as)
+>         pat' (RFileLoc _ _ t, as) = pat' (t, as)
 >         pat' _ = PTerm
 
 >         mkPatV n (Just (DCon t x)) as = PCon t n tyname as
@@ -126,6 +128,7 @@ Make a pattern from a raw term. Anything weird, just make it a "PTerm".
 >         tyname = case (getTyName gam (getname (getappfun f))) of
 >                    Just x -> x
 >         getname (Var n) = n
+>         getname (RFileLoc _ _ t) = getname t
 > mkPat gam _ {-(RBind _ _ _)-} = PTerm
 > {-
 > TODO: If a datatype has a placeholder in its indices, the value should
@@ -178,6 +181,7 @@ elimination rule is a reference to this
 >			    (Just i) -> i
 >	   sv' (RApp f a) = App (sv' f) (sv' a)
 >          sv' (RConst c) = Const c
+>          sv' (RFileLoc _ _ t) = sv' t
 
 >          mkGood x = case (lookupval x gam) of
 >	       (Just (DCon t i)) -> Con t x i

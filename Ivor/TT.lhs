@@ -186,11 +186,17 @@
 > data TTError = CantUnify ViewTerm ViewTerm
 >              | NotConvertible ViewTerm ViewTerm
 >              | Message String
+>              | Unbound ViewTerm ViewTerm ViewTerm ViewTerm [Name]
+>              | ErrContext String TTError
 
 > instance Show TTError where
 >     show (CantUnify t1 t2) = "Can't unify " ++ show t1 ++ " and " ++ show t2
 >     show (NotConvertible t1 t2) = show t1 ++ " and " ++ show t2 ++ " are not convertible"
 >     show (Message s) = s
+>     show (Unbound clause clty rhs rhsty ns) 
+>        = show ns ++ " unbound in clause " ++ show clause ++ " : " ++ show clty ++ 
+>                     " = " ++ show rhs
+>     show (ErrContext c err) = c ++ show err
 
 > instance Error TTError where
 >     noMsg = Message "Ivor Error"
@@ -209,6 +215,13 @@
 > getError (ICantUnify l r) = CantUnify (view (Term (l, Ind TTCore.Star))) (view (Term (r, Ind TTCore.Star)))
 > getError (INotConvertible l r) = NotConvertible (view (Term (l, Ind TTCore.Star))) (view (Term (r, Ind TTCore.Star)))
 > getError (IMessage s) = Message s
+> getError (IUnbound clause clty rhs rhsty names) 
+>              = Unbound (view (Term (clause, Ind TTCore.Star)))
+>                        (view (Term (clty, Ind TTCore.Star)))
+>                        (view (Term (rhs, Ind TTCore.Star)))
+>                        (view (Term (rhsty, Ind TTCore.Star)))
+>                        names
+> getError (IContext s e) = ErrContext s (getError e)
 
 > -- | Quickly convert a 'ViewTerm' into a real 'Term'.
 > -- This is dangerous; you must know that typechecking will succeed,
@@ -276,6 +289,7 @@
 >     toPat gam (VTerm.App f a) = case toPat gam f of
 >                                   Placeholder -> Placeholder
 >                                   apptm -> VTerm.App f (toPat gam a)
+>     toPat gam (Annotation _ a) = toPat gam a
 >     toPat gam _ = Placeholder
 >     matchable gam n
 >        = case lookupval n gam of

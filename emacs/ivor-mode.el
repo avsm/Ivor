@@ -211,4 +211,4 @@
              (comint-send-input))))
   (goto-char (point-min)))
 
-(provide 'ivor)
+(provide 'ivor-mode)

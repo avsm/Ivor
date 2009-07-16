@@ -213,7 +213,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                -- checkConvEnv env gam pty rty $ "Pattern error: " ++ show pty ++ " and " ++ show rty ++ " are not convertible " ++ show unify
 >                let namesret = filter (notGlobal gam') $ getNames (Sc rtmtt')
 >                let namesbound = getNames (Sc tmtt)
->                checkAllBound namesret namesbound (Ind rtmtt') tmtt
+>                checkAllBound (fileLine ret) namesret namesbound (Ind rtmtt') tmtt rty pty
 >                -- trace (show (unified, rtmtt, tm, rtmtt')) $ 
 >                return ((tm, Ind rtmtt', newdefs), [], newdefs, True)
 >         mytypecheck gam (clause, (RWith scr pats)) i =
@@ -273,12 +273,13 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >         notGlobal gam n = case lookupval n gam of
 >                               Nothing -> True
 >                               _ -> False
->         checkAllBound r b rhs clause = do
+>         checkAllBound fl r b rhs clause rhsTy clauseTy = do
 >              let unbound = filter (\y -> not (elem y b)) r
 >              if (length unbound == 0)
 >                 then return ()
->                 else fail $ "Unbound names in clause for " ++ show clause ++ ":\n" ++ show rhs ++ "\n"
->                             ++ show unbound ++ "\n"
+>                 else ifail $ addContext fl (IUnbound (Ind clause) clauseTy rhs rhsTy unbound)
+>         addContext Nothing err = err
+>         addContext (Just (f,l)) err = IContext (f ++ ":" ++ show l ++ ":") err
 
 > mkScheme :: Gamma Name -> (Indexed Name, Indexed Name) -> PMDef Name
 > mkScheme gam (Ind pat, ret) = Sch (map mkpat (getPatArgs pat)) ret

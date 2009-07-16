@@ -118,7 +118,7 @@ Collect names which do unify, and ignore errors
 >          unbb envl envr (Guess v) (Guess v') acc = un envl envr v v' acc
 >          unbb envl envr x y acc
 >                   = if ignore then return acc
->                        else fail $ "Can't unifer binders " ++ show x ++ " and " ++ show y
+>                        else fail $ "Can't unify binders " ++ show x ++ " and " ++ show y
 
 >          unst envl envr (Quote x) (Quote y) acc = un envl envr x y acc
 >          unst envl envr (Code x) (Code y) acc = un envl envr x y acc

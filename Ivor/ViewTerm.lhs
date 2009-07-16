@@ -15,7 +15,7 @@
 > module Ivor.ViewTerm(-- * Variable names
 >                        Name,name,displayName,NameType(..),mkVar,
 >                        -- * Terms
->                        Term(..), ViewTerm(..), apply,
+>                        Term(..), ViewTerm(..), Annot(..), apply,
 >                        view, viewType, ViewConst, typeof, 
 >                        freeIn, namesIn, occursIn, subst, getApp, 
 >                        Ivor.ViewTerm.getFnArgs,
@@ -75,7 +75,11 @@
 >     | Eval { evalterm :: ViewTerm } -- ^ Staging annotation
 >     | Escape { escapedterm :: ViewTerm } -- ^ Staging annotation
 >     | Placeholder
+>     | Annotation { annotation :: Annot,
+>                    term :: ViewTerm } -- ^ additional annotations
 >     | Metavar { var :: Name }
+
+> data Annot = FileLoc FilePath Int -- ^ source file, line number
 
 > instance Eq ViewTerm where
 >     (==) (Name _ x) (Name _ y) = x == y
@@ -97,6 +101,7 @@
 >     (==) (Ivor.ViewTerm.Code t) (Ivor.ViewTerm.Code t') = t==t'
 >     (==) (Ivor.ViewTerm.Eval t) (Ivor.ViewTerm.Eval t') = t==t'
 >     (==) (Ivor.ViewTerm.Escape t) (Ivor.ViewTerm.Escape t') = t==t'
+>     (==) (Annotation _ t) (Annotation _ t') = t == t'
 >     (==) _ _ = False
 
 > -- | Haskell types which can be used as constants
@@ -139,6 +144,7 @@
 >     forget (Ivor.ViewTerm.Code t) = RStage (RCode (forget t))
 >     forget (Ivor.ViewTerm.Eval t) = RStage (REval (forget t))
 >     forget (Ivor.ViewTerm.Escape t) = RStage (REscape (forget t))
+>     forget (Annotation (FileLoc f l) t) = RFileLoc f l (forget t)
 >     forget x = Var (var x)
 
 > instance Show ViewTerm where
@@ -220,6 +226,7 @@
 >    fi n (Ivor.ViewTerm.Code t) = fi n t
 >    fi n (Ivor.ViewTerm.Eval t) = fi n t
 >    fi n (Ivor.ViewTerm.Escape t) = fi n t
+>    fi n (Annotation _ t) = fi n t
 >    fi n _ = False
 
 > -- | Return the names occurring free in a term
@@ -238,6 +245,7 @@
 >    fi ns (Ivor.ViewTerm.Code t) = fi ns t
 >    fi ns (Ivor.ViewTerm.Eval t) = fi ns t
 >    fi ns (Ivor.ViewTerm.Escape t) = fi ns t
+>    fi ns (Annotation _ t) = fi ns t
 >    fi ns _ = []
 
 > -- | Return whether a subterm occurs in a (first order) term.
@@ -253,27 +261,32 @@
 >    fi n (Ivor.ViewTerm.Code t) = fi n t
 >    fi n (Ivor.ViewTerm.Eval t) = fi n t
 >    fi n (Ivor.ViewTerm.Escape t) = fi n t
+>    fi n (Annotation _ t) = fi n t
 >    fi n x = n == x
 
 > -- | Get the function from an application. If no application, returns the
 > -- entire term.
 > getApp :: ViewTerm -> ViewTerm
 > getApp (Ivor.ViewTerm.App f a) = getApp f
+> getApp (Annotation _ t) = getApp t
 > getApp x = x
 
 > -- | Get the arguments from a function application.
 > getFnArgs :: ViewTerm -> [ViewTerm]
 > getFnArgs (Ivor.ViewTerm.App f a) = Ivor.ViewTerm.getFnArgs f ++ [a]
+> getFnArgs (Annotation _ t) = getFnArgs t
 > getFnArgs x = []
 
 > -- | Get the argument names and types from a function type
 > getArgTypes :: ViewTerm -> [(Name, ViewTerm)]
 > getArgTypes (Ivor.ViewTerm.Forall n ty sc) = (n,ty):(getArgTypes sc)
+> getArgTypes (Annotation _ t) = getArgTypes t
 > getArgTypes x = []
 
 > -- | Get the return type from a function type
 > getReturnType :: ViewTerm -> ViewTerm
 > getReturnType (Ivor.ViewTerm.Forall n ty sc) = Ivor.ViewTerm.getReturnType sc
+> getReturnType (Annotation _ t) = Ivor.ViewTerm.getReturnType t
 > getReturnType x = x
 
 > dbgshow (UN n) = "UN " ++ show n
@@ -289,6 +302,8 @@
 >   m' (Ivor.ViewTerm.App f a) (Ivor.ViewTerm.App f' a') acc 
 >       = do acc' <- m' f f' acc
 >            m' a a' acc'
+>   m' (Annotation _ t) t' acc = m' t t' acc
+>   m' t (Annotation _ t') acc = m' t t' acc
 >   m' x y acc | x == y = return acc
 >              | otherwise = fail $"Mismatch " ++ show x ++ " and " ++ show y
 
@@ -328,5 +343,6 @@
 >           = Ivor.ViewTerm.Eval (subst n v r)
 > subst n v (Ivor.ViewTerm.Escape r) 
 >           = Ivor.ViewTerm.Escape (subst n v r)
+> subst n v (Annotation a t) = Annotation a (subst n v t)
 > subst n v t = t
 

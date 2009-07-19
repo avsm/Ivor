@@ -9,6 +9,7 @@
 >             | INotConvertible (Indexed Name) (Indexed Name)
 >             | IMessage String
 >             | IUnbound (Indexed Name) (Indexed Name) (Indexed Name) (Indexed Name) [Name]
+>             | INoSuchVar Name
 >             | IContext String IError
 >   deriving (Show, Eq)
 

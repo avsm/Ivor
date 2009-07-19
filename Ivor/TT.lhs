@@ -187,6 +187,7 @@
 >              | NotConvertible ViewTerm ViewTerm
 >              | Message String
 >              | Unbound ViewTerm ViewTerm ViewTerm ViewTerm [Name]
+>              | NoSuchVar Name
 >              | ErrContext String TTError
 
 > instance Show TTError where
@@ -196,6 +197,7 @@
 >     show (Unbound clause clty rhs rhsty ns) 
 >        = show ns ++ " unbound in clause " ++ show clause ++ " : " ++ show clty ++ 
 >                     " = " ++ show rhs
+>     show (NoSuchVar n) = "No such name as " ++ show n
 >     show (ErrContext c err) = c ++ show err
 
 > instance Error TTError where
@@ -221,6 +223,7 @@
 >                        (view (Term (rhs, Ind TTCore.Star)))
 >                        (view (Term (rhsty, Ind TTCore.Star)))
 >                        names
+> getError (INoSuchVar n) = NoSuchVar n
 > getError (IContext s e) = ErrContext s (getError e)
 
 > -- | Quickly convert a 'ViewTerm' into a real 'Term'.

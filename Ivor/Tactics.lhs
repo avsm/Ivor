@@ -471,9 +471,10 @@ otherwise.
 
 > casetac :: Bool -> Raw -> Tactic
 > casetac rec scrutinee gam env tm@(Ind (Bind x (B Hole ty) sc)) =
->     do (Ind bv,bt) <- check gam (ptovenv env) scrutinee Nothing
+>     do (bv,bt) <- check gam (ptovenv env) scrutinee Nothing
 >        let (Ind btnorm) = (normaliseEnv (ptovenv env) gam bt)
->        let bvin = makePsEnv (map fst env) bv
+>        let (Ind bvnorm) = (normaliseEnv (ptovenv env) gam bv)
+>        let bvin = makePsEnv (map fst env) bvnorm
 >        let btin = makePsEnv (map fst env) btnorm
 >        let indices = getArgs btin
 >        let ty = getFun btin

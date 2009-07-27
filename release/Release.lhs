@@ -8,8 +8,10 @@ and upload it.
 > import System.Environment
 > import System.Exit
 > import System.Directory
-> import System.Process
+> import System.Process hiding (shell)
 > import Distribution.PackageDescription
+> import Distribution.PackageDescription.Parse
+> import Distribution.PackageDescription.Configuration
 > import Distribution.Package
 > import Distribution.Verbosity
 > import Data.Version

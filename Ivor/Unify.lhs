@@ -75,6 +75,7 @@ Collect names which do unify, and ignore errors
 >              | x == y = return acc
 >              | loc x envl == loc y envr && loc x envl >=0
 >                  = return acc
+>              | hole envl x && hole envl y = return ((x, (P y)): acc)
 >          un envl envr (Bind x (B Lambda ty) (Sc (App scl (P x')))) y acc
 >                | x == x' = un envl envr scl y acc
 >          un envl envr y (Bind x (B Lambda ty) (Sc (App scr (P x')))) acc

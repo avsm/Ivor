@@ -135,10 +135,9 @@ Handy to pass through all the variables, for tracing purposes when debugging.
 >             = do -- (s',nms) <- mkSubst xs
 >                  let x' = papp s' x
 >                  let (Ind y') = normalise gam (Ind (papp s' y))
->                  uns <- case unifyenvErr ok gam env (Ind x') (Ind y') of
+>                  uns <- case unifyenvErr ok gam env (Ind y') (Ind x') of
 >                           Right x' -> return x'
->                           Left err -> {- trace (show (x',y') ++ "\n" ++ concatMap ((++"\n").show) (map eqn all)) $ -}
->                                       ifail (errCtxt fc err)
+>                           Left err -> ifail (errCtxt fc err)
 
                          Failure err -> fail $ err ++"\n" ++ show nms ++"\n" ++ show constraints -- $ -} ++ " Can't convert "++show x'++" and "++show y' ++ "\n" ++ show constraints ++ "\n" ++ show nms
 
@@ -153,6 +152,15 @@ Handy to pass through all the variables, for tracing purposes when debugging.
 
 >          delta n ty n' | n == n' = ty
 >                        | otherwise = P n'
+
+> convertAllEnv :: Gamma Name -> 
+>                  [(Env Name, Indexed Name, Indexed Name,Maybe FileContext)] ->
+>                  Env Name -> IvorM (Env Name)
+> convertAllEnv gam constraints [] = return []
+> convertAllEnv gam constraints ((n,B b t):xs) 
+>       = do (Ind t', _) <- doConversion RStar gam constraints (Ind t) (Ind Star)
+>            xs' <- convertAllEnv gam constraints xs
+>            return ((n,B b t'):xs')
 
 > check :: Gamma Name -> Env Name -> Raw -> Maybe (Indexed Name) -> 
 >          IvorM (Indexed Name, Indexed Name)
@@ -179,6 +187,9 @@ Check a pattern and an intermediate computation together
 >    -- rename all the 'inferred' things to another generated name,
 >    -- so that they actually get properly checked on the rhs
 >    let realNames = mkNames next
+>    -- The environment will need the conversions applying, to fill in any implicit
+>    -- variables in the pattern
+>    e <- convertAllEnv gam bs e
 >    e' <- renameB gam realNames (renameBinders e)
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
 >    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
@@ -195,8 +206,8 @@ Check a pattern and an intermediate computation together
 
 >  where mkNames 0 = []
 >        mkNames n
->           = ([],Ind (P (MN ("INFER",n-1))), 
->                 Ind (P (MN ("T",n-1))), "renaming"):(mkNames (n-1))
+>           = ([],Ind (P (MN ("T",n-1))), 
+>                 Ind (P (MN ("INFER",n-1))), "renaming"):(mkNames (n-1))
 >        renameBinders [] = []
 >        renameBinders (((MN ("INFER",n)),b):bs) 
 >                         = ((MN ("T",n),b):(renameBinders bs))
@@ -216,7 +227,11 @@ Return a list of the functions we need to define to complete the definition.
 >    -- rename all the 'inferred' things to another generated name,
 >    -- so that they actually get properly checked on the rhs
 >    let realNames = mkNames next
+>    -- The environment will need the conversions applying, to fill in any implicit
+>    -- variables in the pattern
+>    e <- convertAllEnv gam bs e
 >    e' <- renameB gam realNames (renameBinders e)
+>    (v1, t1) <- doConversion tm1 gam bs v1 t1
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
 >    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
 >    -- Drop names out of e' that don't appear in v1'' as a result of the
@@ -296,7 +311,7 @@ Do the typechecking, then unify all the inferred terms.
 >     -- Then check the resulting type matches the expected type.
 >     if infer then (case exp of
 >              Nothing -> return ()
->              Just expty -> checkConvSt env gamma expty tmty )
+>              Just expty -> checkConvSt env gamma tmty expty )
 >       else return ()
 >     -- Then fill in any remained inferred values we got by knowing the
 >     -- expected type
@@ -642,7 +657,7 @@ extended environment.
 
 > fixupB gam xs bs = fixupB' gam xs bs []
 
-> fixupB' gam xs [] acc = return acc
+> fixupB' gam xs [] acc = return (reverse acc)
 > fixupB' gam xs ((n, (B b t)):bs) acc =
 >    -- if t is already fully explicit, don't bother
 >   if (allExplicit (getNames (Sc t))) then fixupB' gam xs bs ((n,(B b t)):acc)

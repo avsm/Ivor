@@ -137,7 +137,7 @@ Handy to pass through all the variables, for tracing purposes when debugging.
 >                  let (Ind y') = normalise gam (Ind (papp s' y))
 >                  uns <- case unifyenvErr ok gam env (Ind y') (Ind x') of
 >                           Right x' -> return x'
->                           Left err -> ifail (errCtxt fc err)
+>                           Left err -> ifail (errCtxt fc (ICantUnify (Ind y') (Ind x')))
 
                          Failure err -> fail $ err ++"\n" ++ show nms ++"\n" ++ show constraints -- $ -} ++ " Can't convert "++show x'++" and "++show y' ++ "\n" ++ show constraints ++ "\n" ++ show nms
 

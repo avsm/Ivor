@@ -77,9 +77,10 @@ Code			Stack	Env	Result
 
 >     evalScope n ty sc (x:xs) env pats = eval sc xs ((n,ty,x):env) pats
 >     evalScope n ty sc [] env pats
->       | open = let n' = uniqify n (map sfst env)
->                    newsc = pToV n' (eval sc [] ((n',ty,P n'):env) pats) in
->                    buildenv env $ unload (Bind n' (B Lambda ty) newsc)
+>       | open = let n' = uniqify n (map sfst env ++ map fst pats)
+>                    tmpname = (MN ("E", length env))
+>                    newsc = pToV tmpname (eval sc [] ((n',ty,P tmpname):env) pats) in
+>                        buildenv env $ unload (Bind n' (B Lambda ty) newsc)
 >                                          [] pats env
 >       | otherwise 
 >          = buildenv env $ unload (Bind n (B Lambda ty) (Sc sc)) [] pats env -- in Whnf

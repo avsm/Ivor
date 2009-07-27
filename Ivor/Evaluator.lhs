@@ -106,16 +106,16 @@ Code			Stack	Env	Result
 >     match :: Scheme Name -> [TT Name] -> SEnv -> [(Name, TT Name)] ->
 >              Maybe (TT Name, [(Name, TT Name)], Stack)
 >     match (Sch pats rhs) xs env patvars 
->               = matchargs pats xs rhs env patvars
->     matchargs [] xs (Ind rhs) env patvars = Just (rhs, patvars, xs)
->     matchargs (p:ps) (x:xs) rhs env patvars
->               = case matchPat p (eval x [] env patvars) patvars of
->                   Just patvars' -> matchargs ps xs rhs env patvars'
+>               = matchargs pats xs rhs env patvars []
+>     matchargs [] xs (Ind rhs) env patvars pv' = Just (rhs, pv', xs)
+>     matchargs (p:ps) (x:xs) rhs env patvars pv'
+>               = case matchPat p (eval x [] env patvars) pv' of
+>                   Just patvars' -> matchargs ps xs rhs env patvars patvars'
 >                   Nothing -> Nothing
->     matchargs _ _ _ _ _ = Nothing
+>     matchargs _ _ _ _ _ _ = Nothing
 
 >     matchPat PTerm x patvars = Just patvars
->     matchPat (PVar n) x patvars = Just ((n,x):patvars)
+>     matchPat (PVar n) x patvars = Just ((n,x):patvars) -- (filter (\ (x,y) -> x/=n) patvars))
 >     matchPat (PConst t) (Const t') patvars
 >                  = do tc <- cast t
 >                       if (tc == t') then Just patvars

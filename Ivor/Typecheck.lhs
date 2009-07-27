@@ -93,7 +93,7 @@ type.
 > type Level = Int
 
 > data FileContext = FC FilePath Int
->   deriving Eq
+>   deriving (Show, Eq)
 
 > errCtxt :: Maybe FileContext -> IError -> IError
 > errCtxt (Just (FC f l)) err = IContext (f ++ ":" ++ show l ++ ":") err
@@ -121,20 +121,24 @@ constraints and applying it to the term and type.
 >          let ty' = papp subst ty
 >          return (Ind tm',Ind ty')
 
->    where mkSubst xs = mkSubst' (P,[]) xs
->          mkSubst' acc [] = return acc
->          mkSubst' acc (q:xs) 
->             = do acc' <- mkSubstQ acc q
->                  mkSubst' acc' xs
+Handy to pass through all the variables, for tracing purposes when debugging.
+
+>    where mkSubst xs = mkSubst' (P,[]) xs xs
+>          mkSubst' acc [] all = return acc
+>          mkSubst' acc (q:xs) all
+>             = do acc' <- mkSubstQ acc q all
+>                  mkSubst' acc' xs all
 >
->          mkSubstQ (s',nms) (ok, (env,Ind x,Ind y,fc))
+>          eqn (ok, (env, x, y, fc)) = if ok then (x,y,fc) else (x,y,Nothing)
+
+>          mkSubstQ (s',nms) (ok, (env,Ind x,Ind y,fc)) all
 >             = do -- (s',nms) <- mkSubst xs
 >                  let x' = papp s' x
 >                  let (Ind y') = normalise gam (Ind (papp s' y))
->                  uns <- 
->                         case unifyenvErr ok gam env (Ind x') (Ind y') of
+>                  uns <- case unifyenvErr ok gam env (Ind x') (Ind y') of
 >                           Right x' -> return x'
->                           Left err -> ifail (errCtxt fc err)
+>                           Left err -> {- trace (show (x',y') ++ "\n" ++ concatMap ((++"\n").show) (map eqn all)) $ -}
+>                                       ifail (errCtxt fc err)
 
                          Failure err -> fail $ err ++"\n" ++ show nms ++"\n" ++ show constraints -- $ -} ++ " Can't convert "++show x'++" and "++show y' ++ "\n" ++ show constraints ++ "\n" ++ show nms
 
@@ -526,11 +530,14 @@ Insert inferred values into the term
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
 >  checkbinder gamma env lvl n (B Pi t) = do
 >     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
->     let ttnf = normaliseEnv env gamma (Ind tt)
->     case ttnf of
->       (Ind Star) -> return (B Pi tv)
->       (Ind (P (MN ("INFER",_)))) -> return (B Pi tv)
->       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
+>     -- let ttnf = normaliseEnv env gamma (Ind tt)
+>     checkConvSt env gamma (Ind tt) (Ind Star)
+>     return (B Pi tv)
+
+     case ttnf of
+       (Ind Star) -> return (B Pi tv)
+       (Ind (P (MN ("INFER",_)))) -> return (B Pi tv)
+       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
 
 >  checkbinder gamma env lvl n (B (Let v) RInfer) = do
 >     (Ind vv,Ind vt) <- tcfixup env lvl v Nothing

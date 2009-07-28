@@ -191,6 +191,7 @@ Check a pattern and an intermediate computation together
 >    -- variables in the pattern
 >    e <- convertAllEnv gam bs e
 >    e' <- renameB gam realNames (renameBinders e)
+>    (v1, t1) <- doConversion tm1 gam bs v1 t1
 >    (v1', t1') <- fixupGam gam realNames (v1, t1)
 >    (v1''@(Ind vtm),t1'') <- doConversion tm1 gam bs v1' t1' -- (normalise gam t1') 
 >    -- Drop names out of e' that don't appear in v1'' as a result of the
@@ -206,8 +207,8 @@ Check a pattern and an intermediate computation together
 
 >  where mkNames 0 = []
 >        mkNames n
->           = ([],Ind (P (MN ("T",n-1))), 
->                 Ind (P (MN ("INFER",n-1))), "renaming"):(mkNames (n-1))
+>           = ([],Ind (P (MN ("INFER",n-1))), 
+>                 Ind (P (MN ("T",n-1))), "renaming"):(mkNames (n-1))
 >        renameBinders [] = []
 >        renameBinders (((MN ("INFER",n)),b):bs) 
 >                         = ((MN ("T",n),b):(renameBinders bs))
@@ -657,7 +658,7 @@ extended environment.
 
 > fixupB gam xs bs = fixupB' gam xs bs []
 
-> fixupB' gam xs [] acc = return (reverse acc)
+> fixupB' gam xs [] acc = return acc
 > fixupB' gam xs ((n, (B b t)):bs) acc =
 >    -- if t is already fully explicit, don't bother
 >   if (allExplicit (getNames (Sc t))) then fixupB' gam xs bs ((n,(B b t)):acc)

@@ -742,6 +742,7 @@ Apply a function to a list of arguments
 >       fPrec _ (RInfer) = "_"
 >       fPrec _ (RMeta n) = "?"++forget n
 >       fPrec p (RFileLoc f l t) = fPrec p t
+>       fPrec p (RAnnot s) = "[" ++ s ++ "]"
 >       bracket outer inner str | inner>outer = "("++str++")"
 >                               | otherwise = str
 

@@ -87,6 +87,10 @@ Collect names which do unify, and ignore errors
 >          un envl envr (Bind x b (Sc sc)) (Bind x' b' (Sc sc')) acc =
 >              do acc' <- unb envl envr b b' acc
 >                 un ((x,b):envl) ((x',b'):envr) sc sc' acc'
+>          un envl envr (Bind x b@(B (Let v) ty) (Sc sc)) t acc
+>             = un ((x,b):envl) envr sc t acc
+>          un envl envr t (Bind x b@(B (Let v) ty) (Sc sc)) acc
+>             = un envl ((x,b):envr) t sc acc
 >                 -- combine bu scu
 >          -- if unifying the functions fails because the names are different,
 >          -- unifying the arguments is going to be a waste of time bec

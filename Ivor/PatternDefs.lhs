@@ -220,27 +220,36 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >             do -- Get the type of scrutinee, construct the type of the auxiliary definition
 >                (tm@(Ind clausett), clausety, _, scrty@(Ind stt), env) <- checkAndBindWith gam clause scr fn
 >                let args = getRawArgs clause
->                let restTyin = addLastArg tyin (forget scrty)
+>                -- let restTyin = addLastArg tyin (forget scrty) scr
 >                margs <- getMatches tm tm
 >                let margNames = nub (map fst margs)
 >                let newargs = filter (\ (x,ty) -> x `elem` margNames) env
 >                newpats <- mapM (getNewPat tm 1) pats
->                let newfntyin = mkNewTy (newargs ++ [(UN "__scr", B Pi stt)]) clausety
->                (newfnTy, _) <- check gam env (forget newfntyin) (Just (Ind Star))
+>                let newfntyin = forget (mkNewTy newargs clausety)
+>                let newfntyin' = addLastArg newfntyin (forget stt) scr
+>                   --(newargs ++ [(UN "__scr", B Pi stt),
+>                   --                                (UN "__scrEq", B Pi (screq (UN "__scr") scr))]) clausety
+>                (newfnTy, _) <- trace (show newfntyin') $ check gam env newfntyin' (Just (Ind Star))
 >                -- Make a name for the new function, clauses in 'pats' need the new name,
 >                -- and form a definition of type restTy
 >                let newname = mkNewName fn i
 >                -- TODO: All pats have to match against args ++ [_]
->                -- Final clause returns newname applied to args++scrutinee
->                let ret = rawApp (Var newname) ((map Var (map fst newargs)) ++ [scr])
+>                -- Final clause returns newname applied to args++scrutinee++refl
+>                let ret = rawApp (Var newname) ((map Var (map fst newargs)) ++ 
+>                                                [scr, RApp (RApp (Var (UN "refl")) RInfer) RInfer])
 >                let gam' = insertGam newname (G Undefined newfnTy 0) gam
 >                newpdef <- mapM (newp tm newargs 1) (zip newpats pats)
->                (chk, auxdefs, _, _) <- mytypecheck gam' (clause, (RWRet ret)) i
+>                (chk, auxdefs, _, _) <- trace (show (newfnTy, newpdef)) $ mytypecheck gam' (clause, (RWRet ret)) i
 >                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover
 >                return (chk, auxdefs++auxdefs', newdefs, covers)
 
->         addLastArg (RBind n (B Pi arg) x) ty = RBind n (B Pi arg) (addLastArg x ty)
->         addLastArg x ty = RBind (UN "X") (B Pi ty) x
+>         addLastArg (RBind n (B Pi arg) x) ty scr = RBind n (B Pi arg) (addLastArg x ty scr)
+>         addLastArg x ty scr = RBind (UN "__scr") (B Pi ty) 
+>                                  (RBind (UN "__scrEq") (B Pi (screq (UN "__scr") scr)) x)
+
+>         screq scrname scr = RApp (RApp (RApp (RApp (Var (UN "Eq")) RInfer) RInfer)
+>                                (Var scrname)) scr
+
 >         rawApp f [] = f
 >         rawApp f (a:as) = rawApp (RApp f a) as
 
@@ -257,7 +266,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 
 >         newp proto newargs i (newps, RSch args ret) = do
 >             ret' <- newpRet ret
->             return $ RSch ((getAuxPats (map fst newargs) newps)++(lastn i args)) ret'
+>             return $ RSch ((getAuxPats (map fst newargs) newps)++(lastn i args)++[RInfer]) ret'
 >                 where newpRet (RWith v schs) = 
 >                          do newpats <- mapM (getNewPat proto (i+1)) schs
 >                             newpdef <- mapM (newp proto newargs (i+1)) (zip newpats schs)

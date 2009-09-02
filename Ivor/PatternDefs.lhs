@@ -216,7 +216,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                checkAllBound (fileLine ret) namesret namesbound (Ind rtmtt') tmtt rty pty
 >                -- trace (show (unified, rtmtt, tm, rtmtt')) $ 
 >                return ((tm, Ind rtmtt', newdefs), [], newdefs, True)
->         mytypecheck gam (clause, (RWith scr pats)) i =
+>         mytypecheck gam (clause, (RWith addprf scr pats)) i =
 >             do -- Get the type of scrutinee, construct the type of the auxiliary definition
 >                (tm@(Ind clausett), clausety, _, scrty@(Ind stt), env) <- checkAndBindWith gam clause scr fn
 >                let args = getRawArgs clause
@@ -226,7 +226,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                let newargs = filter (\ (x,ty) -> x `elem` margNames) env
 >                newpats <- mapM (getNewPat tm 1) pats
 >                let newfntyin = forget (mkNewTy newargs clausety)
->                let newfntyin' = addLastArg newfntyin (forget stt) scr
+>                let newfntyin' = addLastArg newfntyin (forget stt) scr addprf
 >                   --(newargs ++ [(UN "__scr", B Pi stt),
 >                   --                                (UN "__scrEq", B Pi (screq (UN "__scr") scr))]) clausety
 >                (newfnTy, _) <- trace (show newfntyin') $ check gam env newfntyin' (Just (Ind Star))
@@ -236,19 +236,24 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                -- TODO: All pats have to match against args ++ [_]
 >                -- Final clause returns newname applied to args++scrutinee++refl
 >                let ret = rawApp (Var newname) ((map Var (map fst newargs)) ++ 
->                                                [scr, RApp (RApp (Var (UN "refl")) RInfer) RInfer])
+>                              [scr] ++ if addprf then 
+>                                           [RApp (RApp (Var (UN "refl")) RInfer) RInfer]
+>                                          else [])
 >                let gam' = insertGam newname (G Undefined newfnTy 0) gam
->                newpdef <- mapM (newp tm newargs 1) (zip newpats pats)
+>                newpdef <- mapM (newp tm newargs 1 addprf) (zip newpats pats)
 >                (chk, auxdefs, _, _) <- trace (show (newfnTy, newpdef)) $ mytypecheck gam' (clause, (RWRet ret)) i
 >                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover
 >                return (chk, auxdefs++auxdefs', newdefs, covers)
 
->         addLastArg (RBind n (B Pi arg) x) ty scr = RBind n (B Pi arg) (addLastArg x ty scr)
->         addLastArg x ty scr = RBind (UN "__scr") (B Pi ty) 
->                                  (RBind (UN "__scrEq") (B Pi (screq (UN "__scr") scr)) x)
+>         addLastArg (RBind n (B Pi arg) x) ty scr addprf 
+>                        = RBind n (B Pi arg) (addLastArg x ty scr addprf)
+>         addLastArg x ty scr addprf 
+>            = RBind (UN "__scr") (B Pi ty) 
+>                 (if addprf then (RBind (UN "__scrEq") (B Pi (screq (UN "__scr") scr)) x)
+>                     else x)
 
 >         screq scrname scr = RApp (RApp (RApp (RApp (Var (UN "Eq")) RInfer) RInfer)
->                                (Var scrname)) scr
+>                                scr) (Var scrname)
 
 >         rawApp f [] = f
 >         rawApp f (a:as) = rawApp (RApp f a) as
@@ -264,13 +269,14 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >             (argv, argt, _) <- checkAndBind gam [] pargs Nothing
 >             getMatches argv proto
 
->         newp proto newargs i (newps, RSch args ret) = do
+>         newp proto newargs i addprf (newps, RSch args ret) = do
 >             ret' <- newpRet ret
->             return $ RSch ((getAuxPats (map fst newargs) newps)++(lastn i args)++[RInfer]) ret'
->                 where newpRet (RWith v schs) = 
+>             return $ RSch ((getAuxPats (map fst newargs) newps)++(lastn i args) ++
+>                              (if addprf then [RInfer] else [])) ret'
+>                 where newpRet (RWith prf v schs) = 
 >                          do newpats <- mapM (getNewPat proto (i+1)) schs
->                             newpdef <- mapM (newp proto newargs (i+1)) (zip newpats schs)
->                             return (RWith v newpdef)
+>                             newpdef <- mapM (newp proto newargs (i+1) prf) (zip newpats schs)
+>                             return (RWith prf v newpdef)
 >                       newpRet r = return r
 
 >         lastn i xs = reverse $ take i (reverse xs)

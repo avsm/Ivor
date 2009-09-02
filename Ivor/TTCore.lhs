@@ -149,8 +149,8 @@ This keeps both namespaces separate.
 
 Data declarations and pattern matching
 
-> data RawWith = RWith Raw [RawScheme] -- match with an extra arg, add new schemes
->              | RWRet Raw
+> data RawWith = RWith Bool Raw [RawScheme] -- match with an extra arg, add new schemes
+>              | RWRet Raw                  -- if Bool is true, add an equality proof
 >   deriving Show
 
  data With = With [Indexed n]

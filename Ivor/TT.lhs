@@ -266,6 +266,7 @@
 >                         returnval :: ViewTerm
 >                        }
 >              | PWithClause {
+>                         eqproof :: Bool,
 >                         arguments :: [ViewTerm],
 >                         scrutinee :: ViewTerm,
 >                         patterns :: Patterns
@@ -278,8 +279,8 @@
 > mkRawClause :: PClause -> RawScheme
 > mkRawClause (PClause args ret) =
 >     RSch (map forget args) (RWRet (forget ret))
-> mkRawClause (PWithClause args scr (Patterns rest)) = 
->     RSch (map forget args) (RWith (forget scr) (map mkRawClause rest))
+> mkRawClause (PWithClause prf args scr (Patterns rest)) = 
+>     RSch (map forget args) (RWith prf (forget scr) (map mkRawClause rest))
 
 > -- ^ Convert a term to matchable pattern form; i.e. the only names allowed
 > -- are variables and constructors. Any arbitrary function application is

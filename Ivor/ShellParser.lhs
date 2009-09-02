@@ -139,7 +139,7 @@ which runs it.
 >                              lchar '{'
 >                              pats <- ppatterns nm ext
 >                              lchar '}'
->                              return $ PWithClause args scr pats
+>                              return $ PWithClause False args scr pats
 
 > ppatterns :: String -> Maybe (Parser ViewTerm) -> Parser Patterns
 > ppatterns name ext

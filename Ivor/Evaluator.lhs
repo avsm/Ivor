@@ -68,7 +68,7 @@ Code			Stack	Env	Result
 >     evalP n (Just v) xs env pats 
 >        = case v of
 >             Fun opts (Ind v) -> eval v xs env pats
->             PatternDef p _ -> pmatch n p xs env pats
+>             PatternDef p _ _ -> pmatch n p xs env pats
 >             PrimOp _ f -> case f xs of
 >                             Nothing -> unload (P n) xs pats env
 >                             Just v -> eval v [] env pats

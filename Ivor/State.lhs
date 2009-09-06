@@ -107,7 +107,7 @@ Take a data type definition and add constructors and elim rule to the context.
 >              gInsert n gl ctxt
 >          addElim ctxt erule schemes = do
 >            newdefs <- gInsert (fst erule)
->                               (G (PatternDef schemes True) (snd erule) defplicit)
+>                               (G (PatternDef schemes True False) (snd erule) defplicit)
 >                               ctxt
 >            return newdefs
 

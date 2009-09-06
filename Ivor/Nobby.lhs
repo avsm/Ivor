@@ -24,7 +24,7 @@ to do with it, when the time comes.
 > data Global n
 >     = Fun [FunOptions] (Indexed n)    -- User defined function
 >     | Partial (Indexed n) [n] -- Unfinished definition
->     | PatternDef (PMFun n) Bool -- Pattern matching definition, totality
+>     | PatternDef (PMFun n) Bool Bool -- Pattern matching definition, totality, generated
 >     | ElimRule ElimRule  -- Elimination Rule
 >     | PrimOp PrimOp EvPrim     -- Primitive function
 >     | DCon Int Int       -- Data Constructor, tag and arity
@@ -240,11 +240,11 @@ Do the actual evaluation
 >           Nothing -> evalP (lookupval n gamma)
 >    where evalP (Just Unreducible) = (MB (BP n,pty n) Empty)
 >          evalP (Just Undefined) = (MB (BP n, pty n) Empty)
->          evalP (Just (PatternDef p@(PMFun 0 pats) _)) =
+>          evalP (Just (PatternDef p@(PMFun 0 pats) _ _)) =
 >              case patmatch gamma g pats [] of
 >                 Nothing ->  (MB (BPatDef p n, pty n) Empty)
 >                 Just v -> v
->          evalP (Just (PatternDef p _)) = (MB (BPatDef p n, pty n) Empty)
+>          evalP (Just (PatternDef p _ _)) = (MB (BPatDef p n, pty n) Empty)
 >          evalP (Just (Partial (Ind v) _)) = (MB (BP n, pty n) Empty)
 >          evalP (Just (PrimOp f _)) = (MB (BPrimOp f n, pty n) Empty)
 >          evalP (Just (Fun opts (Ind v)))

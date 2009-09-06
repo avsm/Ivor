@@ -229,7 +229,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                let newfntyin' = addLastArg newfntyin (forget stt) scr addprf
 >                   --(newargs ++ [(UN "__scr", B Pi stt),
 >                   --                                (UN "__scrEq", B Pi (screq (UN "__scr") scr))]) clausety
->                (newfnTy, _) <- trace (show newfntyin') $ check gam env newfntyin' (Just (Ind Star))
+>                (newfnTy, _) <- check gam env newfntyin' (Just (Ind Star))
 >                -- Make a name for the new function, clauses in 'pats' need the new name,
 >                -- and form a definition of type restTy
 >                let newname = mkNewName fn i
@@ -241,7 +241,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                                          else [])
 >                let gam' = insertGam newname (G Undefined newfnTy 0) gam
 >                newpdef <- mapM (newp tm newargs 1 addprf) (zip newpats pats)
->                (chk, auxdefs, _, _) <- trace (show (newfnTy, newpdef)) $ mytypecheck gam' (clause, (RWRet ret)) i
+>                (chk, auxdefs, _, _) <- mytypecheck gam' (clause, (RWRet ret)) i
 >                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover
 >                return (chk, auxdefs++auxdefs', newdefs, covers)
 

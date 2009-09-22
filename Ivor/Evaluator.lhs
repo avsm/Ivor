@@ -1,6 +1,6 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
-> module Ivor.Evaluator(eval_whnf, eval_nf) where
+> module Ivor.Evaluator(eval_whnf, eval_nf, eval_nf_without) where
 
 > import Ivor.TTCore
 > import Ivor.Gadgets
@@ -16,12 +16,19 @@
                           menv :: [(Name, Binder (TT Name))] }
 
 > eval_whnf :: Gamma Name -> Indexed Name -> Indexed Name
-> eval_whnf gam (Ind tm) = let res = makePs (evaluate False gam tm)
+> eval_whnf gam (Ind tm) = let res = makePs (evaluate False gam tm Nothing)
 >                              in finalise (Ind res)
 
 > eval_nf :: Gamma Name -> Indexed Name -> Indexed Name
-> eval_nf gam (Ind tm) = let res = makePs (evaluate True gam tm)
+> eval_nf gam (Ind tm) = let res = makePs (evaluate True gam tm Nothing)
 >                            in finalise (Ind res)
+
+> eval_nf_without :: Gamma Name -> Indexed Name -> [Name] -> Indexed Name
+> eval_nf_without gam tm [] = eval_nf gam tm
+> eval_nf_without gam (Ind tm) ns = let res = makePs (evaluate True gam tm (Just ns))
+>                                       in finalise (Ind res)
+
+
 
 > type Stack = [TT Name]
 > type SEnv = [(Name, TT Name, TT Name)]
@@ -40,13 +47,14 @@ Code			Stack	Env	Result
 [[let x = t in e]]	xs	es	[[e]], xs, (Let x t: es)
 
 > evaluate :: Bool -> -- under binders? 'False' gives WHNF
->             Gamma Name -> TT Name -> TT Name
-> evaluate open gam tm = eval tm [] [] []
+>             Gamma Name -> TT Name -> Maybe [Name] -> TT Name
+> evaluate open gam tm jns = eval tm [] [] []
 >   where
 >     eval :: TT Name -> Stack -> SEnv -> [(Name, TT Name)] -> TT Name
 >     eval (P x) xs env pats 
 >         = case lookup x pats of
->              Nothing -> evalP x (lookupval x gam) xs env pats
+>              Nothing -> if (usename x jns) then evalP x (lookupval x gam) xs env pats
+>                             else evalP x Nothing xs env pats
 >              Just val -> eval val xs env pats
 >     eval (V i) xs env pats = if (length env>i) 
 >                                then eval (getEnv i env) xs env pats
@@ -87,6 +95,9 @@ Code			Stack	Env	Result
 >     unload x [] pats env 
 >                = foldl (\tm (n,val) -> substName n val (Sc tm)) x pats
 >     unload x (a:as) pats env = unload (App x a) as pats env
+>
+>     usename x Nothing = True
+>     usename x (Just xs) = not (elem x xs)
 
 >     buildenv [] t = t
 >     buildenv ((n,ty,tm):xs) t 

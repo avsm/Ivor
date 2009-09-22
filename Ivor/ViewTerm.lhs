@@ -18,7 +18,7 @@
 >                        Term(..), ViewTerm(..), Annot(..), apply,
 >                        view, viewType, ViewConst, typeof, 
 >                        freeIn, namesIn, occursIn, subst, getApp, 
->                        Ivor.ViewTerm.getFnArgs,
+>                        Ivor.ViewTerm.getFnArgs, transform,
 >                        getArgTypes, Ivor.ViewTerm.getReturnType,
 >                        dbgshow,
 >                        -- * Inductive types
@@ -32,6 +32,7 @@
 
 > import Data.Typeable
 > import Data.List
+> import Debug.Trace
 
 > name :: String -> Name
 > name = UN
@@ -295,15 +296,17 @@
 > -- | Match the second argument against the first, returning a list of
 > -- the names in the first paired with their matches in the second. Returns
 > -- Nothing if there is a match failure. There is no searching under binders.
-> match :: ViewTerm -> ViewTerm -> Maybe [(Name, ViewTerm)]
-> match t1 t2 = do acc <- m' t1 t2 []
->                  checkDups acc [] where
->   m' (Name _ n) t acc = return ((n,t):acc)
+> matchMeta :: ViewTerm -> ViewTerm -> Maybe [(Name, ViewTerm)]
+> matchMeta t1 t2 = do acc <- m' t1 t2 []
+>                      checkDups acc [] where
+>   m' (Metavar n) t acc = return ((n,t):acc)
+>   m' Placeholder t acc = return acc
 >   m' (Ivor.ViewTerm.App f a) (Ivor.ViewTerm.App f' a') acc 
 >       = do acc' <- m' f f' acc
 >            m' a a' acc'
 >   m' (Annotation _ t) t' acc = m' t t' acc
 >   m' t (Annotation _ t') acc = m' t t' acc
+>   m' (Name _ x) (Name _ y) acc | x == y = return acc
 >   m' x y acc | x == y = return acc
 >              | otherwise = fail $"Mismatch " ++ show x ++ " and " ++ show y
 
@@ -313,6 +316,16 @@
 >          Just t' -> if t == t' then checkDups xs acc
 >                                else fail $ "Mismatch on " ++ show x
 >          Nothing -> checkDups xs ((x,t):acc)
+
+> replaceMeta :: [(Name, ViewTerm)] -> ViewTerm -> ViewTerm
+> replaceMeta ms (Metavar n) = case lookup n ms of
+>                                Just t -> t
+>                                _ -> Metavar n
+> replaceMeta ms (Ivor.ViewTerm.App f a)
+>             = Ivor.ViewTerm.App (replaceMeta ms f) (replaceMeta ms a)
+> replaceMeta ms (Annotation a t) = Annotation a (replaceMeta ms t)
+> replaceMeta ms x = x
+
 
 > -- |Substitute a name n with a value v in a term f 
 > subst :: Name -> ViewTerm -> ViewTerm -> ViewTerm
@@ -346,3 +359,23 @@
 > subst n v (Annotation a t) = Annotation a (subst n v t)
 > subst n v t = t
 
+> -- |Transform a term according to a rewrite rule.
+> transform :: ViewTerm -- ^ Left hand side, with metavariables
+>           -> ViewTerm -- ^ Right hand side, with metavariables
+>           -> ViewTerm -- ^ Term to rewrite
+>           -> ViewTerm
+> transform lhs rhs term = tr' term where
+>     tr' (Ivor.ViewTerm.App f a) 
+>             = doTr $ Ivor.ViewTerm.App (tr' f) (tr' a)
+>     tr' (Ivor.ViewTerm.Lambda v t sc) 
+>             = doTr $ Ivor.ViewTerm.Lambda v (tr' t) (tr' sc)
+>     tr' (Ivor.ViewTerm.Forall v t sc) 
+>             = doTr $ Ivor.ViewTerm.Forall v (tr' t) (tr' sc)
+>     tr' (Ivor.ViewTerm.Let v t val sc) 
+>             = doTr $ Ivor.ViewTerm.Let v (tr' t) (tr' val) (tr' sc)
+>     tr' (Annotation a t) = doTr $ Annotation a (tr' t)
+>     tr' x = doTr x
+
+>     doTr x = case matchMeta lhs x of
+>                 Just vars -> replaceMeta vars rhs
+>                 Nothing -> x

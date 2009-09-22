@@ -35,7 +35,7 @@
 >               proofterm, getGoals, getGoal, uniqueName, -- getActions
 >               allSolved,qed,
 >               -- * Examining the Context
->               eval, whnf, evalnew, evalCtxt, getDef, defined, getPatternDef,
+>               eval, whnf, evalnew, evalnewWithout, evalCtxt, getDef, defined, getPatternDef,
 >               getAllTypes, getAllDefs, getAllPatternDefs, isAuxPattern, getConstructors,
 >               getInductive, getAllInductives, getType,
 >               Rule(..), getElimRule, nameType, getConstructorTag,
@@ -777,6 +777,12 @@ Give a parseable but ugly representation of a term.
 > evalnew :: Context -> Term -> Term
 > evalnew (Ctxt st) (Term (tm,ty)) = Term (eval_nf (defs st) tm,
 >                                          eval_nf (defs st) ty)
+
+> -- |Reduce a term and its type to Normal Form (using new evaluator, not
+> -- reducing given names)
+> evalnewWithout :: Context -> Term -> [Name] -> Term
+> evalnewWithout (Ctxt st) (Term (tm,ty)) ns = Term (eval_nf_without (defs st) tm ns,
+>                                                    eval_nf_without (defs st) ty ns)
 
 > -- |Check a term in the context of the given goal
 > checkCtxt :: (IsTerm a) => Context -> Goal -> a -> TTM Term

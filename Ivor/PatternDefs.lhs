@@ -31,6 +31,7 @@ Also return whether the function is definitely total.
 >   let clauses = nub (concat clausesIn)
 >   let clauses' = filter (mostSpecClause clauses) clauses
 >   (ty@(Ind ty'),_) <- typecheck gam tyin
+>   checkRealNames (getNames (Sc ty')) ty
 >   let arity = length (getExpected ty')
 >   checkNotExists fn gam
 >   gam' <- gInsert fn (G Undefined ty defplicit) gam

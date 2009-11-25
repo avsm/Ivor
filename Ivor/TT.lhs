@@ -188,6 +188,7 @@
 >              | Message String
 >              | Unbound ViewTerm ViewTerm ViewTerm ViewTerm [Name]
 >              | NoSuchVar Name
+>              | CantInfer Name ViewTerm
 >              | ErrContext String TTError
 
 > instance Show TTError where
@@ -197,6 +198,7 @@
 >     show (Unbound clause clty rhs rhsty ns) 
 >        = show ns ++ " unbound in clause " ++ show clause ++ " : " ++ show clty ++ 
 >                     " = " ++ show rhs
+>     show (CantInfer  n tm) = "Can't infer value for " ++ show n ++ " in " ++ show tm
 >     show (NoSuchVar n) = "No such name as " ++ show n
 >     show (ErrContext c err) = c ++ show err
 
@@ -223,6 +225,7 @@
 >                        (view (Term (rhs, Ind TTCore.Star)))
 >                        (view (Term (rhsty, Ind TTCore.Star)))
 >                        names
+> getError (ICantInfer nm tm) = CantInfer nm (view (Term (tm, Ind TTCore.Star)))
 > getError (INoSuchVar n) = NoSuchVar n
 > getError (IContext s e) = ErrContext s (getError e)
 
@@ -482,8 +485,9 @@ do let olddefs = defs st
 >        t <- raw tm
 >        let Gam ctxt = defs st
 >        case (typecheck (defs st) t) of
->           (Right (t, ty)) ->
->              do tt $ checkConv (defs st) ty (Ind TTCore.Star) (IMessage "Not a type")
+>           (Right (t@(Ind t'), ty)) ->
+>              do tt $ checkRealNames (getNames (Sc t')) t
+>                 tt $ checkConv (defs st) ty (Ind TTCore.Star) (IMessage "Not a type")
 >                 -- let newdefs = Gam ((n, (G und (finalise t))):ctxt)
 >                 newdefs <- gInsert n (G und (finalise t) defplicit) (Gam ctxt)
 >                 return $ Ctxt st { defs = newdefs }

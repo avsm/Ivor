@@ -367,12 +367,14 @@ typechecker...
 
 >          defaultResult = do
 >              (next, infer, bindings, errs, mvs, fc) <- get
->              if infer
->                 then case exp of
+>              case lookup n bindings of
+>                Nothing -> 
+>                 if infer then case exp of
 >                        Nothing -> lift $ ifail (errCtxt fc (INoSuchVar n))
 >                        Just (Ind t) -> do put (next, infer, (n, B Pi t):bindings, errs, mvs, fc)
 >                                           return (Ind (P n), Ind t)
->                 else lift $ ifail (errCtxt fc (INoSuchVar n))
+>                          else lift $ ifail (errCtxt fc (INoSuchVar n))
+>                Just (B Pi t) -> return (Ind (P n), Ind t)
 
 >  tc env lvl (RApp f a) exp = do
 >     (Ind fv, Ind ft) <- tcfixup env lvl f Nothing

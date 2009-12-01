@@ -12,6 +12,7 @@
 > import Ivor.Unify
 > import Ivor.Constant
 > import Ivor.Errors
+> import Ivor.Evaluator
 
 > import Control.Monad.State
 > import Data.List
@@ -135,7 +136,7 @@ Handy to pass through all the variables, for tracing purposes when debugging.
 >          mkSubstQ (s',nms) (ok, (env,Ind x,Ind y,fc)) all
 >             = do -- (s',nms) <- mkSubst xs
 >                  let x' = papp s' x
->                  let (Ind y') = normalise gam (Ind (papp s' y))
+>                  let (Ind y') = eval_nf gam (Ind (papp s' y))
 >                  uns <- case unifyenvErr ok gam env (Ind y') (Ind x') of
 >                           Right uns -> {- trace (show (y', x', uns)) $ -} return uns
 >                           Left err -> {- trace (showeqn all) $ -} 
@@ -384,10 +385,10 @@ typechecker...
 >       case (fnfng,fnf) of
 >        ((Ind (Bind _ (B Pi s) (Sc t))),_) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
->          let sty = (normaliseEnv env emptyGam (Ind s))
+>          let sty = (normaliseEnv env gamma (Ind s))
 >          let tt = (Bind (MN ("x",0)) (B (Let av) at) (Sc t))
 >          let tmty = (normaliseEnv env emptyGam (Ind tt))
->          checkConvSt env gamma (Ind at) (Ind s)
+>          checkConvSt env gamma (Ind at) sty
 >          return (Ind (App fv av), tmty)
 >        (_, (Ind (Bind _ (B Pi s) (Sc t)))) -> do
 >          (Ind av,Ind at) <- tcfixup env lvl a (Just (Ind s))
@@ -544,15 +545,17 @@ Insert inferred values into the term
 >  checkbinder gamma env lvl n (B Lambda t) = do
 >     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
 >     let ttnf = normaliseEnv env gamma (Ind tt)
+>     let (Ind tvnf) = normaliseEnv env gamma (Ind tv)
 >     case ttnf of
->       (Ind Star) -> return (B Lambda tv)
->       (Ind (P (MN ("INFER",_)))) -> return (B Lambda tv)
+>       (Ind Star) -> return (B Lambda tvnf)
+>       (Ind (P (MN ("INFER",_)))) -> return (B Lambda tvnf)
 >       _ -> fail $ "The type of the binder " ++ show n ++ " must be *"
 >  checkbinder gamma env lvl n (B Pi t) = do
 >     (Ind tv,Ind tt) <- tcfixup env lvl t (Just (Ind Star))
+>     let (Ind tvnf) = normaliseEnv env gamma (Ind tv)
 >     -- let ttnf = normaliseEnv env gamma (Ind tt)
 >     checkConvSt env gamma (Ind tt) (Ind Star)
->     return (B Pi tv)
+>     return (B Pi tvnf)
 
      case ttnf of
        (Ind Star) -> return (B Pi tv)
@@ -732,35 +735,6 @@ extended environment.
 > checkNotHoley i (Bind _ _ (Sc s)) = checkNotHoley (i+1) s
 > checkNotHoley i (Proj _ _ t) = checkNotHoley i t
 > checkNotHoley _ _ = return ()
-
-> pToV :: Eq n => n -> (TT n) -> (Scope (TT n))
-> pToV = pToV2 0
-
-> pToV2 v p (P n) | p==n = Sc (V v)
->                 | otherwise = Sc (P n)
-> pToV2 v p (V w) = Sc (V w)
-> pToV2 v p (Con t n i) = Sc (Con t n i)
-> pToV2 v p (TyCon n i) = Sc (TyCon n i)
-> pToV2 v p (Meta n t) = Sc (Meta n (getSc (pToV2 v p t)))
->				where getSc (Sc a) = a
-> pToV2 v p (Elim n) = Sc (Elim n)
-> pToV2 v p (Bind n b (Sc sc)) = Sc (Bind n (fmap (getSc.(pToV2 v p)) b)
->                                    (pToV2 (v+1) p sc))
->				where getSc (Sc a) = a
-> pToV2 v p (App f a) = Sc $ App (getSc (pToV2 v p f))
->                               (getSc (pToV2 v p a))
->				where getSc (Sc a) = a
-> pToV2 v p (Label t (Comp n ts)) = Sc $ Label (getSc (pToV2 v p t))
->                                         (Comp n (map (getSc.(pToV2 v p)) ts))
-> pToV2 v p (Call (Comp n ts) t) = Sc $ Call 
->                                        (Comp n (map (getSc.(pToV2 v p)) ts))
->                                        (getSc (pToV2 v p t))
-> pToV2 v p (Return t) = Sc $ Return (getSc (pToV2 v p t))
-> pToV2 v p (Proj n i t) = Sc $ Proj n i (getSc (pToV2 v p t))
->				where getSc (Sc a) = a
-> pToV2 v p (Stage t) = Sc $ Stage (sLift (getSc.(pToV2 v p)) t)
-> pToV2 v p (Const x) = Sc (Const x)
-> pToV2 v p Star = Sc Star
 
  checkR g t = (typecheck g t):: (Result (Indexed Name, Indexed Name)) 
 

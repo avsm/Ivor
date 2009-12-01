@@ -5,6 +5,7 @@
 > import Ivor.Nobby
 > import Ivor.TTCore
 > import Ivor.Errors
+> import Ivor.Evaluator
 
 > import Data.List
 
@@ -43,10 +44,17 @@ Unify on named terms, but normalise using de Bruijn indices.
 >     case unifynferr i env (p x)
 >                           (p y) of
 >           (Right x) -> return x
->           _ -> unifynferr i env (p (normalise (gam' gam) x))
->                                 (p (normalise (gam' gam) y))
->    where p (Ind t) = Ind (makePs t)
+
+>           _ -> {- trace (dbgtt x ++ ", " ++ dbgtt y ++"\n") $ -}
+>                unifynferr i env (p (eval_nf (gam' gam) x))
+>                                 (p (eval_nf (gam' gam) y))
+
+           _ -> unifynferr i env (p (normalise (gam' gam) x))
+                                 (p (normalise (gam' gam) y))
+
+>    where p (Ind t) = Ind t --(makePs t)
 >          gam' g = concatGam g (envToGamHACK env)
+>          dbgtt (Ind x) = show x -- debugTT x
 
 Make the local environment something that Nobby knows about. Very hacky...
 
@@ -80,6 +88,10 @@ Collect names which do unify, and ignore errors
 >                | x == x' = un envl envr scl y acc
 >          un envl envr y (Bind x (B Lambda ty) (Sc (App scr (P x')))) acc
 >                | x == x' = un envl envr y scr acc
+>          un envl envr (Bind x (B Lambda ty) (Sc (App scl (V 0)))) y acc
+>                = un envl envr y scl acc
+>          un envl envr y (Bind x (B Lambda ty) (Sc (App scr (V 0)))) acc
+>                = un envl envr y scr acc
 >          un envl envr (P x) t acc | hole envl x = return ((x,t):acc)
 >          un envl envr t (P x) acc | hole envl x = return ((x,t):acc)
 >          un envl envr (Bind x b@(B Hole ty) (Sc sc)) t acc

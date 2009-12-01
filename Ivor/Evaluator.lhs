@@ -6,11 +6,11 @@
 > import Ivor.Gadgets
 > import Ivor.Constant
 > import Ivor.Nobby
-> import Ivor.Typecheck
 
 > import Debug.Trace
 > import Data.Typeable
 > import Control.Monad.State
+> import List
 
  data Machine = Machine { term :: (TT Name),
                           mstack :: [TT Name],
@@ -56,39 +56,44 @@ Code			Stack	Env	Result
 >             Maybe [Name] ->  -- Names not to reduce
 >             Maybe [(Name, Int)] -> -- Names to reduce a maximum number
 >             TT Name
-> evaluate open gam tm jns maxns = evalState (eval tm [] [] []) maxns
+> evaluate open gam tm jns maxns = {- trace ("EVALUATING: " ++ show tm) $ -} evalState (eval tm [] [] []) maxns
 >   where
 >     eval :: TT Name -> Stack -> SEnv -> 
 >             [(Name, TT Name)] -> State (Maybe [(Name, Int)]) (TT Name)
->     eval (P x) xs env pats 
+>     eval tm stk env pats = {- trace (show (tm, stk, env, pats)) $ -} eval' tm stk env pats
+
+>     eval' (P x) xs env pats 
 >         = do mns <- get
 >              let (use, mns') = usename x jns mns
 >              put mns'
 >              case lookup x pats of
 >                 Nothing -> if use then evalP x (lookupval x gam) xs env pats
 >                                   else evalP x Nothing xs env pats
->                 Just val -> eval val xs env pats
->     eval (V i) xs env pats 
+>                 Just val -> eval val xs env (removep x pats)
+>        where removep n [] = []
+>              removep n ((x,t):xs) | n==x = removep n xs
+>                                   | otherwise = (x,t):(removep n xs)
+>     eval' (V i) xs env pats 
 >              = if (length env>i) 
 >                   then eval (getEnv i env) xs env pats
 >                   else unload (V i) xs pats env -- blocked, so unload
->     eval (App f a) xs env pats 
+>     eval' (App f a) xs env pats 
 >        = do a' <- eval a [] env pats
 >             eval f (a':xs) env pats
->     eval (Bind n (B Lambda ty) (Sc sc)) xs env pats
+>     eval' (Bind n (B Lambda ty) (Sc sc)) xs env pats
 >        = do ty' <- eval ty [] env pats
 >             evalScope Lambda n ty' sc xs env pats
->     eval (Bind n (B Pi ty) (Sc sc)) xs env pats
+>     eval' (Bind n (B Pi ty) (Sc sc)) xs env pats
 >        = do ty' <- eval ty [] env pats
 >             evalScope Pi n ty' sc xs env pats
 >            -- unload (Bind n (B Pi ty') (Sc sc)) [] pats env
->     eval (Bind n (B (Let val) ty) (Sc sc)) xs env pats 
+>     eval' (Bind n (B (Let val) ty) (Sc sc)) xs env pats 
 >        = do val' <- eval val [] env pats
 >             eval sc xs ((n,ty,val'):env) pats
->     eval (Bind n (B bt ty) (Sc sc)) xs env pats
+>     eval' (Bind n (B bt ty) (Sc sc)) xs env pats
 >        = do ty' <- eval ty [] env pats
 >             unload (Bind n (B bt ty') (Sc sc)) [] pats env
->     eval x stk env pats = unload x stk pats env
+>     eval' x stk env pats = unload x stk pats env
 
 >     evalP n (Just v) xs env pats 
 >        = case v of
@@ -135,11 +140,23 @@ Code			Stack	Env	Result
 >                 = buildenv xs (subst tm (Sc t))
 >     --            = buildenv xs (Bind n (B (Let tm) ty) (Sc t))
 
+>     renameRHS pbinds rhs env = rrhs [] [] (nub pbinds) rhs where
+>       rrhs namemap pbinds' [] rhs = {-trace ("BEFORE " ++ show (rhs, pbinds, pbinds')) $ -}
+>                                     (pbinds', substNames namemap rhs)
+>       rrhs namemap pbinds ((n,t):ns) rhs
+>          = let n' = uniqify' (UN (show n)) (map sfst env ++ map fst pbinds ++ map fst ns) in
+>                rrhs ((n,P n'):namemap) ((n',t):pbinds) ns rhs
+
+>     substNames [] rhs = {-trace ("AFTER " ++ show rhs) $ -} rhs
+>     substNames ((n,t):ns) rhs = substNames ns (substName n t (Sc rhs))
+
 >     pmatch n (PMFun i clauses) xs env pats = 
 >         do cm <- matches clauses xs env pats
 >            case cm of
 >              Nothing -> unload (P n) xs pats env
->              Just (rhs, pbinds, stk) -> eval rhs stk env pbinds
+>              Just (rhs, pbinds, stk) -> 
+>                    let (pbinds', rhs') = renameRHS pbinds rhs env in
+>                        eval rhs' stk env pbinds'
 
 >     matches [] xs env pats = return Nothing
 >     matches (c:cs) xs env pats 

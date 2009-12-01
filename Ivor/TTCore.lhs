@@ -941,3 +941,32 @@ Some handy gadgets for Raw terms
 >        forgetTT (Stage (Escape t _)) = RStage (REscape (forgetTT t))
 >        forgetTT (Const x) = RConst x
 >        forgetTT Star = RStar
+
+> pToV :: Eq n => n -> (TT n) -> (Scope (TT n))
+> pToV = pToV2 0
+
+> pToV2 v p (P n) | p==n = Sc (V v)
+>                 | otherwise = Sc (P n)
+> pToV2 v p (V w) = Sc (V w)
+> pToV2 v p (Con t n i) = Sc (Con t n i)
+> pToV2 v p (TyCon n i) = Sc (TyCon n i)
+> pToV2 v p (Meta n t) = Sc (Meta n (getSc (pToV2 v p t)))
+>				where getSc (Sc a) = a
+> pToV2 v p (Elim n) = Sc (Elim n)
+> pToV2 v p (Bind n b (Sc sc)) = Sc (Bind n (fmap (getSc.(pToV2 v p)) b)
+>                                    (pToV2 (v+1) p sc))
+>				where getSc (Sc a) = a
+> pToV2 v p (App f a) = Sc $ App (getSc (pToV2 v p f))
+>                               (getSc (pToV2 v p a))
+>				where getSc (Sc a) = a
+> pToV2 v p (Label t (Comp n ts)) = Sc $ Label (getSc (pToV2 v p t))
+>                                         (Comp n (map (getSc.(pToV2 v p)) ts))
+> pToV2 v p (Call (Comp n ts) t) = Sc $ Call 
+>                                        (Comp n (map (getSc.(pToV2 v p)) ts))
+>                                        (getSc (pToV2 v p t))
+> pToV2 v p (Return t) = Sc $ Return (getSc (pToV2 v p t))
+> pToV2 v p (Proj n i t) = Sc $ Proj n i (getSc (pToV2 v p t))
+>				where getSc (Sc a) = a
+> pToV2 v p (Stage t) = Sc $ Stage (sLift (getSc.(pToV2 v p)) t)
+> pToV2 v p (Const x) = Sc (Const x)
+> pToV2 v p Star = Sc Star

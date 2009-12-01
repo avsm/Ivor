@@ -8,6 +8,7 @@ Functions for displaying proof state "helpfully".
 > import Ivor.TTCore
 > import Ivor.Typecheck
 > import Ivor.Nobby
+> import Ivor.Values
 
 > displayHoleContext :: Gamma Name -> [Name] -> Name -> Indexed Name -> String
 > displayHoleContext gam hidden h tm = 

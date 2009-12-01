@@ -2,6 +2,8 @@
 
 > module Ivor.RunTT where
 
+FIXME: We don't use this. Got to go.
+
 Representation of the run-time language.
 Used for spitting out GHC core.
 
@@ -9,6 +11,7 @@ Used for spitting out GHC core.
 > import Ivor.Gadgets
 > import Ivor.ICompile
 > import Ivor.Nobby
+> import Ivor.Values
 
 When we compile, we need to know the term as well as bits of info about
 its type, ie its arity and emptiness.

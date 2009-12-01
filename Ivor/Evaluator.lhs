@@ -5,12 +5,13 @@
 > import Ivor.TTCore
 > import Ivor.Gadgets
 > import Ivor.Constant
-> import Ivor.Nobby
+> import Ivor.Values
 
 > import Debug.Trace
 > import Data.Typeable
 > import Control.Monad.State
 > import List
+> import qualified Data.Map as Map
 
  data Machine = Machine { term :: (TT Name),
                           mstack :: [TT Name],
@@ -198,3 +199,13 @@ Code			Stack	Env	Result
 >     getConArgs (Con t _ _) args = Just (t, args)
 >     getConArgs (App f a) args = getConArgs f (a:args)
 >     getConArgs _ _ = Nothing
+
+
+
+> eval_nfEnv :: Env Name -> Gamma Name -> Indexed Name -> Indexed Name
+> eval_nfEnv env g t
+>     = eval_nf (addenv env g) t
+>   where addenv [] g = g
+>         addenv ((n,B (Let v) ty):xs) (Gam g)
+>             = addenv xs (Gam (Map.insert n (G (Fun [] (Ind v)) (Ind ty) defplicit) g))
+>         addenv (_:xs) g = addenv xs g

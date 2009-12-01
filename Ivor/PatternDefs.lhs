@@ -8,6 +8,7 @@
 > import Ivor.Typecheck
 > import Ivor.Unify
 > import Ivor.Errors
+> import Ivor.Values
 
 > import Debug.Trace
 > import Data.List

@@ -4,6 +4,7 @@
 > import Ivor.Datatype
 > import Ivor.Nobby
 > import Ivor.Gadgets
+> import Ivor.Values
 
 > import Data.List
 > import Debug.Trace

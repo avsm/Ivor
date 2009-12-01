@@ -6,6 +6,7 @@
 > import Ivor.TTCore
 > import Ivor.Errors
 > import Ivor.Evaluator
+> import Ivor.Values
 
 > import Data.List
 

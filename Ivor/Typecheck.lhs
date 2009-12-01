@@ -13,6 +13,7 @@
 > import Ivor.Constant
 > import Ivor.Errors
 > import Ivor.Evaluator
+> import Ivor.Values
 
 > import Control.Monad.State
 > import Data.List

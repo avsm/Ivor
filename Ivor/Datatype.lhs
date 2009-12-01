@@ -6,6 +6,7 @@
 > import Ivor.Nobby
 > import Ivor.PatternDefs
 > import Ivor.Errors
+> import Ivor.Values
 
 > import Debug.Trace
 

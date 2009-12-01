@@ -1,4 +1,4 @@
-> {-# OPTIONS_GHC -fglasgow-exts #-}
+\> {-# OPTIONS_GHC -fglasgow-exts #-}
 
 > module Ivor.State where
 
@@ -17,6 +17,7 @@
 > import Ivor.Display
 > import Ivor.Unify
 > import Ivor.Errors
+> import Ivor.Values
 
 > import System.Environment
 > import Data.List

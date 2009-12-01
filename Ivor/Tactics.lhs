@@ -8,6 +8,7 @@
 > import Ivor.Gadgets
 > import Ivor.Unify
 > import Ivor.Errors
+> import Ivor.Values
 
 > import Data.List
 > import Data.Maybe

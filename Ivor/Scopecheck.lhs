@@ -5,6 +5,7 @@
 > import Ivor.TTCore
 > import Ivor.Nobby
 > import Ivor.Typecheck
+> import Ivor.Values
 
 Typechecking on terms we assume to be okay - in other words, just convert 
 bound names to a de Bruijn index.

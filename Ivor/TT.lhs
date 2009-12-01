@@ -113,6 +113,7 @@
 > import Ivor.CodegenC
 > import Ivor.PatternDefs
 > import Ivor.Errors
+> import Ivor.Values
 
 > import Data.List
 > import Debug.Trace
@@ -710,9 +711,9 @@ intuitive)
 > resume :: Context -> Name -> TTM Context
 > resume ctxt@(Ctxt st) n =
 >     case glookup n (defs st) of
->         Just ((Ivor.Nobby.Partial _ _),_) -> do let (Ctxt st) = suspend ctxt
->                                                 st' <- tt$ resumeProof st n
->                                                 return (Ctxt st')
+>         Just ((Ivor.Values.Partial _ _),_) -> do let (Ctxt st) = suspend ctxt
+>                                                  st' <- tt$ resumeProof st n
+>                                                  return (Ctxt st')
 >         Just (Unreducible,ty) ->
 >             do let st' = st { defs = remove n (defs st) }
 >                theorem (Ctxt st') n (Term (ty, Ind TTCore.Star))
@@ -727,7 +728,7 @@ intuitive)
 > freeze (Ctxt st) n
 >      = case glookup n (defs st) of
 >           Nothing -> fail $ show n ++ " is not defined"
->           _ -> return $ Ctxt st { defs = Ivor.Nobby.freeze n (defs st) }
+>           _ -> return $ Ctxt st { defs = Ivor.Values.freeze n (defs st) }
 
 > -- | Unfreeze a name (i.e., allow it to reduce).
 > -- Fails if the name does not exist.
@@ -735,7 +736,7 @@ intuitive)
 > thaw (Ctxt st) n
 >      = case glookup n (defs st) of
 >           Nothing -> fail $ show n ++ " is not defined"
->           _ -> return $ Ctxt st { defs = Ivor.Nobby.thaw n (defs st) }
+>           _ -> return $ Ctxt st { defs = Ivor.Values.thaw n (defs st) }
 
 
 > -- | Save the state (e.g. for Undo)

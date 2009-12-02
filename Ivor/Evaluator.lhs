@@ -1,6 +1,7 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
-> module Ivor.Evaluator(eval_whnf, eval_nf, eval_nf_without, eval_nf_limit) where
+> module Ivor.Evaluator(eval_whnf, eval_nf, eval_nf_without, eval_nf_limit,
+>                       eval_nfEnv, tidyNames) where
 
 > import Ivor.TTCore
 > import Ivor.Gadgets
@@ -57,7 +58,10 @@ Code			Stack	Env	Result
 >             Maybe [Name] ->  -- Names not to reduce
 >             Maybe [(Name, Int)] -> -- Names to reduce a maximum number
 >             TT Name
-> evaluate open gam tm jns maxns = {- trace ("EVALUATING: " ++ show tm) $ -} evalState (eval tm [] [] []) maxns
+> evaluate open gam tm jns maxns = -- trace ("EVALUATING: " ++ debugTT tm) $ 
+>                                  let res = evalState (eval tm [] [] []) maxns
+>                                      in {- trace ("RESULT: " ++ debugTT res) -} 
+>                                         res
 >   where
 >     eval :: TT Name -> Stack -> SEnv -> 
 >             [(Name, TT Name)] -> State (Maybe [(Name, Int)]) (TT Name)
@@ -209,3 +213,15 @@ Code			Stack	Env	Result
 >         addenv ((n,B (Let v) ty):xs) (Gam g)
 >             = addenv xs (Gam (Map.insert n (G (Fun [] (Ind v)) (Ind ty) defplicit) g))
 >         addenv (_:xs) g = addenv xs g
+
+Turn MN to UN, if they are unique, so that they look nicer.
+
+> tidyNames :: Indexed Name -> Indexed Name
+> tidyNames (Ind tm) = Ind (tidy' [] tm)
+>   where tidy' ns (Bind (MN (n,i)) (B b t) (Sc tm)) = 
+>             let n' = uniqify (UN n) ns in
+>                 Bind n' (B b (tidy' ns t)) (Sc (tidy' (n':ns) tm))
+>         tidy' ns (Bind x (B b t) (Sc tm)) 
+>               = Bind x (B b (tidy' ns t)) (Sc (tidy' (x:ns) tm))
+>         tidy' ns (App f a) = App (tidy' ns f) (tidy' ns a)
+>         tidy' ns x = x

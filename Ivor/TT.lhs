@@ -780,20 +780,20 @@ Give a parseable but ugly representation of a term.
 
 > -- |Reduce a term and its type to Normal Form (using new evaluator)
 > evalnew :: Context -> Term -> Term
-> evalnew (Ctxt st) (Term (tm,ty)) = Term (eval_nf (defs st) tm,
->                                          eval_nf (defs st) ty)
+> evalnew (Ctxt st) (Term (tm,ty)) = Term (tidyNames (eval_nf (defs st) tm),
+>                                          tidyNames (eval_nf (defs st) ty))
 
 > -- |Reduce a term and its type to Normal Form (using new evaluator, not
 > -- reducing given names)
 > evalnewWithout :: Context -> Term -> [Name] -> Term
-> evalnewWithout (Ctxt st) (Term (tm,ty)) ns = Term (eval_nf_without (defs st) tm ns,
->                                                    eval_nf_without (defs st) ty ns)
+> evalnewWithout (Ctxt st) (Term (tm,ty)) ns = Term (tidyNames (eval_nf_without (defs st) tm ns),
+>                                                    tidyNames (eval_nf_without (defs st) ty ns))
 
 > -- |Reduce a term and its type to Normal Form (using new evaluator, reducing
 > -- given names a maximum number of times)
 > evalnewLimit :: Context -> Term -> [(Name, Int)] -> Term
-> evalnewLimit (Ctxt st) (Term (tm,ty)) ns = Term (eval_nf_limit (defs st) tm ns,
->                                                    eval_nf_limit (defs st) ty ns)
+> evalnewLimit (Ctxt st) (Term (tm,ty)) ns = Term (tidyNames (eval_nf_limit (defs st) tm ns),
+>                                                  tidyNames (eval_nf_limit (defs st) ty ns))
 
 > -- |Check a term in the context of the given goal
 > checkCtxt :: (IsTerm a) => Context -> Goal -> a -> TTM Term

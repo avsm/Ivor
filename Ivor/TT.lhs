@@ -792,8 +792,8 @@ Give a parseable but ugly representation of a term.
 > -- |Reduce a term and its type to Normal Form (using new evaluator, reducing
 > -- given names a maximum number of times)
 > evalnewLimit :: Context -> Term -> [(Name, Int)] -> Term
-> evalnewLimit (Ctxt st) (Term (tm,ty)) ns = Term (tidyNames (eval_nf_limit (defs st) tm ns),
->                                                  tidyNames (eval_nf_limit (defs st) ty ns))
+> evalnewLimit (Ctxt st) (Term (tm,ty)) ns = Term (eval_nf_limit (defs st) tm ns,
+>                                                  eval_nf_limit (defs st) ty ns)
 
 > -- |Check a term in the context of the given goal
 > checkCtxt :: (IsTerm a) => Context -> Goal -> a -> TTM Term

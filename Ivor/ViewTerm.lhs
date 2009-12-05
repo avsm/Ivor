@@ -32,6 +32,8 @@
 
 > import Data.Typeable
 > import Data.List
+> import Data.Binary
+> import Control.Monad
 > import Debug.Trace
 
 > name :: String -> Name
@@ -52,7 +54,7 @@
 > -- is for. 
 > data NameType = Bound | Free | DataCon | TypeCon | ElimOp 
 >               | Unknown -- ^ Use for sending to typechecker.
->   deriving Show
+>   deriving (Show, Enum)
 
 > -- | Construct a term representing a variable
 > mkVar :: String -- ^ Variable name
@@ -81,6 +83,8 @@
 >     | Metavar { var :: Name }
 
 > data Annot = FileLoc FilePath Int -- ^ source file, line number
+
+
 
 > instance Eq ViewTerm where
 >     (==) (Name _ x) (Name _ y) = x == y
@@ -380,3 +384,23 @@
 >     doTr x = case matchMeta lhs x of
 >                 Just vars -> replaceMeta vars rhs
 >                 Nothing -> x
+
+> instance Binary Name where
+>     put (UN s) = do put (0 :: Word8); put s
+>     put (MN s) = do put (1 :: Word8); put s
+
+>     get = do tag <- getWord8
+>              case tag of
+>                0 -> liftM UN get
+>                1 -> liftM MN get
+
+> instance Binary NameType where
+>     put x = put (fromEnum x)
+>     get = do t <- get
+>              return (toEnum t)
+
+> instance Binary Annot where
+>     put (FileLoc p i) = do put p; put i
+>     get = do p <- get
+>              i <- get
+>              return (FileLoc p i)

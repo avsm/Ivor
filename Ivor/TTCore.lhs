@@ -9,6 +9,7 @@
 > import Data.Char
 > import Control.Monad.State
 > import Data.Typeable
+> import Data.Binary hiding (get,put)
 > import Debug.Trace
 
 Raw terms are those read in directly from the user, and may be badly typed.

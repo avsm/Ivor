@@ -107,6 +107,8 @@
 >     (==) (Ivor.ViewTerm.Eval t) (Ivor.ViewTerm.Eval t') = t==t'
 >     (==) (Ivor.ViewTerm.Escape t) (Ivor.ViewTerm.Escape t') = t==t'
 >     (==) (Annotation _ t) (Annotation _ t') = t == t'
+>     (==) (Annotation _ t) t' = t == t'
+>     (==) t (Annotation _ t') = t == t'
 >     (==) _ _ = False
 
 > -- | Haskell types which can be used as constants

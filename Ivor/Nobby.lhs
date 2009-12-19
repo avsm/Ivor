@@ -168,7 +168,7 @@ Do the actual evaluation
 
 > patmatch :: Gamma Name -> Ctxt -> [PMDef Name] -> [Value] -> Maybe Value
 > patmatch gam g [] _ = Nothing
-> patmatch gam g ((Sch pats ret):ps) vs = case pm gam g pats vs ret [] of
+> patmatch gam g ((Sch pats _ ret):ps) vs = case pm gam g pats vs ret [] of
 >                         Nothing -> patmatch gam g ps vs
 >                         Just v -> Just v
 

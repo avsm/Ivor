@@ -267,6 +267,7 @@
 
 > data PClause = PClause {
 >                         arguments :: [ViewTerm],
+>                         boundnames :: [(Name, ViewTerm)],
 >                         returnval :: ViewTerm
 >                        }
 >              | PWithClause {
@@ -281,7 +282,7 @@
 >    deriving Show
 
 > mkRawClause :: PClause -> RawScheme
-> mkRawClause (PClause args ret) =
+> mkRawClause (PClause args _ ret) =
 >     RSch (map forget args) (RWRet (forget ret))
 > mkRawClause (PWithClause prf args scr (Patterns rest)) = 
 >     RSch (map forget args) (RWith prf (forget scr) (map mkRawClause rest))
@@ -904,8 +905,12 @@ Give a parseable but ugly representation of a term.
 >                         Patterns [mkCAFpat ind])
 >           _ -> fail "Not a pattern matching definition"
 >    where getPats (PMFun _ ps) = ps
->          mkPat (Sch ps ret) = PClause (map viewPat ps) (view (Term (ret, (Ind TTCore.Star))))
->          mkCAFpat tm = PClause [] (view (Term (tm, (Ind TTCore.Star))))
+>          mkPat (Sch ps bs ret) 
+>               = PClause (map viewPat ps) 
+>                         (map (\ (n, B _ t) -> 
+>                            (n, (view (Term (Ind t, (Ind TTCore.Star)))))) bs)
+>                 (view (Term (ret, (Ind TTCore.Star))))
+>          mkCAFpat tm = PClause [] [] (view (Term (tm, (Ind TTCore.Star))))
 >          viewPat (PVar n) = Name Bound n --(name (show n))
 >          viewPat (PCon t n ty ts) = VTerm.apply (Name Bound (name (show n))) (map viewPat ts)
 >          viewPat (PConst c) = Constant c
@@ -998,7 +1003,7 @@ Examine pattern matching elimination rules
 >             elim <- lookupM rule (eliminators st)
 >             return $ Patterns $ map mkRed (fst $ snd elim)
 >       Nothing -> fail $ (show nm) ++ " is not a type constructor"
->  where mkRed (RSch pats (RWRet ret)) = PClause (map viewRaw pats) (viewRaw ret)
+>  where mkRed (RSch pats (RWRet ret)) = PClause (map viewRaw pats) [] (viewRaw ret)
 >         -- a reduction will only have variables and applications
 >        viewRaw (Var n) = Name Free n
 >        viewRaw (RApp f a) = VTerm.App (viewRaw f) (viewRaw a)

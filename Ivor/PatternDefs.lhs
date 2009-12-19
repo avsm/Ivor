@@ -87,7 +87,7 @@ there are no increasing arguments and at least one decreasing argument.
 
 Check for definition 1 above: one argument position is well founded
 
->         wfClause args (Sch pats (Ind t)) = do
+>         wfClause args (Sch pats _ (Ind t)) = do
 >            let recs = findRec [] t
 >            case recs of
 >               [] -> return args
@@ -96,7 +96,7 @@ Check for definition 1 above: one argument position is well founded
 Check for definition 2 above: all recursive calls have a decreasing argument
 and no increasing arguments
 
->         allDec (Sch pats (Ind t)) err = do
+>         allDec (Sch pats _ (Ind t)) err = do
 >            let recs = findRec [] t
 >            case allRecDec pats recs of
 >              Success v -> return v
@@ -216,8 +216,8 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                let namesret = filter (notGlobal gam') $ getNames (Sc rtmtt')
 >                let namesbound = getNames (Sc tmtt)
 >                checkAllBound (fileLine ret) namesret namesbound (Ind rtmtt') tmtt rty pty
->                -- trace (show (unified, rtmtt, tm, rtmtt')) $ 
->                return ((tm, Ind rtmtt', newdefs), [], newdefs, True)
+>                -- trace (show env) $
+>                return ((tm, Ind rtmtt', env), [], newdefs, True)
 >         mytypecheck gam (clause, (RWith addprf scr pats)) i =
 >             do -- Get the type of scrutinee, construct the type of the auxiliary definition
 >                (tm@(Ind clausett), clausety, _, scrty@(Ind stt), env) <- checkAndBindWith gam clause scr fn
@@ -299,7 +299,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >         addContext (Just (f,l)) err = IContext (f ++ ":" ++ show l ++ ":") err
 
 > mkScheme :: Gamma Name -> (Indexed Name, Indexed Name) -> PMDef Name
-> mkScheme gam (Ind pat, ret) = Sch (map mkpat (getPatArgs pat)) ret
+> mkScheme gam (Ind pat, ret) = Sch (map mkpat (getPatArgs pat)) [] ret
 >   where mkpat (P n) = PVar n
 >         mkpat (App f a) = addPatArg (mkpat f) (mkpat a)
 >         mkpat (Con i nm ar) = mkPatV nm (lookupval nm gam)

@@ -162,7 +162,7 @@ Data declarations and pattern matching
 > data RawScheme = RSch [Raw] RawWith
 >   deriving Show
 
-> data Scheme n = Sch [Pattern n] {- With -} (Indexed n)
+> data Scheme n = Sch [Pattern n] (Env n) (Indexed n)
 >         deriving Show
 
 > type PMRaw = RawScheme

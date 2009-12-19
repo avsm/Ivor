@@ -1,3 +1,5 @@
+FIXME: I don't believe this is used. Make it go away.
+
 > module Ivor.ICompile where
 
 > import Ivor.TTCore
@@ -32,8 +34,8 @@ families, although we should do better later.
 >			 let top = map schhead ss'
 >			     rest = map schtail ss' in
 >			 icomp' top rest es'
->          schhead (Sch x red) = (head x, red)
->          schtail (Sch x red) = Sch (tail x) red
+>          schhead (Sch x bs red) = (head x, red)
+>          schtail (Sch x bs red) = Sch (tail x) bs red
 >          icomp' x xs (e:es) | allDisjoint (map fst x) = doCase1 e x
 >		              | otherwise = error "Can't find a scrutinee"
 >          orderPatts = sortBy cmpPat
@@ -44,7 +46,7 @@ I wish I'd written a comment here when I wrote this...
 > mangleArgOrder :: [Scheme Name] -> [Int] -> [Scheme Name]
 > mangleArgOrder [] _ = []
 > mangleArgOrder (x:xs) es = (ma' x es):(mangleArgOrder xs es)
->    where ma' (Sch ps ired) es = Sch (reorder ps es) ired
+>    where ma' (Sch ps bs ired) es = Sch (reorder ps es) bs ired
 >          reorder ps xs = foldl (\ih x -> (ps!!x):ih) [] xs
 
 > allDisjoint ps = numDisjoint ps == length ps

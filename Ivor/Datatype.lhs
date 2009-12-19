@@ -43,8 +43,8 @@ Elaborated version with elimination rule and iota schemes.
 >	        }
 >       deriving Show
 
-> getPat (Sch p i) = p
-> getRed (Sch p i) = i
+> getPat (Sch p _ i) = p
+> getRed (Sch p _ i) = i
 
 > getArity [] = 2 -- empty data type should have elim rule of arity 2!
 >                 -- (actually not if they're dependent. Fix this.)
@@ -103,7 +103,7 @@ then pattern variables are retrieved by projection with Proj in typechecked t.
 >     do let ps = map (mkPat gamma) pats
 >	 let rhsvars = getPatVars gamma ps
 >        let rhs = substVars gamma n rhsvars ret
->	 return (Sch (reverse ps) (Ind rhs))
+>	 return (Sch (reverse ps) [] (Ind rhs))
 
 Make a pattern from a raw term. Anything weird, just make it a "PTerm".
 

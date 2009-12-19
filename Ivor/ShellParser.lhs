@@ -131,7 +131,7 @@ which runs it.
 > pclauseret :: [ViewTerm] -> Maybe (Parser ViewTerm) -> Parser PClause
 > pclauseret args ext = do lchar '='
 >                          ret <- pTerm ext
->                          return $ PClause args ret
+>                          return $ PClause args [] ret
 
 > pclausewith :: String -> [ViewTerm] -> Maybe (Parser ViewTerm) -> Parser PClause
 > pclausewith nm args ext = do lchar '|'

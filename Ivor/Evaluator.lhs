@@ -173,7 +173,7 @@ Code			Stack	Env	Result
 >     match :: Scheme Name -> [TT Name] -> SEnv -> 
 >              [(Name, TT Name)] ->
 >              State (Maybe [(Name, Int)]) (Maybe (TT Name, [(Name, TT Name)], Stack))
->     match (Sch pats rhs) xs env patvars 
+>     match (Sch pats _ rhs) xs env patvars 
 >               = matchargs pats xs rhs env patvars []
 >     matchargs [] xs (Ind rhs) env patvars pv' = return $ Just (rhs, pv', xs)
 >     matchargs (p:ps) (x:xs) rhs env patvars pv'

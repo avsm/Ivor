@@ -158,9 +158,9 @@
 >                         (Name DataCon _) -> return (respondLn st "Data constructor")
 >                         _ -> fail "Unknown definition"
 >     where printPats (Patterns cs) = unlines (map printClause cs)
->           printClause (PClause args ret) = n ++ " " ++
->                                            unwords (map argshow args) ++
->                                            " = " ++ show ret
+>           printClause (PClause args _ ret) = n ++ " " ++
+>                                              unwords (map argshow args) ++
+>                                              " = " ++ show ret
 >           argshow x | ' ' `elem` show x = "(" ++ show x ++ ")"
 >                     | otherwise = show x
 

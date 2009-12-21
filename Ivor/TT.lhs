@@ -1,5 +1,3 @@
-> {-# OPTIONS_GHC -fglasgow-exts #-}
-
 > -- |
 > -- Module      : Ivor.TT
 > -- Copyright   : Edwin Brady

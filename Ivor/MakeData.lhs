@@ -1,5 +1,3 @@
-> {-# OPTIONS_GHC -fglasgow-exts #-}
-
 > module Ivor.MakeData where
 
 > import Ivor.TTCore

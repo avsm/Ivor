@@ -1,5 +1,3 @@
-> {-# OPTIONS_GHC -fglasgow-exts #-}
-
 > module Ivor.Tactics where
 
 > import Ivor.TTCore

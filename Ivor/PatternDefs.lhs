@@ -9,6 +9,7 @@
 > import Ivor.Unify
 > import Ivor.Errors
 > import Ivor.Values
+> import Ivor.Evaluator
 
 > import Debug.Trace
 > import Data.List
@@ -24,8 +25,9 @@ Also return whether the function is definitely total.
 > checkDef :: Gamma Name -> Name -> Raw -> [PMRaw] -> 
 >             Bool -> -- Check for coverage
 >             Bool -> -- Check for well-foundedness
+>             Maybe [(Name, Int)] -> -- Names to specialise
 >             IvorM ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
-> checkDef gam fn tyin pats cover wellfounded = do
+> checkDef gam fn tyin pats cover wellfounded spec = do
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
 >   clausesIn <- mapM (expandClause gam) pats
@@ -37,7 +39,7 @@ Also return whether the function is definitely total.
 >   checkNotExists fn gam
 >   gam' <- gInsert fn (G Undefined ty defplicit) gam
 >   clauses' <- validClauses gam' fn ty clauses'
->   (pmdefs, newdefs, covers) <- matchClauses gam' fn pats tyin ty cover clauses'
+>   (pmdefs, newdefs, covers) <- matchClauses gam' fn pats tyin ty cover clauses' spec
 >   wf <- return True 
 >         {- if wellfounded then
 >             do checkWellFounded gam fn [0..arity-1] pmdef
@@ -175,13 +177,14 @@ For each Raw clause, try to match it against a generated and checked clause.
 Match up the inferred arguments to the names (so getting the types of the
 names bound in patterns) then type check the right hand side.
 
-Each clause may generate auxiliary definitions, so return all definitons created.
+Each clause may generate auxiliary definitions, so return all definitions created.
 
 > matchClauses :: Gamma Name -> Name -> [PMRaw] -> Raw -> Indexed Name -> 
 >                 Bool -> -- Check coverage
 >                 [(Indexed Name, Indexed Name)] -> 
+>                 Maybe [(Name, Int)] ->
 >                 IvorM ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
-> matchClauses gam fn pats tyin ty@(Ind ty') cover gen = do
+> matchClauses gam fn pats tyin ty@(Ind ty') cover gen spec = do
 >    let raws = zip (map mkRaw pats) (map getRet pats)
 >    (checkpats, newdefs, aux, covers) <- mytypechecks gam raws [] [] [] True
 >    cv <- if cover then 
@@ -217,7 +220,11 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                let namesbound = getNames (Sc tmtt)
 >                checkAllBound (fileLine ret) namesret namesbound (Ind rtmtt') tmtt rty pty
 >                -- trace (show env) $
->                return ((tm, Ind rtmtt', env), [], newdefs, True)
+>                let specrtm = case spec of
+>                                Nothing -> Ind rtmtt'
+>                                Just [] -> eval_nf gam (Ind rtmtt')
+>                                Just ns -> trace (show (rtmtt', ns)) $ eval_nf_limit gam (Ind rtmtt') ns
+>                return ((tm, specrtm, env), [], newdefs, True)
 >         mytypecheck gam (clause, (RWith addprf scr pats)) i =
 >             do -- Get the type of scrutinee, construct the type of the auxiliary definition
 >                (tm@(Ind clausett), clausety, _, scrty@(Ind stt), env) <- checkAndBindWith gam clause scr fn
@@ -244,7 +251,7 @@ Each clause may generate auxiliary definitions, so return all definitons created
 >                let gam' = insertGam newname (G Undefined newfnTy 0) gam
 >                newpdef <- mapM (newp tm newargs 1 addprf) (zip newpats pats)
 >                (chk, auxdefs, _, _) <- mytypecheck gam' (clause, (RWRet ret)) i
->                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover
+>                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover spec
 >                return (chk, auxdefs++auxdefs', newdefs, covers)
 
 >         addLastArg (RBind n (B Pi arg) x) ty scr addprf 

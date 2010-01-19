@@ -308,6 +308,7 @@
 > data PattOpt = Partial -- ^ No need to cover all cases
 >              | GenRec -- ^ No termination checking
 >              | Holey -- ^ Allow metavariables in the definition, which will become theorems which need to be proved.
+>              | Specialise [(Name, Int)] -- ^ Specialise the right hand side
 >   deriving Eq
 
 > -- |Add a new definition to the global state.
@@ -329,6 +330,7 @@
 >               <- tt $ checkDef ndefs n inty (map mkRawClause clauses)
 >                            (not (elem Ivor.TT.Partial opts))
 >                            (not (elem GenRec opts))
+>                            (getSpec opts)
 >         (ndefs',vnewnames) 
 >                <- if (null newnames) then return (ndefs, [])
 >                      else do when (not (Holey `elem` opts)) $ 
@@ -346,6 +348,10 @@
 >             do gam' <- gInsert nm (G (PatternDef def tot (gen nm)) ty defplicit) gam
 >                insertAll xs gam' tot
 >         gen nm = nm /= n -- generated if it's not the provided name.
+
+>         getSpec [] = Nothing
+>         getSpec (Specialise fns:_) = Just fns
+>         getSpec (_:xs) = getSpec xs
 
 > -- |Add a new definition, with its type to the global state.
 > -- These definitions can be recursive, so use with care.

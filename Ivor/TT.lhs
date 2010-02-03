@@ -189,6 +189,7 @@
 >              | NoSuchVar Name
 >              | CantInfer Name ViewTerm
 >              | ErrContext String TTError
+>              | AmbiguousName [Name]
 
 > instance Show TTError where
 >     show (CantUnify t1 t2) = "Can't unify " ++ show t1 ++ " and " ++ show t2
@@ -199,6 +200,7 @@
 >                     " = " ++ show rhs
 >     show (CantInfer  n tm) = "Can't infer value for " ++ show n ++ " in " ++ show tm
 >     show (NoSuchVar n) = "No such name as " ++ show n
+>     show (AmbiguousName ns) = "Ambiguous name " ++ show ns
 >     show (ErrContext c err) = c ++ show err
 
 > instance Error TTError where
@@ -226,6 +228,7 @@
 >                        names
 > getError (ICantInfer nm tm) = CantInfer nm (view (Term (tm, Ind TTCore.Star)))
 > getError (INoSuchVar n) = NoSuchVar n
+> getError (IAmbiguousName ns) = AmbiguousName ns
 > getError (IContext s e) = ErrContext s (getError e)
 
 > -- | Quickly convert a 'ViewTerm' into a real 'Term'.

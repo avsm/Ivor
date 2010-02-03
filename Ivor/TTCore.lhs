@@ -17,6 +17,7 @@ Raw terms are those read in directly from the user, and may be badly typed.
 
 > data Raw
 >     = Var Name
+>     | ROpts [Name]
 >     | RApp Raw Raw
 >     | RBind Name (Binder Raw) Raw
 >     | forall c.(Constant c) => RConst !c
@@ -708,6 +709,7 @@ Apply a function to a list of arguments
 >     forget x = fPrec 10 x where
 >       fPrec :: Int -> Raw -> String
 >       fPrec _ (Var n) = forget n
+>       fPrec _ (ROpts n) = show n
 >       fPrec x (RApp f a) = bracket x 1 $ fPrec 1 f ++ " " ++ fPrec 0 a
 >       fPrec x (RBind n (B Lambda t) sc) = bracket x 2 $
 >           "["++forget n ++":"++fPrec 10 t++"]" ++ fPrec 10 sc

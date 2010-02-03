@@ -63,6 +63,7 @@
 
 > data ViewTerm 
 >     = Name { nametype :: NameType, var :: Name }
+>     | Overloaded { vars :: [Name] } -- ^ on input only, list of possible names, to be resolved to one by the type checker.
 >     | App { fun :: ViewTerm, arg :: ViewTerm }
 >     | Lambda { var :: Name, vartype :: ViewTerm, scope :: ViewTerm }
 >     | Forall { var :: Name, vartype :: ViewTerm, scope :: ViewTerm }
@@ -131,6 +132,7 @@
 >                   constructors :: [(Name,ViewTerm)] }
 
 > instance Forget ViewTerm Raw where
+>     forget (Overloaded vs) = ROpts vs
 >     forget (Ivor.ViewTerm.App f a) = RApp (forget f) (forget a)
 >     forget (Ivor.ViewTerm.Lambda v ty sc) = RBind v 
 >                                            (B TTCore.Lambda (forget ty)) 

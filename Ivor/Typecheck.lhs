@@ -14,6 +14,7 @@
 > import Ivor.Errors
 > import Ivor.Evaluator
 > import Ivor.Values
+> import Ivor.Overloading
 
 > import Control.Monad.State
 > import Data.List
@@ -303,7 +304,8 @@ if (all (\e -> envLT x e) (y:ys))
 >             Maybe (Indexed Name) -> 
 >             IvorM ((Indexed Name, Indexed Name), CheckState)
 > lvlcheck lvl infer next gamma env tm exp 
->     = do runStateT (tcfixupTop env lvl tm exp) (next, infer, [], [], [], Nothing) 
+>     = -- let tms = getTerms tm in
+>           runStateT (tcfixupTop env lvl tm exp) (next, infer, [], [], [], Nothing)
 >  where
 
 Do the typechecking, then unify all the inferred terms.
@@ -378,6 +380,8 @@ typechecker...
 >                          else lift $ ifail (errCtxt fc (INoSuchVar n))
 >                Just (B Pi t) -> return (Ind (P n), Ind t)
 
+>  tc env lvl (ROpts ns) Nothing = fail $ "Need a type for overloaded names"
+>  tc env lvl (ROpts ns) (Just exp) = fail $ "Overloading not implemented (" ++ show ns ++ " : " ++ show exp ++ ")"
 >  tc env lvl (RApp f a) exp = do
 >     (Ind fv, Ind ft) <- tcfixup env lvl f Nothing
 >     let fnfng = normaliseEnv env emptyGam (Ind ft)

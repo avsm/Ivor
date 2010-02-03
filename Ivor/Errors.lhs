@@ -12,6 +12,7 @@
 >             | INoSuchVar Name
 >             | ICantInfer Name (Indexed Name)
 >             | IContext String IError
+>             | IAmbiguousName [Name]
 >   deriving (Show, Eq)
 
 > instance Error IError where

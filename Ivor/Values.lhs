@@ -195,6 +195,7 @@ Model represents normal forms, including Ready (reducible) and Blocked
 >     | BPrimOp PrimOp Name
 >     | BRec Name Value
 >     | BP Name
+>     | BMeta Name (Model s)
 >     | BV Int
 >     | BEval (Model s) (Model s)
 >     | BEscape (Model s) (Model s)

@@ -70,6 +70,8 @@ Do the actual evaluation
 >  eval stage gamma g (Con tag n i) = (MB (BCon tag n i, pty n) Empty)
 >  eval stage gamma g (TyCon n 0) = (MR (RTyCon n Empty))
 >  eval stage gamma g (TyCon n i) = (MB (BTyCon n i, pty n) Empty)
+>  eval stage gamma g (Meta n ty) = (MB (BMeta n bty, bty) Empty)
+>     where bty = eval stage gamma g ty
 >  eval stage gamma g (Const x) = (MR (RdConst x))
 >  eval stage gamma g Star = MR RdStar
 >  eval stage gamma (VG g) (Bind n (B Lambda ty) (Sc sc)) =
@@ -99,6 +101,7 @@ Do the actual evaluation
 >          getelim y = error $ show n ++
 >            " is not an elimination rule. Something went wrong." ++ show y
 >  eval stage gamma g (Stage s) = evalStage stage gamma g s
+>  eval stage gamma g x = error $ "eval, can't happen: " ++ show x
 
 >  evalcomp stage gamma g (Comp n ts) = MComp n (map (eval stage gamma g) ts)
 
@@ -261,6 +264,7 @@ Splice the escapes inside a term
 >     weakenp i (BPatDef p n) = BPatDef p n
 >     weakenp i (BRec n v) = BRec n v
 >     weakenp i (BPrimOp e n) = BPrimOp e n
+>     weakenp i (BMeta n ty) = BMeta n (weakenp i ty)
 >     weakenp i (BP n) = BP n
 >     weakenp i (BV j) = BV (weakenp i j)
 >     weakenp i (BEval t ty) = BEval (weakenp i t) (weakenp i ty)
@@ -309,6 +313,7 @@ Splice the escapes inside a term
 > instance Quote (Blocked Kripke) (Blocked Scope) where
 >     quote' ns (BCon t n j) = BCon t n j
 >     quote' ns (BTyCon n j) = BTyCon n j
+>     quote' ns (BMeta n t) = BMeta n (quote' ns t)
 >     quote' ns (BElim e n) = BElim e n
 >     quote' ns (BPatDef p n) = BPatDef p n
 >     quote' ns (BRec n v) = BRec n v
@@ -372,6 +377,7 @@ Quotation to eta long normal form. DOESN'T WORK YET!
 >     forget (BPatDef p n) = P n
 >     forget (BRec n v) = P n
 >     forget (BPrimOp f n) = P n
+>     forget (BMeta n t) = Meta n (forget t)
 >     forget (BP n) = P n
 >     forget (BV i) = V i
 >     forget (BEval t ty) = Stage (Eval (forget t) (forget ty))

@@ -42,8 +42,8 @@ Unify on named terms, but normalise using de Bruijn indices.
 > {- trace (show (x,y) ++ "\n" ++
 >                                    show (p (normalise (gam' gam) x)) ++ "\n" ++
 >                                    show (p (normalise (gam' gam) x))) $-}
->     case unifynferr i env (p x)
->                           (p y) of
+>     case unifynferr False env (p x)
+>                               (p y) of
 >           (Right x) -> return x
 
 >           _ -> {- trace (dbgtt x ++ ", " ++ dbgtt y ++"\n") $ -}

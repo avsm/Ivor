@@ -263,19 +263,32 @@ solvable by unification). (FIXME: Not yet implemented.)
 >        let (Ind nty) = normaliseEnv (ptovenv env) gam (Ind ntyin)
 >        let bvin = makePsEnv (map fst env) bv
 >        -- let (Just (Ind nty)) = lookuptype n gam
+
+Get the names and types of the arguments to be passed to the thing 
+we're refining by.
+
 >        let claimTypes = getClaims (makePsEnv (map fst env) nty)
 >        let rawapp = mkapp rtm (map (\_ -> RInfer) claimTypes)
+
+Normalise the goal.
+
 >        let (Ind tyin') = finalise (normaliseEnv (ptovenv env) gam (Ind ty))
+
+Type check the application we've just built, with the placeholders, some of 
+which may have been solved.
+
 >        (Ind rtch, rtych, ev) <- checkAndBind gam (ptovenv env) rawapp (Just (Ind tyin'))
->        let argguesses = getArgs rtch
->        -- So we'll have an application, some of the arguments with inferred
->        -- names. Let's record which ones...
+>        let argguesses = -- trace (show rawapp ++ "\n" ++ show tyin' ++ "\n" ++ show rtch ++ "\n" ++ show rtych ++ "\nNew env: " ++ show ev) $ 
+>                         getArgs rtch
+
+So we'll have an application, some of the arguments with inferred
+names. Let's record which ones...
+
 >        let claims = uniqifyClaims x env claimTypes
 >        let claimGuesses = zip claims (map appVar argguesses)
->        (tm',_) <- {- trace (show claimGuesses) $ -} doClaims x claimGuesses gam env tm
+>        (tm',_) <- doClaims x claimGuesses gam env tm
 >        let guess = (mkGuess claimGuesses [] (forget bvin))
->        (filled, unified) <- runtacticEnv gam env x tm'
->                  (fill guess)
+>        (filled, unified) <- runtacticEnv gam env x tm' (fill guess)
 >        -- (filled, solved) <- solveUnified [] unified filled
 >        -- filled <- tryDefaults defaults claims filled
 >        -- (tm', _) <- trace (show claims) $ tidy gam env filled

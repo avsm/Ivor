@@ -677,6 +677,12 @@ Apply a function to a list of arguments
 >     (==) (Elim x) (Elim y) = x==y
 >     (==) (App f a) (App f' a') = f==f' && a==a'
 >     (==) (Bind _ b sc) (Bind _ b' sc') = b==b' && sc==sc'
+
+Eta equality:
+
+>     (==) (Bind x (B Lambda ty) (Sc (App t (V 0)))) t' = t == t'
+>     (==) t' (Bind x (B Lambda ty) (Sc (App t (V 0)))) = t == t'
+
 >     (==) (Proj _ i x) (Proj _ j y) = i==j && x==y
 >     (==) (Const x) (Const y) = case cast x of
 >                                   Just x' -> x'==y

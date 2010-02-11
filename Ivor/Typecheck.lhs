@@ -113,7 +113,7 @@ constraints and applying it to the term and type.
 >                 Indexed Name -> Indexed Name -> 
 >                 IvorM (Indexed Name, Indexed Name)
 > doConversion raw gam constraints (Ind tm) (Ind ty) =
->     -- trace ("Finishing checking " ++ show tm ++ " with " ++ show (length constraints) ++ " equations") $ 
+>      -- trace ("Finishing checking " ++ show tm ++ " with " ++ show (length constraints) ++ " equations\n" ++ showeqn (map (\x -> (True,x)) constraints)) $ 
 >           -- Unify twice; first time collect the substitutions, second
 >           -- time do them. Because we don't know what order we can solve
 >           -- constraints in and they might depend on each other...
@@ -179,6 +179,7 @@ Handy to pass through all the variables, for tracing purposes when debugging.
 >                 IvorM (Indexed Name, Indexed Name, Env Name)
 > checkAndBind gam env tm mty = do
 >    ((v,t), (next,inf,e,convs,_,_)) <- lvlcheck 0 True 0 gam env tm mty
+>    e <- convertAllEnv gam convs e
 >    (v'@(Ind vtm),t') <- doConversion tm gam convs v t -- (normalise gam t1') 
 >    return (v',t',e)
 

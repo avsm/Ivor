@@ -3,6 +3,7 @@
 > import Ivor.TTCore
 > import Ivor.Typecheck
 > import Ivor.Nobby
+> import Ivor.Evaluator
 > import Ivor.Gadgets
 > import Ivor.Unify
 > import Ivor.Errors
@@ -399,7 +400,7 @@ Normalise the goal
 
 > evalGoal :: Tactic
 > evalGoal gam env (Ind (Bind x (B Hole ty) sc)) =
->    do let (Ind nty) = normaliseEnv (ptovenv env) gam (finalise (Ind ty))
+>    do let (Ind nty) = eval_nf_env (ptovenv env) gam (finalise (Ind ty))
 >       tacret $ Ind (Bind x (B Hole nty) sc)
 > evalGoal _ _ (Ind (Bind x _ _)) = fail $ "evalGoal: " ++ show x ++ " Not a hole"
 > evalGoal _ _ _ = fail "evalGoal: Can't happen"

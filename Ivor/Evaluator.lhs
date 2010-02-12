@@ -1,6 +1,7 @@
 > {-# OPTIONS_GHC -fglasgow-exts #-}
 
-> module Ivor.Evaluator(eval_whnf, eval_nf, eval_nf_without, eval_nf_limit,
+> module Ivor.Evaluator(eval_whnf, eval_nf, eval_nf_env,
+>                       eval_nf_without, eval_nf_limit,
 >                       eval_nfEnv, tidyNames) where
 
 > import Ivor.TTCore
@@ -25,6 +26,14 @@
 > eval_nf :: Gamma Name -> Indexed Name -> Indexed Name
 > eval_nf gam (Ind tm) = let res = makePs (evaluate True gam tm Nothing Nothing)
 >                            in finalise (Ind res)
+
+> eval_nf_env :: Env Name -> Gamma Name -> Indexed Name -> Indexed Name
+> eval_nf_env env g t
+>     = eval_nf (addenv env g) t
+>   where addenv [] g = g
+>         addenv ((n,B (Let v) ty):xs) (Gam g)
+>             = addenv xs (Gam (Map.insert n (G (Fun [] (Ind v)) (Ind ty) defplicit) g))
+>         addenv (_:xs) g = addenv xs g
 
 > eval_nf_without :: Gamma Name -> Indexed Name -> [Name] -> Indexed Name
 > eval_nf_without gam tm [] = eval_nf gam tm

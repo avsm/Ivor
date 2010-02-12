@@ -115,11 +115,13 @@ Collect names which do unify, and ignore errors
 >                               else ifail $ ICantUnify (Ind x) (Ind y)
 >             where funify (P x) (P y)
 >                       | x==y = True
->                       | otherwise = hole envl x || hole envl y
->                   funify (Con _ _ _) (P x) = hole envr x
->                   funify (P x) (Con _ _ _) = hole envl x
->                   funify (TyCon _ _) (P x) = hole envr x
->                   funify (P x) (TyCon _ _) = hole envl x
+>                       | otherwise = False -- hole envl x || hole envl y
+>                   funify (Con _ _ _) (P x) = False -- hole envr x
+>                   funify (P x) (Con _ _ _) = False -- hole envl x
+>                   funify (TyCon _ _) (P x) = False -- hole envr x
+>                   funify (P x) (TyCon _ _) = False -- hole envl x
+>                   funify (P x) (App _ _) = False
+>                   funify (App _ _) (P x) = False
 >                   funify _ _ = True -- unify normally
 >          un envl envr (Proj _ i t) (Proj _ i' t') acc
 >             | i == i' = un envl envr t t' acc

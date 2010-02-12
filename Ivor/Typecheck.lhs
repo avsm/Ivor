@@ -119,7 +119,7 @@ constraints and applying it to the term and type.
 >           -- constraints in and they might depend on each other...
 >       do let cs = nub constraints
 >          (subst, nms) <- mkSubst $ (map (\x -> (True,x)) cs) ++
->                                    (map (\x -> (False,x)) (reverse cs))
+>                                    (map (\x -> (False,x)) cs)
 >          let tm' = papp subst tm
 >          let ty' = papp subst ty
 >          return (Ind tm',Ind ty')
@@ -140,7 +140,7 @@ Handy to pass through all the variables, for tracing purposes when debugging.
 >                  let x' = papp s' x
 >                  let (Ind y') = eval_nf gam (Ind (papp s' y))
 >                  uns <- case unifyenvErr ok gam env (Ind y') (Ind x') of
->                           Right uns -> {- trace (show (y', x', uns)) $ -} return uns
+>                           Right uns -> return uns
 >                           Left err -> {- trace (showeqn all) $ -} 
 >                                       ifail (errCtxt fc (ICantUnify (Ind y') (Ind x')))
 
@@ -403,11 +403,12 @@ typechecker...
 >          let tt' = (normaliseEnv env gamma (Ind tt))
 >          return (Ind (App fv av), (normaliseEnv env gamma (Ind tt)))
 >        _ -> fail $ "Cannot apply a non function type " ++ show ft ++ " to " ++ show a
->     return (rv,rt)
+>     -- return (rv,rt)
 >     case exp of
 >        Nothing -> return (rv,rt)
->        Just expt -> do checkConvSt env gamma rt expt
->                        return (rv,rt)
+>        Just expt -> -- trace ("Checking " ++ show (rv, rt, expt)) $
+>                      do checkConvSt env gamma rt expt
+>                         return (rv,rt)
 >  tc env lvl (RConst x) _ = lift $ tcConst x
 >  tc env lvl RStar _ = return (Ind Star, Ind Star)
 >  tc env lvl (RFileLoc f l t) exp = 

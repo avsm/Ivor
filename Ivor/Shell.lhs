@@ -26,13 +26,14 @@
 > import Ivor.Equality
 > import Ivor.Gadgets
 > import Ivor.Primitives
-> import qualified Ivor.Prefix
 > import Ivor.Plugin
+> import Paths_ivor
 
 > import System.Exit
 > import System.Environment
 > import System.Directory
 > import System.IO
+> import System.IO.Unsafe
 > import Data.Char
 > import Debug.Trace
 
@@ -388,7 +389,7 @@ Special case for importFile. Grr.
 
 > -- | Get the install prefix of the library
 > prefix :: FilePath
-> prefix = Ivor.Prefix.prefix
+> prefix = unsafePerformIO getDataDir -- Yes, yes, I know.
 
 If the given file is already loaded, do nothing.
 

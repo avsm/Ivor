@@ -223,7 +223,7 @@ Each clause may generate auxiliary definitions, so return all definitions create
 >                let specrtm = case spec of
 >                                Nothing -> Ind rtmtt'
 >                                Just [] -> eval_nf gam (Ind rtmtt')
->                                Just ns -> trace (show (rtmtt', ns)) $ eval_nf_limit gam (Ind rtmtt') ns
+>                                Just ns -> eval_nf_limit gam (Ind rtmtt') ns
 >                return ((tm, specrtm, env), [], newdefs, True)
 >         mytypecheck gam (clause, (RWith addprf scr pats)) i =
 >             do -- Get the type of scrutinee, construct the type of the auxiliary definition

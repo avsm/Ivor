@@ -17,7 +17,8 @@
 >                        -- * Terms
 >                        Term(..), ViewTerm(..), Annot(..), apply,
 >                        view, viewType, ViewConst, typeof, 
->                        freeIn, namesIn, occursIn, subst, getApp, 
+>                        freeIn, namesIn, namesTypesIn, occursIn, 
+>                        subst, getApp, 
 >                        Ivor.ViewTerm.getFnArgs, transform,
 >                        getArgTypes, Ivor.ViewTerm.getReturnType,
 >                        dbgshow,
@@ -54,7 +55,7 @@
 > -- is for. 
 > data NameType = Bound | Free | DataCon | TypeCon | ElimOp 
 >               | Unknown -- ^ Use for sending to typechecker.
->   deriving (Show, Enum)
+>   deriving (Show, Enum, Eq)
 
 > -- | Construct a term representing a variable
 > mkVar :: String -- ^ Variable name
@@ -241,9 +242,13 @@
 
 > -- | Return the names occurring free in a term
 > namesIn :: ViewTerm -> [Name]
-> namesIn t = nub $ fi [] t where
->    fi ns (Ivor.ViewTerm.Name _ x) | x `elem` ns = []
->                                   | otherwise = [x]
+> namesIn t = nub $ (map fst (namesTypesIn t))
+
+> -- | Return the names occurring free in a term, and what kind of name they are
+> namesTypesIn :: ViewTerm -> [(Name, NameType)]
+> namesTypesIn t = nub $ fi [] t where
+>    fi ns (Ivor.ViewTerm.Name t x) | x `elem` ns = []
+>                                   | otherwise = [(x, t)]
 >    fi ns (Ivor.ViewTerm.App f a) = fi ns f ++ fi ns a
 >    fi ns (Ivor.ViewTerm.Lambda x ty sc) = fi (x:ns) sc
 >    fi ns (Forall x ty sc) = fi (x:ns) sc

@@ -919,7 +919,7 @@ Give a parseable but ugly representation of a term.
 >                 (view (Term (ret, (Ind TTCore.Star))))
 >          mkCAFpat tm = PClause [] [] (view (Term (tm, (Ind TTCore.Star))))
 >          viewPat (PVar n) = Name Bound n --(name (show n))
->          viewPat (PCon t n ty ts) = VTerm.apply (Name Bound (name (show n))) (map viewPat ts)
+>          viewPat (PCon t n ty ts) = VTerm.apply (Name DataCon (name (show n))) (map viewPat ts)
 >          viewPat (PConst c) = Constant c
 >          viewPat _ = Placeholder
 

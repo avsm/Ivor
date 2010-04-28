@@ -26,8 +26,9 @@ Also return whether the function is definitely total.
 >             Bool -> -- Check for coverage
 >             Bool -> -- Check for well-foundedness
 >             Maybe [(Name, Int)] -> -- Names to specialise
+>             Maybe [(Name, ([Int], Int))] -> -- Names and static args, when specialising
 >             IvorM ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
-> checkDef gam fn tyin pats cover wellfounded spec = do
+> checkDef gam fn tyin pats cover wellfounded spec specst = do
 >   --x <- expandCon gam (mkapp (Var (UN "S")) [mkapp (Var (UN "S")) [Var (UN "x")]])
 >   --x <- expandCon gam (mkapp (Var (UN "vcons")) [RInfer,RInfer,RInfer,mkapp (Var (UN "vnil")) [Var (UN "foo")]])
 >   clausesIn <- mapM (expandClause gam) pats
@@ -39,7 +40,7 @@ Also return whether the function is definitely total.
 >   checkNotExists fn gam
 >   gam' <- gInsert fn (G Undefined ty defplicit) gam
 >   clauses' <- validClauses gam' fn ty clauses'
->   (pmdefs, newdefs, covers) <- matchClauses gam' fn pats tyin ty cover clauses' spec
+>   (pmdefs, newdefs, covers) <- matchClauses gam' fn pats tyin ty cover clauses' spec specst
 >   wf <- return True 
 >         {- if wellfounded then
 >             do checkWellFounded gam fn [0..arity-1] pmdef
@@ -183,8 +184,9 @@ Each clause may generate auxiliary definitions, so return all definitions create
 >                 Bool -> -- Check coverage
 >                 [(Indexed Name, Indexed Name)] -> 
 >                 Maybe [(Name, Int)] ->
+>                 Maybe [(Name, ([Int], Int))] ->
 >                 IvorM ([(Name, PMFun Name, Indexed Name)], [(Name, Indexed Name)], Bool)
-> matchClauses gam fn pats tyin ty@(Ind ty') cover gen spec = do
+> matchClauses gam fn pats tyin ty@(Ind ty') cover gen spec specst = do
 >    let raws = zip (map mkRaw pats) (map getRet pats)
 >    (checkpats, newdefs, aux, covers) <- mytypechecks gam raws [] [] [] True
 >    cv <- if cover then 
@@ -223,7 +225,7 @@ Each clause may generate auxiliary definitions, so return all definitions create
 >                let specrtm = case spec of
 >                                Nothing -> Ind rtmtt'
 >                                Just [] -> eval_nf gam (Ind rtmtt')
->                                Just ns -> eval_nf_limit gam (Ind rtmtt') ns
+>                                Just ns -> eval_nf_limit gam (Ind rtmtt') ns specst
 >                return ((tm, specrtm, env), [], newdefs, True)
 >         mytypecheck gam (clause, (RWith addprf scr pats)) i =
 >             do -- Get the type of scrutinee, construct the type of the auxiliary definition
@@ -251,7 +253,7 @@ Each clause may generate auxiliary definitions, so return all definitions create
 >                let gam' = insertGam newname (G Undefined newfnTy 0) gam
 >                newpdef <- mapM (newp tm newargs 1 addprf) (zip newpats pats)
 >                (chk, auxdefs, _, _) <- mytypecheck gam' (clause, (RWRet ret)) i
->                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover spec
+>                (auxdefs', newdefs, covers) <- checkDef gam' newname (forget newfnTy) newpdef False cover spec specst
 >                return (chk, auxdefs++auxdefs', newdefs, covers)
 
 >         addLastArg (RBind n (B Pi arg) x) ty scr addprf 

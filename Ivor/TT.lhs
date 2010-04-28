@@ -312,6 +312,7 @@
 >              | GenRec -- ^ No termination checking
 >              | Holey -- ^ Allow metavariables in the definition, which will become theorems which need to be proved.
 >              | Specialise [(Name, Int)] -- ^ Specialise the right hand side
+>              | SpecStatic [(Name, ([Int], Int))] -- ^ Functions plus static arguments, plus arity, for use when specialising
 >   deriving Eq
 
 > -- |Add a new definition to the global state.
@@ -334,6 +335,7 @@
 >                            (not (elem Ivor.TT.Partial opts))
 >                            (not (elem GenRec opts))
 >                            (getSpec opts)
+>                            (getSpecSt opts)
 >         (ndefs',vnewnames) 
 >                <- if (null newnames) then return (ndefs, [])
 >                      else do when (not (Holey `elem` opts)) $ 
@@ -355,6 +357,10 @@
 >         getSpec [] = Nothing
 >         getSpec (Specialise fns:_) = Just fns
 >         getSpec (_:xs) = getSpec xs
+
+>         getSpecSt [] = Nothing
+>         getSpecSt (SpecStatic fns:_) = Just fns
+>         getSpecSt (_:xs) = getSpecSt xs
 
 > -- |Add a new definition, with its type to the global state.
 > -- These definitions can be recursive, so use with care.
@@ -794,14 +800,16 @@ Give a parseable but ugly representation of a term.
 > -- |Reduce a term and its type to Normal Form (using new evaluator, not
 > -- reducing given names)
 > evalnewWithout :: Context -> Term -> [Name] -> Term
-> evalnewWithout (Ctxt st) (Term (tm,ty)) ns = Term (tidyNames (eval_nf_without (defs st) tm ns),
->                                                    tidyNames (eval_nf_without (defs st) ty ns))
+> evalnewWithout (Ctxt st) (Term (tm,ty)) ns 
+>                    = Term (tidyNames (eval_nf_without (defs st) tm ns),
+>                            tidyNames (eval_nf_without (defs st) ty ns))
 
 > -- |Reduce a term and its type to Normal Form (using new evaluator, reducing
 > -- given names a maximum number of times)
 > evalnewLimit :: Context -> Term -> [(Name, Int)] -> Term
-> evalnewLimit (Ctxt st) (Term (tm,ty)) ns = Term (eval_nf_limit (defs st) tm ns,
->                                                  eval_nf_limit (defs st) ty ns)
+> evalnewLimit (Ctxt st) (Term (tm,ty)) ns 
+>                  = Term (eval_nf_limit (defs st) tm ns Nothing,
+>                          eval_nf_limit (defs st) ty ns Nothing)
 
 > -- |Check a term in the context of the given goal
 > checkCtxt :: (IsTerm a) => Context -> Goal -> a -> TTM Term
